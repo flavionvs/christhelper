@@ -1,191 +1,224 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Stripe = require('stripe');
+const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'christhelper.db');
+const PORT = Number(process.env.PORT || 3000);
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://127.0.0.1:5500';
+const CURRENCY = (process.env.STRIPE_CURRENCY || 'nzd').toLowerCase();
+const DATA_FILE = path.resolve(__dirname, process.env.DATA_FILE || './data.json');
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
-const CURRENCY = process.env.STRIPE_CURRENCY || 'nzd';
-
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
-
-function initDb() {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'supporter',
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS projects (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      summary TEXT NOT NULL,
-      description TEXT NOT NULL,
-      country TEXT NOT NULL,
-      continent TEXT NOT NULL,
-      city TEXT,
-      category TEXT NOT NULL,
-      help_types TEXT NOT NULL,
-      requester_name TEXT NOT NULL,
-      organization_name TEXT,
-      church_ministry_linked TEXT,
-      contact_email TEXT NOT NULL,
-      urgency TEXT NOT NULL DEFAULT 'normal',
-      is_online INTEGER NOT NULL DEFAULT 0,
-      needs_financial_support INTEGER NOT NULL DEFAULT 0,
-      funding_goal REAL NOT NULL DEFAULT 0,
-      funding_approved INTEGER NOT NULL DEFAULT 0,
-      amount_raised REAL NOT NULL DEFAULT 0,
-      admin_reviewed INTEGER NOT NULL DEFAULT 0,
-      verified_ministry INTEGER NOT NULL DEFAULT 0,
-      status TEXT NOT NULL DEFAULT 'active',
-      timeline TEXT,
-      who_benefits TEXT,
-      why_it_matters TEXT,
-      created_by INTEGER,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (created_by) REFERENCES users(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS prayers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER NOT NULL,
-      name TEXT,
-      message TEXT,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (project_id) REFERENCES projects(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS replies (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER NOT NULL,
-      type TEXT NOT NULL,
-      name TEXT NOT NULL,
-      email TEXT,
-      message TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (project_id) REFERENCES projects(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS donations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER,
-      donor_name TEXT,
-      donor_email TEXT,
-      amount_project REAL NOT NULL DEFAULT 0,
-      amount_platform REAL NOT NULL DEFAULT 0,
-      currency TEXT NOT NULL DEFAULT '${CURRENCY}',
-      stripe_session_id TEXT,
-      payment_status TEXT NOT NULL DEFAULT 'pending',
-      donation_type TEXT NOT NULL DEFAULT 'project',
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (project_id) REFERENCES projects(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS updates (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER NOT NULL,
-      title TEXT NOT NULL,
-      content TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (project_id) REFERENCES projects(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS reports (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER NOT NULL,
-      reason TEXT NOT NULL,
-      details TEXT,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (project_id) REFERENCES projects(id)
-    );
-  `);
-
-  const admin = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@christhelper.local');
-  if (!admin) {
-    const hash = bcrypt.hashSync('admin123', 10);
-    db.prepare('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)')
-      .run('ChristHelper Admin', 'admin@christhelper.local', hash, 'admin');
-  }
-
-  const count = db.prepare('SELECT COUNT(*) as total FROM projects').get().total;
-  if (count === 0) {
-    const insert = db.prepare(`
-      INSERT INTO projects (
-        title, summary, description, country, continent, city, category, help_types,
-        requester_name, organization_name, church_ministry_linked, contact_email,
-        urgency, is_online, needs_financial_support, funding_goal, funding_approved,
-        amount_raised, admin_reviewed, verified_ministry, timeline, who_benefits, why_it_matters
-      ) VALUES (
-        @title, @summary, @description, @country, @continent, @city, @category, @help_types,
-        @requester_name, @organization_name, @church_ministry_linked, @contact_email,
-        @urgency, @is_online, @needs_financial_support, @funding_goal, @funding_approved,
-        @amount_raised, @admin_reviewed, @verified_ministry, @timeline, @who_benefits, @why_it_matters
-      )
-    `);
-
-    const seedProjects = [
-      {
-        title: 'Youth Outreach Weekend in Auckland',
-        summary: 'Local church seeking prayer, volunteers, and small funding support for a youth outreach weekend.',
-        description: 'We are organizing a youth outreach weekend with worship, games, testimonies, and evangelism activities. We need volunteers, prayer covering, and support for transport and food.',
-        country: 'New Zealand', continent: 'Oceania', city: 'Auckland', category: 'Youth ministry',
-        help_types: JSON.stringify(['Prayer', 'Volunteer', 'Financial support']), requester_name: 'Pastor Daniel',
-        organization_name: 'Hope Community Church', church_ministry_linked: 'Hope Community Church', contact_email: 'pastor@example.com',
-        urgency: 'high', is_online: 0, needs_financial_support: 1, funding_goal: 1200, funding_approved: 1,
-        amount_raised: 350, admin_reviewed: 1, verified_ministry: 1, timeline: 'May 2026',
-        who_benefits: 'Teenagers and young adults in the community', why_it_matters: 'Many youth are disconnected from church and need hope, mentoring, and community.'
-      },
-      {
-        title: 'Bible Distribution for Rural Families',
-        summary: 'Mission project requesting prayer and financial support to distribute Bibles in remote communities.',
-        description: 'A mission team is preparing a Bible distribution trip for remote communities with limited access to Christian resources. Support is needed for travel, printing, and prayer.',
-        country: 'Brazil', continent: 'South America', city: 'Manaus', category: 'Bible distribution',
-        help_types: JSON.stringify(['Prayer', 'Financial support', 'Guidance']), requester_name: 'Missionary Ana',
-        organization_name: 'Grace Missions', church_ministry_linked: 'Grace Missions', contact_email: 'ana@example.com',
-        urgency: 'normal', is_online: 0, needs_financial_support: 1, funding_goal: 2500, funding_approved: 1,
-        amount_raised: 900, admin_reviewed: 1, verified_ministry: 0, timeline: 'June 2026',
-        who_benefits: 'Families in remote river communities', why_it_matters: 'Access to Scripture is limited and many families have requested Bibles and study material.'
-      },
-      {
-        title: 'Christian Media Website Launch',
-        summary: 'A Christian media team needs mentorship, technical guidance, and prayer to launch a discipleship website.',
-        description: 'We are building a Christian media website with articles, devotionals, and teaching resources. We need advice on launch strategy, content planning, and volunteers for editing.',
-        country: 'United States', continent: 'North America', city: 'Online', category: 'Christian media',
-        help_types: JSON.stringify(['Prayer', 'Mentorship', 'Services']), requester_name: 'Sarah Lee',
-        organization_name: 'Light Online', church_ministry_linked: '', contact_email: 'sarah@example.com',
-        urgency: 'low', is_online: 1, needs_financial_support: 0, funding_goal: 0, funding_approved: 0,
-        amount_raised: 0, admin_reviewed: 1, verified_ministry: 0, timeline: 'Ongoing',
-        who_benefits: 'Online readers and small groups', why_it_matters: 'Many people need accessible digital discipleship resources.'
-      }
-    ];
-
-    const insertUpdate = db.prepare('INSERT INTO updates (project_id, title, content) VALUES (?, ?, ?)');
-    for (const project of seedProjects) {
-      const result = insert.run(project);
-      insertUpdate.run(result.lastInsertRowid, 'Project created', 'Thank you for standing with this need. We will post updates as support comes in.');
-    }
-  }
-}
-
-initDb();
 
 app.use(cors());
 app.use('/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
+
+function now() {
+  return new Date().toISOString();
+}
+
+function createId() {
+  return crypto.randomUUID();
+}
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function readDb() {
+  if (!fs.existsSync(DATA_FILE)) {
+    const seeded = createSeedData();
+    fs.writeFileSync(DATA_FILE, JSON.stringify(seeded, null, 2));
+    return seeded;
+  }
+
+  const raw = fs.readFileSync(DATA_FILE, 'utf8').trim();
+  if (!raw) {
+    const seeded = createSeedData();
+    fs.writeFileSync(DATA_FILE, JSON.stringify(seeded, null, 2));
+    return seeded;
+  }
+
+  const db = JSON.parse(raw);
+  let changed = false;
+
+  for (const key of ['users', 'projects', 'prayers', 'replies', 'donations', 'updates', 'reports']) {
+    if (!Array.isArray(db[key])) {
+      db[key] = [];
+      changed = true;
+    }
+  }
+
+  if (!db.meta || typeof db.meta !== 'object') {
+    db.meta = { version: 1, created_at: now() };
+    changed = true;
+  }
+
+  if (!db.users.find((u) => u.email === 'admin@christhelper.local')) {
+    db.users.push({
+      id: createId(),
+      name: 'ChristHelper Admin',
+      email: 'admin@christhelper.local',
+      password_hash: bcrypt.hashSync('admin123', 10),
+      role: 'admin',
+      created_at: now()
+    });
+    changed = true;
+  }
+
+  if (changed) writeDb(db);
+  return db;
+}
+
+function writeDb(db) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2));
+}
+
+function withDb(action) {
+  const db = readDb();
+  const result = action(db);
+  writeDb(db);
+  return result;
+}
+
+function createSeedData() {
+  const adminId = createId();
+  const project1 = createId();
+  const project2 = createId();
+  const project3 = createId();
+
+  return {
+    meta: {
+      version: 1,
+      created_at: now()
+    },
+    users: [
+      {
+        id: adminId,
+        name: 'ChristHelper Admin',
+        email: 'admin@christhelper.local',
+        password_hash: bcrypt.hashSync('admin123', 10),
+        role: 'admin',
+        created_at: now()
+      }
+    ],
+    projects: [
+      {
+        id: project1,
+        title: 'Youth Outreach Weekend in Auckland',
+        summary: 'Local church seeking prayer, volunteers, and small funding support for a youth outreach weekend.',
+        description: 'We are organizing a youth outreach weekend with worship, games, testimonies, and evangelism activities. We need volunteers, prayer covering, and support for transport and food.',
+        country: 'New Zealand',
+        continent: 'Oceania',
+        city: 'Auckland',
+        category: 'Youth ministry',
+        help_types: ['Prayer', 'Volunteer', 'Financial support'],
+        requester_name: 'Pastor Daniel',
+        organization_name: 'Hope Community Church',
+        church_ministry_linked: 'Hope Community Church',
+        contact_email: 'pastor@example.com',
+        urgency: 'high',
+        is_online: false,
+        needs_financial_support: true,
+        funding_goal: 1200,
+        funding_approved: true,
+        amount_raised: 350,
+        admin_reviewed: true,
+        verified_ministry: true,
+        status: 'active',
+        timeline: 'May 2026',
+        who_benefits: 'Teenagers and young adults in the community',
+        why_it_matters: 'Many youth are disconnected from church and need hope, mentoring, and community.',
+        created_by: adminId,
+        created_at: now()
+      },
+      {
+        id: project2,
+        title: 'Bible Distribution for Rural Families',
+        summary: 'Mission project requesting prayer and financial support to distribute Bibles in remote communities.',
+        description: 'A mission team is preparing a Bible distribution trip for remote communities with limited access to Christian resources. Support is needed for travel, printing, and prayer.',
+        country: 'Brazil',
+        continent: 'South America',
+        city: 'Manaus',
+        category: 'Bible distribution',
+        help_types: ['Prayer', 'Financial support', 'Guidance'],
+        requester_name: 'Missionary Ana',
+        organization_name: 'Grace Missions',
+        church_ministry_linked: 'Grace Missions',
+        contact_email: 'ana@example.com',
+        urgency: 'normal',
+        is_online: false,
+        needs_financial_support: true,
+        funding_goal: 2500,
+        funding_approved: true,
+        amount_raised: 900,
+        admin_reviewed: true,
+        verified_ministry: false,
+        status: 'active',
+        timeline: 'June 2026',
+        who_benefits: 'Families in remote river communities',
+        why_it_matters: 'Access to Scripture is limited and many families have requested Bibles and study material.',
+        created_by: adminId,
+        created_at: now()
+      },
+      {
+        id: project3,
+        title: 'Christian Media Website Launch',
+        summary: 'A Christian media team needs mentorship, technical guidance, and prayer to launch a discipleship website.',
+        description: 'We are building a Christian media website with articles, devotionals, and teaching resources. We need advice on launch strategy, content planning, and volunteers for editing.',
+        country: 'United States',
+        continent: 'North America',
+        city: 'Online',
+        category: 'Christian media',
+        help_types: ['Prayer', 'Mentorship', 'Services'],
+        requester_name: 'Sarah Lee',
+        organization_name: 'Light Online',
+        church_ministry_linked: '',
+        contact_email: 'sarah@example.com',
+        urgency: 'low',
+        is_online: true,
+        needs_financial_support: false,
+        funding_goal: 0,
+        funding_approved: false,
+        amount_raised: 0,
+        admin_reviewed: true,
+        verified_ministry: false,
+        status: 'active',
+        timeline: 'Ongoing',
+        who_benefits: 'Online readers and small groups',
+        why_it_matters: 'Many people need accessible digital discipleship resources.',
+        created_by: adminId,
+        created_at: now()
+      }
+    ],
+    prayers: [],
+    replies: [],
+    donations: [],
+    updates: [
+      { id: createId(), project_id: project1, title: 'Project created', content: 'Thank you for standing with this need. We will post updates as support comes in.', created_at: now() },
+      { id: createId(), project_id: project2, title: 'Project created', content: 'Thank you for standing with this need. We will post updates as support comes in.', created_at: now() },
+      { id: createId(), project_id: project3, title: 'Project created', content: 'Thank you for standing with this need. We will post updates as support comes in.', created_at: now() }
+    ],
+    reports: []
+  };
+}
+
+function publicUser(user) {
+  if (!user) return null;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role
+  };
+}
 
 function authRequired(req, res, next) {
   const header = req.headers.authorization || '';
@@ -195,7 +228,7 @@ function authRequired(req, res, next) {
   try {
     req.user = jwt.verify(token, JWT_SECRET);
     next();
-  } catch (err) {
+  } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 }
@@ -207,29 +240,8 @@ function adminRequired(req, res, next) {
   next();
 }
 
-function mapProject(row) {
-  if (!row) return null;
-  return {
-    ...row,
-    help_types: safeJsonParse(row.help_types, []),
-    is_online: Boolean(row.is_online),
-    needs_financial_support: Boolean(row.needs_financial_support),
-    funding_approved: Boolean(row.funding_approved),
-    admin_reviewed: Boolean(row.admin_reviewed),
-    verified_ministry: Boolean(row.verified_ministry)
-  };
-}
-
-function safeJsonParse(value, fallback) {
-  try {
-    return JSON.parse(value || '[]');
-  } catch {
-    return fallback;
-  }
-}
-
 app.get('/health', (req, res) => {
-  res.json({ ok: true, app: 'christhelper-backend', time: new Date().toISOString() });
+  res.json({ ok: true, app: 'christhelper-backend-node24-safe', time: now(), data_file: DATA_FILE });
 });
 
 app.post('/auth/register', (req, res) => {
@@ -238,90 +250,96 @@ app.post('/auth/register', (req, res) => {
     return res.status(400).json({ error: 'Name, email and password are required' });
   }
 
-  const exists = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase());
-  if (exists) return res.status(409).json({ error: 'Email already registered' });
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const createdUser = withDb((db) => {
+    if (db.users.find((user) => user.email === normalizedEmail)) {
+      return null;
+    }
 
-  const hash = bcrypt.hashSync(password, 10);
-  const result = db.prepare('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)')
-    .run(name.trim(), email.toLowerCase(), hash, 'supporter');
+    const user = {
+      id: createId(),
+      name: String(name).trim(),
+      email: normalizedEmail,
+      password_hash: bcrypt.hashSync(String(password), 10),
+      role: 'supporter',
+      created_at: now()
+    };
 
-  const user = db.prepare('SELECT id, name, email, role FROM users WHERE id = ?').get(result.lastInsertRowid);
-  const token = jwt.sign(user, JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token, user });
+    db.users.push(user);
+    return publicUser(user);
+  });
+
+  if (!createdUser) {
+    return res.status(409).json({ error: 'Email already registered' });
+  }
+
+  const token = jwt.sign(createdUser, JWT_SECRET, { expiresIn: '7d' });
+  res.json({ token, user: createdUser });
 });
 
 app.post('/auth/login', (req, res) => {
   const { email, password } = req.body || {};
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get((email || '').toLowerCase());
-  if (!user || !bcrypt.compareSync(password || '', user.password_hash)) {
+  const db = readDb();
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const user = db.users.find((item) => item.email === normalizedEmail);
+
+  if (!user || !bcrypt.compareSync(String(password || ''), user.password_hash)) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
-  const payload = { id: user.id, name: user.name, email: user.email, role: user.role };
+  const payload = publicUser(user);
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
   res.json({ token, user: payload });
 });
 
 app.get('/projects', (req, res) => {
   const { country, continent, helpType, category, q, financialOnly, reviewedOnly, verifiedOnly, urgency } = req.query;
-  let sql = 'SELECT * FROM projects WHERE status = ?';
-  const params = ['active'];
+  const db = readDb();
+  let items = db.projects.filter((project) => project.status === 'active');
 
-  if (country) {
-    sql += ' AND country = ?';
-    params.push(country);
-  }
-  if (continent) {
-    sql += ' AND continent = ?';
-    params.push(continent);
-  }
-  if (category) {
-    sql += ' AND category = ?';
-    params.push(category);
-  }
-  if (urgency) {
-    sql += ' AND urgency = ?';
-    params.push(urgency);
-  }
-  if (financialOnly === '1') {
-    sql += ' AND needs_financial_support = 1 AND funding_approved = 1';
-  }
-  if (reviewedOnly === '1') {
-    sql += ' AND admin_reviewed = 1';
-  }
-  if (verifiedOnly === '1') {
-    sql += ' AND verified_ministry = 1';
-  }
+  if (country) items = items.filter((project) => project.country === country);
+  if (continent) items = items.filter((project) => project.continent === continent);
+  if (category) items = items.filter((project) => project.category === category);
+  if (urgency) items = items.filter((project) => project.urgency === urgency);
+  if (financialOnly === '1') items = items.filter((project) => project.needs_financial_support && project.funding_approved);
+  if (reviewedOnly === '1') items = items.filter((project) => project.admin_reviewed);
+  if (verifiedOnly === '1') items = items.filter((project) => project.verified_ministry);
+  if (helpType) items = items.filter((project) => Array.isArray(project.help_types) && project.help_types.includes(helpType));
   if (q) {
-    sql += ' AND (title LIKE ? OR summary LIKE ? OR description LIKE ? OR requester_name LIKE ? OR organization_name LIKE ?)';
-    const term = `%${q}%`;
-    params.push(term, term, term, term, term);
+    const term = String(q).trim().toLowerCase();
+    items = items.filter((project) => [
+      project.title,
+      project.summary,
+      project.description,
+      project.requester_name,
+      project.organization_name,
+      project.country,
+      project.continent,
+      project.category
+    ].some((value) => String(value || '').toLowerCase().includes(term)));
   }
-  sql += ' ORDER BY created_at DESC';
 
-  let items = db.prepare(sql).all(...params).map(mapProject);
-  if (helpType) {
-    items = items.filter(p => p.help_types.includes(helpType));
-  }
-  res.json({ items });
+  items.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  res.json({ items: clone(items) });
 });
 
 app.get('/projects/:id', (req, res) => {
-  const project = mapProject(db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id));
+  const db = readDb();
+  const project = db.projects.find((item) => item.id === req.params.id);
   if (!project) return res.status(404).json({ error: 'Project not found' });
 
-  const prayers = db.prepare('SELECT * FROM prayers WHERE project_id = ? ORDER BY created_at DESC LIMIT 20').all(req.params.id);
-  const replies = db.prepare('SELECT * FROM replies WHERE project_id = ? ORDER BY created_at DESC LIMIT 20').all(req.params.id);
-  const updates = db.prepare('SELECT * FROM updates WHERE project_id = ? ORDER BY created_at DESC LIMIT 20').all(req.params.id);
+  const prayers = db.prayers.filter((item) => item.project_id === req.params.id).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 20);
+  const replies = db.replies.filter((item) => item.project_id === req.params.id).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 20);
+  const updates = db.updates.filter((item) => item.project_id === req.params.id).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 20);
 
   res.json({
-    project,
-    prayers,
-    replies,
-    updates,
+    project: clone(project),
+    prayers: clone(prayers),
+    replies: clone(replies),
+    updates: clone(updates),
     stats: {
-      prayer_count: db.prepare('SELECT COUNT(*) as total FROM prayers WHERE project_id = ?').get(req.params.id).total,
-      reply_count: db.prepare('SELECT COUNT(*) as total FROM replies WHERE project_id = ?').get(req.params.id).total
+      prayer_count: db.prayers.filter((item) => item.project_id === req.params.id).length,
+      reply_count: db.replies.filter((item) => item.project_id === req.params.id).length
     }
   });
 });
@@ -335,54 +353,71 @@ app.post('/projects', authRequired, (req, res) => {
 
   const helpTypes = Array.isArray(body.help_types) ? body.help_types : [];
   const needsFinancialSupport = Boolean(body.needs_financial_support);
-  const result = db.prepare(`
-    INSERT INTO projects (
-      title, summary, description, country, continent, city, category, help_types,
-      requester_name, organization_name, church_ministry_linked, contact_email,
-      urgency, is_online, needs_financial_support, funding_goal, funding_approved,
-      amount_raised, admin_reviewed, verified_ministry, status, timeline, who_benefits,
-      why_it_matters, created_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 'active', ?, ?, ?, ?)
-  `).run(
-    body.title,
-    body.summary,
-    body.description,
-    body.country,
-    body.continent,
-    body.city || '',
-    body.category,
-    JSON.stringify(helpTypes),
-    body.requester_name,
-    body.organization_name || '',
-    body.church_ministry_linked || '',
-    body.contact_email,
-    body.urgency || 'normal',
-    body.is_online ? 1 : 0,
-    needsFinancialSupport ? 1 : 0,
-    Number(body.funding_goal || 0),
-    needsFinancialSupport ? 0 : 0,
-    body.timeline || '',
-    body.who_benefits || '',
-    body.why_it_matters || '',
-    req.user.id
-  );
 
-  const projectId = result.lastInsertRowid;
-  db.prepare('INSERT INTO updates (project_id, title, content) VALUES (?, ?, ?)')
-    .run(projectId, 'Project submitted', needsFinancialSupport
-      ? 'This project has been submitted and is waiting for admin review for financial support.'
-      : 'This project has been submitted successfully.');
+  const projectId = withDb((db) => {
+    const project = {
+      id: createId(),
+      title: String(body.title),
+      summary: String(body.summary),
+      description: String(body.description),
+      country: String(body.country),
+      continent: String(body.continent),
+      city: String(body.city || ''),
+      category: String(body.category),
+      help_types: helpTypes,
+      requester_name: String(body.requester_name),
+      organization_name: String(body.organization_name || ''),
+      church_ministry_linked: String(body.church_ministry_linked || ''),
+      contact_email: String(body.contact_email),
+      urgency: String(body.urgency || 'normal'),
+      is_online: Boolean(body.is_online),
+      needs_financial_support: needsFinancialSupport,
+      funding_goal: Number(body.funding_goal || 0),
+      funding_approved: false,
+      amount_raised: 0,
+      admin_reviewed: false,
+      verified_ministry: false,
+      status: 'active',
+      timeline: String(body.timeline || ''),
+      who_benefits: String(body.who_benefits || ''),
+      why_it_matters: String(body.why_it_matters || ''),
+      created_by: req.user.id,
+      created_at: now()
+    };
+
+    db.projects.push(project);
+    db.updates.push({
+      id: createId(),
+      project_id: project.id,
+      title: 'Project submitted',
+      content: needsFinancialSupport
+        ? 'This project has been submitted and is waiting for admin review for financial support.'
+        : 'This project has been submitted successfully.',
+      created_at: now()
+    });
+
+    return project.id;
+  });
 
   res.status(201).json({ id: projectId, message: 'Project created successfully' });
 });
 
 app.post('/projects/:id/pray', (req, res) => {
   const { name, message } = req.body || {};
-  const project = db.prepare('SELECT id FROM projects WHERE id = ?').get(req.params.id);
-  if (!project) return res.status(404).json({ error: 'Project not found' });
+  const result = withDb((db) => {
+    const project = db.projects.find((item) => item.id === req.params.id);
+    if (!project) return false;
+    db.prayers.push({
+      id: createId(),
+      project_id: req.params.id,
+      name: name || 'Anonymous',
+      message: message || 'Prayed for this project.',
+      created_at: now()
+    });
+    return true;
+  });
 
-  db.prepare('INSERT INTO prayers (project_id, name, message) VALUES (?, ?, ?)')
-    .run(req.params.id, name || 'Anonymous', message || 'Prayed for this project.');
+  if (!result) return res.status(404).json({ error: 'Project not found' });
   res.json({ message: 'Prayer support recorded' });
 });
 
@@ -391,51 +426,73 @@ app.post('/projects/:id/reply', (req, res) => {
   if (!type || !name || !message) {
     return res.status(400).json({ error: 'Type, name and message are required' });
   }
-  const project = db.prepare('SELECT id FROM projects WHERE id = ?').get(req.params.id);
-  if (!project) return res.status(404).json({ error: 'Project not found' });
 
-  db.prepare('INSERT INTO replies (project_id, type, name, email, message) VALUES (?, ?, ?, ?, ?)')
-    .run(req.params.id, type, name, email || '', message);
+  const result = withDb((db) => {
+    const project = db.projects.find((item) => item.id === req.params.id);
+    if (!project) return false;
+    db.replies.push({
+      id: createId(),
+      project_id: req.params.id,
+      type,
+      name,
+      email: email || '',
+      message,
+      created_at: now()
+    });
+    return true;
+  });
+
+  if (!result) return res.status(404).json({ error: 'Project not found' });
   res.json({ message: 'Support offer sent' });
 });
 
 app.post('/projects/:id/report', (req, res) => {
   const { reason, details } = req.body || {};
   if (!reason) return res.status(400).json({ error: 'Reason is required' });
-  db.prepare('INSERT INTO reports (project_id, reason, details) VALUES (?, ?, ?)')
-    .run(req.params.id, reason, details || '');
+
+  withDb((db) => {
+    db.reports.push({
+      id: createId(),
+      project_id: req.params.id,
+      reason,
+      details: details || '',
+      created_at: now()
+    });
+  });
+
   res.json({ message: 'Report submitted successfully' });
 });
 
 app.get('/admin/projects', authRequired, adminRequired, (req, res) => {
-  const items = db.prepare('SELECT * FROM projects ORDER BY created_at DESC').all().map(mapProject);
-  res.json({ items });
+  const db = readDb();
+  const items = [...db.projects].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  res.json({ items: clone(items) });
 });
 
 app.post('/admin/projects/:id/review', authRequired, adminRequired, (req, res) => {
   const { funding_approved, admin_reviewed, verified_ministry, status } = req.body || {};
-  db.prepare(`
-    UPDATE projects
-    SET funding_approved = COALESCE(?, funding_approved),
-        admin_reviewed = COALESCE(?, admin_reviewed),
-        verified_ministry = COALESCE(?, verified_ministry),
-        status = COALESCE(?, status)
-    WHERE id = ?
-  `).run(
-    funding_approved === undefined ? null : (funding_approved ? 1 : 0),
-    admin_reviewed === undefined ? null : (admin_reviewed ? 1 : 0),
-    verified_ministry === undefined ? null : (verified_ministry ? 1 : 0),
-    status || null,
-    req.params.id
-  );
 
-  res.json({ message: 'Project updated' });
+  const updated = withDb((db) => {
+    const project = db.projects.find((item) => item.id === req.params.id);
+    if (!project) return null;
+
+    if (funding_approved !== undefined) project.funding_approved = Boolean(funding_approved);
+    if (admin_reviewed !== undefined) project.admin_reviewed = Boolean(admin_reviewed);
+    if (verified_ministry !== undefined) project.verified_ministry = Boolean(verified_ministry);
+    if (status !== undefined) project.status = String(status);
+
+    return clone(project);
+  });
+
+  if (!updated) return res.status(404).json({ error: 'Project not found' });
+  res.json({ message: 'Project updated', project: updated });
 });
 
 app.post('/payments/project-checkout', async (req, res) => {
   try {
     const { project_id, donor_name, donor_email, amount_project, amount_platform } = req.body || {};
-    const project = mapProject(db.prepare('SELECT * FROM projects WHERE id = ?').get(project_id));
+    const db = readDb();
+    const project = db.projects.find((item) => item.id === project_id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
     if (!project.funding_approved) return res.status(400).json({ error: 'Financial support is not enabled for this project yet' });
 
@@ -445,16 +502,29 @@ app.post('/payments/project-checkout', async (req, res) => {
       return res.status(400).json({ error: 'Enter a valid donation amount' });
     }
 
-    const donation = db.prepare(`
-      INSERT INTO donations (project_id, donor_name, donor_email, amount_project, amount_platform, payment_status, donation_type)
-      VALUES (?, ?, ?, ?, ?, 'pending', 'project')
-    `).run(project_id, donor_name || 'Anonymous', donor_email || '', projectAmount, platformAmount);
+    const donation = withDb((state) => {
+      const record = {
+        id: createId(),
+        project_id,
+        donor_name: donor_name || 'Anonymous',
+        donor_email: donor_email || '',
+        amount_project: projectAmount,
+        amount_platform: platformAmount,
+        currency: CURRENCY,
+        stripe_session_id: '',
+        payment_status: 'pending',
+        donation_type: 'project',
+        created_at: now()
+      };
+      state.donations.push(record);
+      return clone(record);
+    });
 
     if (!stripe) {
       return res.json({
         demo_mode: true,
         message: 'Stripe is not configured yet. Donation recorded in demo mode.',
-        donation_id: donation.lastInsertRowid
+        donation_id: donation.id
       });
     }
 
@@ -469,6 +539,7 @@ app.post('/payments/project-checkout', async (req, res) => {
         quantity: 1
       });
     }
+
     if (platformAmount > 0) {
       line_items.push({
         price_data: {
@@ -487,12 +558,16 @@ app.post('/payments/project-checkout', async (req, res) => {
       cancel_url: `${FRONTEND_URL}/project.html?id=${project_id}`,
       customer_email: donor_email || undefined,
       metadata: {
-        donation_id: String(donation.lastInsertRowid),
-        project_id: String(project_id)
+        donation_id: donation.id,
+        project_id: project_id
       }
     });
 
-    db.prepare('UPDATE donations SET stripe_session_id = ? WHERE id = ?').run(session.id, donation.lastInsertRowid);
+    withDb((state) => {
+      const target = state.donations.find((item) => item.id === donation.id);
+      if (target) target.stripe_session_id = session.id;
+    });
+
     res.json({ url: session.url });
   } catch (error) {
     console.error(error);
@@ -506,16 +581,29 @@ app.post('/payments/platform-checkout', async (req, res) => {
     const platformAmount = Number(amount_platform || 0);
     if (platformAmount <= 0) return res.status(400).json({ error: 'Enter a valid amount' });
 
-    const donation = db.prepare(`
-      INSERT INTO donations (donor_name, donor_email, amount_project, amount_platform, payment_status, donation_type)
-      VALUES (?, ?, 0, ?, 'pending', 'platform')
-    `).run(donor_name || 'Anonymous', donor_email || '', platformAmount);
+    const donation = withDb((state) => {
+      const record = {
+        id: createId(),
+        project_id: null,
+        donor_name: donor_name || 'Anonymous',
+        donor_email: donor_email || '',
+        amount_project: 0,
+        amount_platform: platformAmount,
+        currency: CURRENCY,
+        stripe_session_id: '',
+        payment_status: 'pending',
+        donation_type: 'platform',
+        created_at: now()
+      };
+      state.donations.push(record);
+      return clone(record);
+    });
 
     if (!stripe) {
       return res.json({
         demo_mode: true,
         message: 'Stripe is not configured yet. Platform support recorded in demo mode.',
-        donation_id: donation.lastInsertRowid
+        donation_id: donation.id
       });
     }
 
@@ -532,10 +620,14 @@ app.post('/payments/platform-checkout', async (req, res) => {
       success_url: `${FRONTEND_URL}/success.html?type=platform`,
       cancel_url: `${FRONTEND_URL}/help-christhelper.html`,
       customer_email: donor_email || undefined,
-      metadata: { donation_id: String(donation.lastInsertRowid), donation_type: 'platform' }
+      metadata: { donation_id: donation.id, donation_type: 'platform' }
     });
 
-    db.prepare('UPDATE donations SET stripe_session_id = ? WHERE id = ?').run(session.id, donation.lastInsertRowid);
+    withDb((state) => {
+      const target = state.donations.find((item) => item.id === donation.id);
+      if (target) target.stripe_session_id = session.id;
+    });
+
     res.json({ url: session.url });
   } catch (error) {
     console.error(error);
@@ -558,26 +650,33 @@ app.post('/webhook', (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const donationId = Number(session.metadata?.donation_id || 0);
-    const donation = db.prepare('SELECT * FROM donations WHERE id = ?').get(donationId);
-    if (donation) {
-      db.prepare('UPDATE donations SET payment_status = ? WHERE id = ?').run('paid', donationId);
+    const donationId = session.metadata?.donation_id;
+    withDb((db) => {
+      const donation = db.donations.find((item) => item.id === donationId);
+      if (!donation) return;
+      donation.payment_status = 'paid';
       if (donation.project_id) {
-        db.prepare('UPDATE projects SET amount_raised = amount_raised + ? WHERE id = ?')
-          .run(Number(donation.amount_project || 0), donation.project_id);
+        const project = db.projects.find((item) => item.id === donation.project_id);
+        if (project) {
+          project.amount_raised = Number(project.amount_raised || 0) + Number(donation.amount_project || 0);
+        }
       }
-    }
+    });
   }
 
   res.json({ received: true });
 });
 
 app.get('/admin/donations', authRequired, adminRequired, (req, res) => {
-  const items = db.prepare('SELECT * FROM donations ORDER BY created_at DESC').all();
-  res.json({ items });
+  const db = readDb();
+  const items = [...db.donations].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  res.json({ items: clone(items) });
 });
+
+readDb();
 
 app.listen(PORT, () => {
   console.log(`ChristHelper backend running on http://localhost:${PORT}`);
-  console.log('Demo admin:', 'admin@christhelper.local / admin123');
+  console.log(`Data file: ${DATA_FILE}`);
+  console.log('Demo admin: admin@christhelper.local / admin123');
 });

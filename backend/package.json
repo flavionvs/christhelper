@@ -1,16 +1,15 @@
 {
-  "name": "christhelper-backend",
-  "version": "1.0.0",
-  "description": "ChristHelper V1 backend API",
+  "name": "christhelper-backend-node24-safe",
+  "version": "1.1.0",
+  "description": "ChristHelper backend API compatible with Node 24 (no native SQLite dependency)",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node --watch server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^11.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
