@@ -178,6 +178,22 @@ function normalizeProject(project) {
     project.last_donation_at = null;
   }
 
+  if (!Object.prototype.hasOwnProperty.call(project, 'financial_denied')) {
+    project.financial_denied = false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(project, 'denied_reason')) {
+    project.denied_reason = '';
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(project, 'cancellation_reason')) {
+    project.cancellation_reason = '';
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(project, 'cancelled_at')) {
+    project.cancelled_at = null;
+  }
+
   if (!project.continent && project.country) {
     project.continent = detectContinentFromCountry(project.country) || '';
   }
@@ -1139,16 +1155,49 @@ app.get('/admin/projects', authRequired, adminRequired, (req, res) => {
 });
 
 app.post('/admin/projects/:id/review', authRequired, adminRequired, (req, res) => {
-  const { funding_approved, admin_reviewed, verified_ministry, status } = req.body || {};
+  const { funding_approved, admin_reviewed, verified_ministry, status, financial_denied, denied_reason, cancellation_reason } = req.body || {};
 
   const updated = withDb((db) => {
     const project = db.projects.find((item) => item.id === req.params.id);
     if (!project) return null;
 
-    if (funding_approved !== undefined) project.funding_approved = Boolean(funding_approved);
+    if (funding_approved !== undefined) {
+      project.funding_approved = Boolean(funding_approved);
+      if (project.funding_approved) {
+        project.financial_denied = false;
+        project.denied_reason = '';
+      }
+    }
+
+    if (financial_denied !== undefined) {
+      project.financial_denied = Boolean(financial_denied);
+      if (project.financial_denied) {
+        project.funding_approved = false;
+        project.denied_reason = String(denied_reason || '').trim();
+      } else if (denied_reason !== undefined) {
+        project.denied_reason = String(denied_reason || '').trim();
+      }
+    } else if (denied_reason !== undefined) {
+      project.denied_reason = String(denied_reason || '').trim();
+    }
+
     if (admin_reviewed !== undefined) project.admin_reviewed = Boolean(admin_reviewed);
     if (verified_ministry !== undefined) project.verified_ministry = Boolean(verified_ministry);
-    if (status !== undefined) project.status = String(status);
+
+    if (status !== undefined) {
+      project.status = String(status);
+      if (project.status === 'cancelled') {
+        project.funding_approved = false;
+        project.financial_denied = false;
+        project.cancellation_reason = String(cancellation_reason || '').trim();
+        project.cancelled_at = now();
+      } else if (project.status === 'active') {
+        project.cancellation_reason = '';
+        project.cancelled_at = null;
+      }
+    } else if (cancellation_reason !== undefined) {
+      project.cancellation_reason = String(cancellation_reason || '').trim();
+    }
 
     return clone(project);
   });
@@ -1163,6 +1212,9 @@ app.post('/payments/project-checkout', async (req, res) => {
     const db = readDb();
     const project = db.projects.find((item) => item.id === project_id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (project.status !== 'active' || project.archived || project.excluded) {
+      return res.status(400).json({ error: 'This project is not available for donations' });
+    }
     if (!project.funding_approved) return res.status(400).json({ error: 'Financial support is not enabled for this project yet' });
 
     if (project.campaign_expiry_date) {

@@ -136,7 +136,11 @@
       "funding_goal_currency": "USD",
       "campaign_expiry_date": "",
       "project_links": [],
-      "last_donation_at": null
+      "last_donation_at": null,
+      "financial_denied": false,
+      "denied_reason": "",
+      "cancellation_reason": "",
+      "cancelled_at": null
     },
     {
       "id": "8e5464bf-5685-4c26-9819-19593dab730a",
@@ -176,7 +180,11 @@
       "funding_goal_currency": "USD",
       "campaign_expiry_date": "",
       "project_links": [],
-      "last_donation_at": null
+      "last_donation_at": null,
+      "financial_denied": false,
+      "denied_reason": "",
+      "cancellation_reason": "",
+      "cancelled_at": null
     },
     {
       "id": "46326c59-df70-4047-981d-f2ef19ef9a60",
@@ -216,7 +224,11 @@
       "funding_goal_currency": "",
       "campaign_expiry_date": "",
       "project_links": [],
-      "last_donation_at": null
+      "last_donation_at": null,
+      "financial_denied": true,
+      "denied_reason": "",
+      "cancellation_reason": "",
+      "cancelled_at": null
     },
     {
       "id": "0168fc51-521d-4a47-856c-26301675ab85",
@@ -242,7 +254,7 @@
       "amount_raised": 0,
       "admin_reviewed": true,
       "verified_ministry": false,
-      "status": "active",
+      "status": "cancelled",
       "timeline": "Next week",
       "who_benefits": "Test",
       "why_it_matters": "Test",
@@ -254,7 +266,11 @@
       "funding_goal_currency": "",
       "campaign_expiry_date": "",
       "project_links": [],
-      "last_donation_at": null
+      "last_donation_at": null,
+      "financial_denied": false,
+      "denied_reason": "",
+      "cancellation_reason": "",
+      "cancelled_at": "2026-04-05T15:32:38.735Z"
     },
     {
       "id": "46052357-f809-43e5-84f5-67c83af49c87",
@@ -294,7 +310,11 @@
       "owner_can_receive_payments": true,
       "archived": false,
       "excluded": false,
-      "last_donation_at": "2026-04-05T14:40:05.181Z"
+      "last_donation_at": "2026-04-05T14:40:05.181Z",
+      "financial_denied": false,
+      "denied_reason": "",
+      "cancellation_reason": "",
+      "cancelled_at": null
     }
   ],
   "prayers": [

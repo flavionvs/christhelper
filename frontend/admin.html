@@ -26,7 +26,68 @@
     <div class="container stack">
       <section class="card panel">
         <h1 style="font-size:2.2rem;">Admin dashboard</h1>
-        <p>Review projects, approve financial support, and monitor donations.</p>
+        <p>Review projects, approve or deny financial requests, cancel unsuitable content, and monitor donations.</p>
+      </section>
+
+      <section class="card panel">
+        <h2>Filters</h2>
+        <div class="admin-filter-grid">
+          <label class="field">
+            <span>Title</span>
+            <input type="text" id="adminFilterTitle" placeholder="Search by title">
+          </label>
+
+          <label class="field">
+            <span>Requester</span>
+            <input type="text" id="adminFilterRequester" placeholder="Search by requester">
+          </label>
+
+          <label class="field">
+            <span>Status</span>
+            <select id="adminFilterStatus">
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="archived">Archived</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Financial</span>
+            <select id="adminFilterFinancial">
+              <option value="">All</option>
+              <option value="yes">Needs financial</option>
+              <option value="no">No financial</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Funding status</span>
+            <select id="adminFilterFundingStatus">
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="denied">Denied</option>
+              <option value="not_applied">Not applied</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Reviewed</span>
+            <select id="adminFilterReviewed">
+              <option value="">All</option>
+              <option value="yes">Reviewed</option>
+              <option value="no">Not reviewed</option>
+            </select>
+          </label>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+          <button class="btn" type="button" id="adminApplyFiltersBtn">Apply filters</button>
+          <button class="btn-outline" type="button" id="adminClearFiltersBtn">Clear</button>
+          <span class="badge" id="adminProjectsCount">0 projects</span>
+        </div>
       </section>
 
       <section class="card panel table-wrap">
@@ -37,6 +98,7 @@
               <th>ID</th>
               <th>Title</th>
               <th>Requester</th>
+              <th>Project status</th>
               <th>Financial</th>
               <th>Funding status</th>
               <th>Reviewed</th>
@@ -44,7 +106,7 @@
             </tr>
           </thead>
           <tbody id="adminProjectsTable">
-            <tr><td colspan="7">Loading...</td></tr>
+            <tr><td colspan="8">Loading...</td></tr>
           </tbody>
         </table>
       </section>

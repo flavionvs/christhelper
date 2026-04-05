@@ -647,3 +647,80 @@ label.field:has(> input[type="radio"]) > span {
     align-items: flex-start;
   }
 }
+
+/* ===== ADMIN PAGE IMPROVEMENTS ===== */
+
+.admin-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+.admin-actions {
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.admin-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.btn-xs {
+  padding: 8px 12px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  min-height: 34px;
+}
+
+.btn-danger {
+  border-color: #efc5c5;
+  color: var(--danger);
+  background: #fff7f7;
+}
+
+.btn-danger:hover {
+  background: #fdeaea;
+}
+
+.btn-warn {
+  border-color: #f0ddaa;
+  color: #7a5d15;
+  background: #fff7e7;
+}
+
+.btn-warn:hover {
+  background: #fff1cf;
+}
+
+.admin-reason-input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+}
+
+.admin-status-stack {
+  display: grid;
+  gap: 6px;
+}
+
+@media (max-width: 1024px) {
+  .admin-filter-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-actions {
+    min-width: 180px;
+  }
+}

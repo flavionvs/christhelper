@@ -1152,56 +1152,188 @@ async function handleProfilePage() {
   }
 }
 
+
+let adminProjectsCache = [];
+let adminDonationsCache = [];
+
+function getAdminFundingStatus(project) {
+  if (!project?.needs_financial_support) return 'Not applied';
+  if (project?.financial_denied) return 'Denied';
+  if (project?.funding_approved) return 'Approved';
+  return 'Pending';
+}
+
+function getAdminProjectStatusBadge(project) {
+  const status = String(project?.status || 'active');
+  if (status === 'cancelled') return '<span class="badge alert">Cancelled</span>';
+  if (status === 'archived') return '<span class="badge warn">Archived</span>';
+  if (status === 'inactive') return '<span class="badge warn">Inactive</span>';
+  return '<span class="badge good">Active</span>';
+}
+
+function getAdminReviewedBadge(project) {
+  return project?.admin_reviewed
+    ? '<span class="badge good">Reviewed</span>'
+    : '<span class="badge warn">No</span>';
+}
+
+function getAdminFundingBadge(project) {
+  const status = getAdminFundingStatus(project);
+  if (status === 'Approved') return '<span class="badge good">Approved</span>';
+  if (status === 'Denied') return '<span class="badge alert">Denied</span>';
+  if (status === 'Not applied') return '<span class="badge">Not applied</span>';
+  return '<span class="badge warn">Pending</span>';
+}
+
+function matchesAdminFilters(project) {
+  const title = ($('#adminFilterTitle')?.value || '').trim().toLowerCase();
+  const requester = ($('#adminFilterRequester')?.value || '').trim().toLowerCase();
+  const status = $('#adminFilterStatus')?.value || '';
+  const financial = $('#adminFilterFinancial')?.value || '';
+  const fundingStatus = $('#adminFilterFundingStatus')?.value || '';
+  const reviewed = $('#adminFilterReviewed')?.value || '';
+
+  if (title && !String(project.title || '').toLowerCase().includes(title)) return false;
+  if (requester && !String(project.requester_name || '').toLowerCase().includes(requester)) return false;
+  if (status && String(project.status || 'active') !== status) return false;
+  if (financial === 'yes' && !project.needs_financial_support) return false;
+  if (financial === 'no' && project.needs_financial_support) return false;
+
+  const normalizedFundingStatus = getAdminFundingStatus(project).toLowerCase().replace(/\s+/g, '_');
+  if (fundingStatus && normalizedFundingStatus !== fundingStatus) return false;
+
+  if (reviewed === 'yes' && !project.admin_reviewed) return false;
+  if (reviewed === 'no' && project.admin_reviewed) return false;
+
+  return true;
+}
+
+function renderAdminProjects(items) {
+  const table = $('#adminProjectsTable');
+  if (!table) return;
+
+  const filtered = (items || []).filter(matchesAdminFilters);
+  const countEl = $('#adminProjectsCount');
+  if (countEl) countEl.textContent = `${filtered.length} project${filtered.length === 1 ? '' : 's'}`;
+
+  if (!filtered.length) {
+    table.innerHTML = '<tr><td colspan="8">No projects found with these filters.</td></tr>';
+    return;
+  }
+
+  table.innerHTML = filtered.map(item => `
+    <tr>
+      <td>${safeHtml(item.id)}</td>
+      <td>
+        <strong>${safeHtml(item.title)}</strong>
+        ${item.cancellation_reason ? `<div class="muted" style="margin-top:6px;">Cancelled: ${safeHtml(item.cancellation_reason)}</div>` : ''}
+        ${item.denied_reason ? `<div class="muted" style="margin-top:6px;">Denied: ${safeHtml(item.denied_reason)}</div>` : ''}
+      </td>
+      <td>${safeHtml(item.requester_name)}</td>
+      <td>${getAdminProjectStatusBadge(item)}</td>
+      <td>${item.needs_financial_support ? 'Yes' : 'No'}</td>
+      <td>${getAdminFundingBadge(item)}</td>
+      <td>${getAdminReviewedBadge(item)}</td>
+      <td>
+        <div class="admin-actions">
+          <input
+            type="text"
+            class="admin-reason-input"
+            id="adminReason-${safeHtml(item.id)}"
+            placeholder="Optional reason"
+            value="${safeHtml(item.status === 'cancelled' ? (item.cancellation_reason || '') : (item.denied_reason || ''))}"
+          >
+          <div class="admin-actions-row">
+            ${item.needs_financial_support ? `<button class="btn-outline btn-xs" onclick="approveProject('${item.id}')">Approve</button>` : ''}
+            ${item.needs_financial_support ? `<button class="btn-outline btn-xs btn-danger" onclick="denyProject('${item.id}')">Deny</button>` : ''}
+            <button class="btn-outline btn-xs" onclick="markReviewed('${item.id}')">Review</button>
+            ${item.status === 'cancelled'
+              ? `<button class="btn-outline btn-xs" onclick="reactivateProject('${item.id}')">Reactivate</button>`
+              : `<button class="btn-outline btn-xs btn-warn" onclick="cancelProject('${item.id}')">Cancel</button>`}
+          </div>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function getAdminReasonValue(id) {
+  return $(`#adminReason-${CSS.escape(id)}`)?.value?.trim() || '';
+}
+
 async function loadAdmin() {
   const table = $('#adminProjectsTable');
   if (!table) return;
 
   try {
     const { items } = await api('/admin/projects');
-    table.innerHTML = items.map(item => `
-      <tr>
-        <td>${item.id}</td>
-        <td>${safeHtml(item.title)}</td>
-        <td>${safeHtml(item.requester_name)}</td>
-        <td>${item.needs_financial_support ? 'Yes' : 'No'}</td>
-        <td>${item.funding_approved ? 'Approved' : 'Pending'}</td>
-        <td>${item.admin_reviewed ? 'Reviewed' : 'No'}</td>
-        <td>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn-outline" onclick="updateProjectStatus('${item.id}', true)">Approve financial</button>
-            <button class="btn-outline" onclick="markReviewed('${item.id}')">Mark reviewed</button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
+    adminProjectsCache = Array.isArray(items) ? items : [];
+    renderAdminProjects(adminProjectsCache);
 
     const donations = await api('/admin/donations');
-    $('#adminDonationTable').innerHTML = donations.items.map(item => `
-      <tr>
-        <td>${item.id}</td>
-        <td>${safeHtml(item.donation_type)}</td>
-        <td>${safeHtml(item.donor_name || 'Anonymous')}</td>
-        <td>${formatMoney((item.amount_project || 0) + (item.amount_platform || 0))}</td>
-        <td>${safeHtml(item.payment_status)}</td>
-        <td>${new Date(item.created_at).toLocaleString()}</td>
-      </tr>
-    `).join('');
+    adminDonationsCache = Array.isArray(donations.items) ? donations.items : [];
+    $('#adminDonationTable').innerHTML = adminDonationsCache.length
+      ? adminDonationsCache.map(item => `
+          <tr>
+            <td>${item.id}</td>
+            <td>${safeHtml(item.donation_type)}</td>
+            <td>${safeHtml(item.donor_name || 'Anonymous')}</td>
+            <td>${formatMoney((item.amount_project || 0) + (item.amount_platform || 0))}</td>
+            <td>${safeHtml(item.payment_status)}</td>
+            <td>${new Date(item.created_at).toLocaleString()}</td>
+          </tr>
+        `).join('')
+      : '<tr><td colspan="6">No donations found.</td></tr>';
   } catch (error) {
-    table.innerHTML = `<tr><td colspan="7">${safeHtml(error.message)}. Login as admin first.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="8">${safeHtml(error.message)}. Login as admin first.</td></tr>`;
   }
 }
 
-async function updateProjectStatus(id, fundingApproved) {
+async function updateAdminProject(id, payload, successMessage) {
   try {
     await api(`/admin/projects/${id}/review`, {
       method: 'POST',
-      body: JSON.stringify({ funding_approved: fundingApproved, admin_reviewed: true })
+      body: JSON.stringify(payload)
     });
-    alert('Project updated.');
-    loadAdmin();
+    alert(successMessage || 'Project updated.');
+    await loadAdmin();
   } catch (error) {
     alert(error.message);
   }
+}
+
+async function approveProject(id) {
+  await updateAdminProject(id, {
+    funding_approved: true,
+    financial_denied: false,
+    denied_reason: '',
+    admin_reviewed: true
+  }, 'Financial support approved.');
+}
+
+async function denyProject(id) {
+  await updateAdminProject(id, {
+    funding_approved: false,
+    financial_denied: true,
+    denied_reason: getAdminReasonValue(id),
+    admin_reviewed: true
+  }, 'Financial support denied.');
+}
+
+async function cancelProject(id) {
+  await updateAdminProject(id, {
+    status: 'cancelled',
+    cancellation_reason: getAdminReasonValue(id),
+    admin_reviewed: true
+  }, 'Project cancelled.');
+}
+
+async function reactivateProject(id) {
+  await updateAdminProject(id, {
+    status: 'active',
+    cancellation_reason: '',
+    admin_reviewed: true
+  }, 'Project reactivated.');
 }
 
 async function markReviewed(id) {
@@ -1211,10 +1343,33 @@ async function markReviewed(id) {
       body: JSON.stringify({ admin_reviewed: true })
     });
     alert('Project marked as reviewed.');
-    loadAdmin();
+    await loadAdmin();
   } catch (error) {
     alert(error.message);
   }
+}
+
+function initAdminFilters() {
+  const table = $('#adminProjectsTable');
+  if (!table) return;
+
+  $('#adminApplyFiltersBtn')?.addEventListener('click', () => renderAdminProjects(adminProjectsCache));
+  $('#adminClearFiltersBtn')?.addEventListener('click', () => {
+    ['adminFilterTitle', 'adminFilterRequester', 'adminFilterStatus', 'adminFilterFinancial', 'adminFilterFundingStatus', 'adminFilterReviewed']
+      .forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+    renderAdminProjects(adminProjectsCache);
+  });
+
+  ['adminFilterTitle', 'adminFilterRequester'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', () => renderAdminProjects(adminProjectsCache));
+  });
+
+  ['adminFilterStatus', 'adminFilterFinancial', 'adminFilterFundingStatus', 'adminFilterReviewed'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('change', () => renderAdminProjects(adminProjectsCache));
+  });
 }
 
 function initButtons() {
@@ -1232,8 +1387,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadProjects();
   loadProjectDetails();
   handleProfilePage();
+  initAdminFilters();
   loadAdmin();
 });
 
-window.updateProjectStatus = updateProjectStatus;
+window.approveProject = approveProject;
+window.denyProject = denyProject;
+window.cancelProject = cancelProject;
+window.reactivateProject = reactivateProject;
 window.markReviewed = markReviewed;
