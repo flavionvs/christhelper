@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChristHelper | Admin dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container nav">
+      <a href="index.html" class="brand"><span class="brand-mark">✝</span> ChristHelper</a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="submit.html">Submit Project</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="btn-outline" data-logout>Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+    <div class="container stack">
+      <section class="card panel">
+        <h1 style="font-size:2.2rem;">Admin dashboard</h1>
+        <p>Review projects, approve financial support, and monitor donations.</p>
+      </section>
+
+      <section class="card panel table-wrap">
+        <h2>Projects review</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Requester</th>
+              <th>Financial</th>
+              <th>Funding status</th>
+              <th>Reviewed</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminProjectsTable">
+            <tr><td colspan="7">Loading...</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card panel table-wrap">
+        <h2>Donations</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Type</th>
+              <th>Donor</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="adminDonationTable">
+            <tr><td colspan="6">Loading...</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

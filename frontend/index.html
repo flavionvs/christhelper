@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChristHelper | Christian support platform</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container nav">
+      <a href="index.html" class="brand"><span class="brand-mark">✝</span> ChristHelper</a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="#projects">Projects</a>
+        <a href="submit.html">Submit Project</a>
+        <a href="help-christhelper.html">Help ChristHelper</a>
+        <a href="admin.html" data-admin class="hide">Admin</a>
+      </nav>
+      <div class="nav-actions">
+        <span data-auth class="hide muted">Hi, <strong id="navUserName"></strong></span>
+        <a href="login.html" class="btn-outline" data-guest>Sign in</a>
+        <a href="register.html" class="btn" data-guest>Register</a>
+        <button class="btn-outline hide" data-auth data-logout>Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="card hero-copy">
+          <div class="eyebrow">Christian support platform</div>
+          <h1>Support Christian projects, ministries, and people with prayer, guidance, volunteering, and financial help.</h1>
+          <p>ChristHelper connects believers with real needs and meaningful opportunities to help safely, prayerfully, and practically.</p>
+          <div class="search-row">
+            <input id="q" placeholder="Search by project, country, ministry, keyword">
+            <a class="btn" href="#projects">Browse projects</a>
+            <a class="btn-outline" href="submit.html">Submit project</a>
+            <a class="btn-outline" href="help-christhelper.html">Help ChristHelper</a>
+          </div>
+          <div class="badge-row">
+            <span class="badge">Prayer</span>
+            <span class="badge">Guidance</span>
+            <span class="badge">Volunteering</span>
+            <span class="badge">Mentorship</span>
+            <span class="badge">Financial support</span>
+          </div>
+        </div>
+
+        <div class="card hero-side">
+          <h2>How ChristHelper works</h2>
+          <div class="list">
+            <div class="item"><strong>1. Browse live projects</strong>Filter by country, continent, category, and type of help needed.</div>
+            <div class="item"><strong>2. Choose how to support</strong>Pray, reply, offer services, mentor, volunteer, or donate.</div>
+            <div class="item"><strong>3. Keep safety first</strong>Financial support is only enabled after admin review.</div>
+            <div class="item"><strong>4. Build the mission together</strong>Users can also donate directly to support ChristHelper.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container kpi-row">
+        <div class="card panel"><h3>Faith-first support</h3><p>Not only donations. Real support includes prayer, wisdom, and practical help.</p></div>
+        <div class="card panel"><h3>Safer giving</h3><p>Projects requesting financial support must go through admin review first.</p></div>
+        <div class="card panel"><h3>Useful from the first page</h3><p>Homepage already shows live projects instead of only a long introduction.</p></div>
+        <div class="card panel"><h3>Simple MVP stack</h3><p>HTML, CSS, JavaScript, Node.js, Express, SQLite, and Stripe Checkout.</p></div>
+      </div>
+    </section>
+
+    <section class="section" id="projects">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>Active projects</h2>
+            <p id="projectCount">Loading active projects...</p>
+          </div>
+          <button class="btn-outline" data-load-projects>Refresh</button>
+        </div>
+
+        <div class="card section-card">
+          <div class="filter-grid">
+            <input id="country" placeholder="Country">
+            <select id="continent">
+              <option value="">All continents</option>
+              <option>Africa</option>
+              <option>Asia</option>
+              <option>Europe</option>
+              <option>North America</option>
+              <option>South America</option>
+              <option>Oceania</option>
+            </select>
+            <select id="category">
+              <option value="">All categories</option>
+              <option>Mission trip</option>
+              <option>Evangelism</option>
+              <option>Church planting</option>
+              <option>Worship ministry</option>
+              <option>Youth ministry</option>
+              <option>Family support</option>
+              <option>Emergency need</option>
+              <option>Christian education</option>
+              <option>Bible distribution</option>
+              <option>Outreach event</option>
+              <option>Community service</option>
+              <option>Christian media</option>
+              <option>Christian technology</option>
+              <option>Counselling and guidance</option>
+            </select>
+            <select id="helpType">
+              <option value="">Any help type</option>
+              <option>Financial support</option>
+              <option>Prayer</option>
+              <option>Guidance</option>
+              <option>Volunteer</option>
+              <option>Mentorship</option>
+              <option>Services</option>
+              <option>Resources</option>
+            </select>
+            <select id="urgency">
+              <option value="">Any urgency</option>
+              <option>low</option>
+              <option>normal</option>
+              <option>high</option>
+            </select>
+            <button class="btn" data-load-projects>Apply filters</button>
+          </div>
+          <div class="checkbox-row">
+            <label><input type="checkbox" id="financialOnly"> Financial support open</label>
+            <label><input type="checkbox" id="reviewedOnly"> Admin reviewed</label>
+            <label><input type="checkbox" id="verifiedOnly"> Verified church/ministry</label>
+          </div>
+        </div>
+
+        <div id="projectsGrid" class="projects-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <div class="brand"><span class="brand-mark">✝</span> ChristHelper</div>
+        <p>A Christian support platform where believers can respond with prayer, guidance, volunteering, encouragement, and safe financial giving.</p>
+      </div>
+      <div>
+        <h3>Explore</h3>
+        <p><a href="index.html">Home</a></p>
+        <p><a href="submit.html">Submit Project</a></p>
+        <p><a href="project.html?id=1">Example Project</a></p>
+      </div>
+      <div>
+        <h3>Mission</h3>
+        <p><a href="help-christhelper.html">Help ChristHelper</a></p>
+        <p><a href="admin.html">Admin Dashboard</a></p>
+      </div>
+      <div>
+        <h3>Version 1</h3>
+        <p class="muted">Frontend + backend starter package.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
