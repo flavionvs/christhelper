@@ -11,7 +11,7 @@ const crypto = require('crypto');
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://127.0.0.1:5500';
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://127.0.0.1:5500').replace(/\/+$/, '');
 const CURRENCY = (process.env.STRIPE_CURRENCY || 'nzd').toLowerCase();
 const DATA_FILE = path.resolve(__dirname, process.env.DATA_FILE || './data.json');
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
@@ -174,11 +174,25 @@ function normalizeProject(project) {
     project.project_links = [];
   }
 
+  if (!Object.prototype.hasOwnProperty.call(project, 'last_donation_at')) {
+    project.last_donation_at = null;
+  }
+
   if (!project.continent && project.country) {
     project.continent = detectContinentFromCountry(project.country) || '';
   }
 
   return project;
+}
+
+function normalizeDonation(donation) {
+  if (!donation || typeof donation !== 'object') return donation;
+
+  if (!Object.prototype.hasOwnProperty.call(donation, 'stripe_payment_intent_id')) donation.stripe_payment_intent_id = '';
+  if (!Object.prototype.hasOwnProperty.call(donation, 'processed_at')) donation.processed_at = null;
+  if (!Object.prototype.hasOwnProperty.call(donation, 'checkout_session_status')) donation.checkout_session_status = '';
+
+  return donation;
 }
 
 function syncProjectFundingEligibility(db) {
@@ -197,7 +211,7 @@ function createSeedData() {
 
   const seeded = {
     meta: {
-      version: 4,
+      version: 5,
       created_at: now()
     },
     users: [
@@ -357,10 +371,10 @@ function readDb() {
   }
 
   if (!db.meta || typeof db.meta !== 'object') {
-    db.meta = { version: 4, created_at: now() };
+    db.meta = { version: 5, created_at: now() };
     changed = true;
-  } else if (!db.meta.version || db.meta.version < 4) {
-    db.meta.version = 4;
+  } else if (!db.meta.version || db.meta.version < 5) {
+    db.meta.version = 5;
     changed = true;
   }
 
@@ -374,6 +388,12 @@ function readDb() {
     const before = JSON.stringify(project);
     normalizeProject(project);
     if (before !== JSON.stringify(project)) changed = true;
+  }
+
+  for (const donation of db.donations) {
+    const before = JSON.stringify(donation);
+    normalizeDonation(donation);
+    if (before !== JSON.stringify(donation)) changed = true;
   }
 
   if (!db.users.find((u) => u.email === 'admin@christhelper.local')) {
@@ -480,8 +500,45 @@ function getOwnedProjectOr403(db, projectId, userId) {
   return { project };
 }
 
+function applyPaidDonation(db, donation, sessionLike = null) {
+  if (!donation) return { changed: false, reason: 'Donation not found' };
+
+  normalizeDonation(donation);
+
+  if (sessionLike?.id) donation.stripe_session_id = sessionLike.id;
+  if (sessionLike?.payment_intent) donation.stripe_payment_intent_id = String(sessionLike.payment_intent);
+  if (sessionLike?.payment_status) donation.checkout_session_status = String(sessionLike.payment_status);
+
+  if (donation.payment_status === 'paid' && donation.processed_at) {
+    return { changed: false, reason: 'Donation already processed', donation };
+  }
+
+  donation.payment_status = 'paid';
+  donation.processed_at = now();
+
+  let project = null;
+  if (donation.project_id) {
+    project = db.projects.find((item) => item.id === donation.project_id);
+    if (project) {
+      normalizeProject(project);
+      project.amount_raised = Number(project.amount_raised || 0) + Number(donation.amount_project || 0);
+      project.last_donation_at = donation.processed_at;
+    }
+  }
+
+  return { changed: true, donation, project };
+}
+
 app.get('/health', (req, res) => {
-  res.json({ ok: true, app: 'christhelper-backend-node24-safe', time: now(), data_file: DATA_FILE });
+  res.json({
+    ok: true,
+    app: 'christhelper-backend-node24-safe',
+    time: now(),
+    data_file: DATA_FILE,
+    frontend_url: FRONTEND_URL,
+    stripe_configured: Boolean(stripe),
+    webhook_secret_configured: Boolean(process.env.STRIPE_WEBHOOK_SECRET)
+  });
 });
 
 app.post('/auth/register', (req, res) => {
@@ -1127,7 +1184,7 @@ app.post('/payments/project-checkout', async (req, res) => {
     }
 
     const donation = withDb((state) => {
-      const record = {
+      const record = normalizeDonation({
         id: createId(),
         project_id,
         donor_name: donor_name || 'Anonymous',
@@ -1140,7 +1197,7 @@ app.post('/payments/project-checkout', async (req, res) => {
         payment_status: 'pending',
         donation_type: 'project',
         created_at: now()
-      };
+      });
       state.donations.push(record);
       return clone(record);
     });
@@ -1166,7 +1223,7 @@ app.post('/payments/project-checkout', async (req, res) => {
         },
         quantity: 1
       }],
-      success_url: `${FRONTEND_URL}/success.html?type=project`,
+      success_url: `${FRONTEND_URL}/success.html?type=project&session_id={CHECKOUT_SESSION_ID}&project_id=${encodeURIComponent(project_id)}`,
       cancel_url: `${FRONTEND_URL}/project.html?id=${project_id}`,
       customer_email: donor_email || undefined,
       payment_intent_data: {
@@ -1178,7 +1235,8 @@ app.post('/payments/project-checkout', async (req, res) => {
       metadata: {
         donation_id: donation.id,
         project_id: project_id,
-        owner_user_id: owner.id
+        owner_user_id: owner.id,
+        donation_type: 'project'
       }
     });
 
@@ -1187,7 +1245,7 @@ app.post('/payments/project-checkout', async (req, res) => {
       if (target) target.stripe_session_id = session.id;
     });
 
-    res.json({ url: session.url });
+    res.json({ url: session.url, session_id: session.id });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Unable to create checkout session' });
@@ -1201,7 +1259,7 @@ app.post('/payments/platform-checkout', async (req, res) => {
     if (platformAmount <= 0) return res.status(400).json({ error: 'Enter a valid amount' });
 
     const donation = withDb((state) => {
-      const record = {
+      const record = normalizeDonation({
         id: createId(),
         project_id: null,
         donor_name: donor_name || 'Anonymous',
@@ -1214,7 +1272,7 @@ app.post('/payments/platform-checkout', async (req, res) => {
         payment_status: 'pending',
         donation_type: 'platform',
         created_at: now()
-      };
+      });
       state.donations.push(record);
       return clone(record);
     });
@@ -1237,7 +1295,7 @@ app.post('/payments/platform-checkout', async (req, res) => {
         },
         quantity: 1
       }],
-      success_url: `${FRONTEND_URL}/success.html?type=platform`,
+      success_url: `${FRONTEND_URL}/success.html?type=platform&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${FRONTEND_URL}/help-christhelper.html`,
       customer_email: donor_email || undefined,
       metadata: { donation_id: donation.id, donation_type: 'platform' }
@@ -1248,15 +1306,76 @@ app.post('/payments/platform-checkout', async (req, res) => {
       if (target) target.stripe_session_id = session.id;
     });
 
-    res.json({ url: session.url });
+    res.json({ url: session.url, session_id: session.id });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Unable to create checkout session' });
   }
 });
 
+app.get('/payments/confirm-session', async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(400).json({ error: 'Stripe is not configured yet on the backend' });
+    }
+
+    const sessionId = String(req.query.session_id || '').trim();
+    if (!sessionId) {
+      return res.status(400).json({ error: 'session_id is required' });
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const donationId = session.metadata?.donation_id || '';
+    if (!donationId) {
+      return res.status(404).json({ error: 'Donation metadata not found for this session' });
+    }
+
+    let result = null;
+
+    withDb((db) => {
+      const donation = db.donations.find((item) => item.id === donationId);
+      if (!donation) {
+        result = { error: 'Donation not found', status: 404 };
+        return;
+      }
+
+      donation.stripe_session_id = session.id;
+      donation.checkout_session_status = String(session.payment_status || '');
+
+      if (session.payment_status === 'paid') {
+        const applied = applyPaidDonation(db, donation, session);
+        result = {
+          ok: true,
+          payment_status: 'paid',
+          already_processed: !applied.changed,
+          donation: clone(donation),
+          project_id: donation.project_id || null
+        };
+        return;
+      }
+
+      result = {
+        ok: true,
+        payment_status: session.payment_status || 'unpaid',
+        donation: clone(donation),
+        project_id: donation.project_id || null
+      };
+    });
+
+    if (result?.error) {
+      return res.status(result.status || 400).json({ error: result.error });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Confirm session failed:', error);
+    res.status(500).json({ error: 'Unable to confirm Stripe session' });
+  }
+});
+
 app.post('/webhook', (req, res) => {
   if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
+    console.log('Webhook skipped: Stripe or STRIPE_WEBHOOK_SECRET not configured');
     return res.status(200).send('Webhook skipped');
   }
 
@@ -1266,8 +1385,11 @@ app.post('/webhook', (req, res) => {
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
+    console.error('Webhook signature error:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
+  console.log('Stripe webhook received:', event.type);
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
@@ -1275,16 +1397,18 @@ app.post('/webhook', (req, res) => {
 
     withDb((db) => {
       const donation = db.donations.find((item) => item.id === donationId);
-      if (!donation) return;
-
-      donation.payment_status = 'paid';
-
-      if (donation.project_id) {
-        const project = db.projects.find((item) => item.id === donation.project_id);
-        if (project) {
-          project.amount_raised = Number(project.amount_raised || 0) + Number(donation.amount_project || 0);
-        }
+      if (!donation) {
+        console.log('Webhook donation not found for donation_id:', donationId);
+        return;
       }
+
+      const applied = applyPaidDonation(db, donation, session);
+      console.log('Donation processing result:', {
+        donation_id: donation.id,
+        changed: applied.changed,
+        project_id: donation.project_id || null,
+        reason: applied.reason || ''
+      });
     });
   }
 
@@ -1314,6 +1438,9 @@ readDb();
 
 app.listen(PORT, () => {
   console.log(`ChristHelper backend running on http://localhost:${PORT}`);
+  console.log(`Frontend URL: ${FRONTEND_URL}`);
   console.log(`Data file: ${DATA_FILE}`);
+  console.log(`Stripe configured: ${Boolean(stripe)}`);
+  console.log(`Webhook secret configured: ${Boolean(process.env.STRIPE_WEBHOOK_SECRET)}`);
   console.log('Demo admin: admin@christhelper.local / admin123');
 });

@@ -1,0 +1,300 @@
+CHRISTHELPER – TECHNICAL OVERVIEW (v1 – LOCAL DEV)
+
+---
+
+1. PROJECT OVERVIEW
+
+---
+
+ChristHelper is a web platform designed to connect Christians who need help (financial, prayer, guidance) with supporters.
+
+Core features:
+
+* Submit projects (requests for help)
+* Browse and explore projects
+* Donate to projects via Stripe
+* Track prayers and replies
+* Stripe Connect for project owners
+* Admin review for financial approval
+
+---
+
+2. ARCHITECTURE (CURRENT)
+
+---
+
+Type: Monolithic (Frontend + Backend separated but simple)
+
+Frontend:
+
+* Static HTML/CSS/JS
+* Served via local dev server (e.g. http://localhost:59922)
+
+Backend:
+
+* Node.js (Express)
+* Runs on http://localhost:3000
+
+Data storage:
+
+* JSON file (data.json)
+* No database yet (planned upgrade later)
+
+Payments:
+
+* Stripe Checkout
+* Stripe Connect (Express accounts)
+
+---
+
+3. TECHNOLOGIES USED
+
+---
+
+Backend:
+
+* Node.js (v24+)
+* Express.js
+* Stripe SDK
+* JWT (authentication)
+* bcrypt (password hashing)
+* dotenv (.env config)
+* fs (file-based storage)
+
+Frontend:
+
+* HTML5
+* CSS3
+* Vanilla JavaScript
+
+Payments:
+
+* Stripe Checkout
+* Stripe Connect (for marketplace model)
+* Stripe CLI (for local webhook testing)
+
+---
+
+4. KEY ENV VARIABLES (.env)
+
+---
+
+PORT=3000
+JWT_SECRET=your_secret
+FRONTEND_URL=http://localhost:59922
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+Optional:
+DATA_FILE=./data.json
+STRIPE_CURRENCY=nzd
+
+---
+
+5. PAYMENT FLOW (IMPORTANT)
+
+---
+
+1. User clicks "Support Project"
+
+2. Frontend calls backend:
+   POST /payments/project-checkout
+
+3. Backend:
+
+   * Creates donation record (status: pending)
+   * Creates Stripe Checkout session
+   * Returns session URL
+
+4. User completes payment on Stripe
+
+5. Stripe sends webhook:
+   event: checkout.session.completed
+
+6. Backend webhook:
+
+   * Finds donation via metadata
+   * Marks as paid
+   * Updates project.amount_raised
+
+7. Frontend refresh → updated value
+
+IMPORTANT (LOCAL DEV):
+Stripe cannot reach localhost directly.
+
+You MUST run:
+stripe listen --forward-to localhost:3000/webhook
+
+---
+
+6. DATA MODEL (SIMPLIFIED)
+
+---
+
+Users:
+
+* id
+* name
+* email
+* password_hash
+* stripe_account_id
+* stripe_charges_enabled
+* preferences (financial support, etc.)
+
+Projects:
+
+* id
+* title
+* description
+* country / continent
+* category
+* help_types (Prayer, Financial, etc.)
+* funding_goal
+* amount_raised
+* funding_approved (admin)
+* created_by (user id)
+
+Donations:
+
+* id
+* project_id
+* amount_project
+* amount_platform
+* stripe_session_id
+* payment_status (pending/paid)
+
+Other:
+
+* prayers[]
+* replies[]
+* updates[]
+* reports[]
+
+---
+
+7. STRIPE SETUP
+
+---
+
+Mode:
+
+* Test mode (currently)
+
+Used features:
+
+* Checkout Sessions
+* Connected Accounts (Express)
+* Application fees (platform fee)
+
+Important:
+
+* payment_intent_data.transfer_data.destination → sends funds to project owner
+* application_fee_amount → platform fee
+
+---
+
+8. WEBHOOK CONFIGURATION
+
+---
+
+Local:
+stripe listen --forward-to localhost:3000/webhook
+
+Production (future):
+
+* Configure in Stripe Dashboard
+* Endpoint: https://yourdomain.com/webhook
+* Event: checkout.session.completed
+
+---
+
+9. CURRENT LIMITATIONS
+
+---
+
+* Uses JSON file (not scalable)
+* No caching
+* No real-time updates
+* No email notifications
+* No retry system for failed webhooks
+* Frontend not reactive (manual refresh)
+
+---
+
+10. NEXT IMPROVEMENTS (RECOMMENDED)
+
+---
+
+Short term:
+
+* Improve success page (confirmation + UI)
+* Add loading + feedback on donation
+* Show updated funding instantly
+
+Mid term:
+
+* Move to database (SQLite → MySQL/Postgres)
+* Add user dashboard
+* Add donation history
+* Improve admin panel
+
+Long term:
+
+* Deploy to cloud (Azure / AWS)
+* Add authentication roles (admin/moderator)
+* Add notifications (email via SendGrid)
+* Add media (images, storage)
+* Improve search/filtering
+
+---
+
+11. DEPLOYMENT (FUTURE)
+
+---
+
+Frontend:
+
+* Azure Static Web Apps / Vercel / Netlify
+
+Backend:
+
+* Azure App Service / Node server
+
+Database:
+
+* Azure MySQL / PostgreSQL
+
+Payments:
+
+* Stripe production keys
+* Real webhook endpoint
+
+---
+
+12. IMPORTANT LESSONS (FROM DEV)
+
+---
+
+* Stripe payments do NOT update your system automatically
+* Webhooks are mandatory
+* Local dev requires Stripe CLI
+* FRONTEND_URL must match actual frontend port
+* Metadata is critical to link payment → project
+
+---
+
+13. CURRENT STATUS
+
+---
+
+✔ Project submission working
+✔ Explore projects working
+✔ Stripe Connect onboarding working
+✔ Payments working
+✔ Platform fee working
+✔ Webhook updating project funding
+✔ End-to-end donation flow COMPLETE
+
+---
+
+## END OF DOCUMENT

@@ -81,8 +81,30 @@ button, input, select, textarea {
 }
 
 .nav-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 999px;
   color: var(--muted);
   font-size: 0.96rem;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: 0.2s ease;
+}
+
+.nav-links a:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.nav-links a.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
 }
 
 .nav-actions {
@@ -219,6 +241,10 @@ input[type="radio"] {
   width: auto !important;
   display: inline-block;
   margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  vertical-align: middle;
+  align-self: center;
 }
 
 .checkbox-row {
@@ -229,10 +255,11 @@ input[type="radio"] {
 }
 
 .checkbox-row label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   color: var(--muted);
+  line-height: 1.4;
 }
 
 .form-check {
@@ -243,6 +270,7 @@ input[type="radio"] {
 
 .form-check input {
   width: auto;
+  flex: 0 0 auto;
 }
 
 .form-check label {
@@ -523,13 +551,42 @@ input[readonly] {
 }
 
 .checkbox-field {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
+  line-height: 1.4;
+}
+
+.checkbox-field input {
+  flex: 0 0 auto;
 }
 
 .checkbox-field span {
   color: var(--muted);
+}
+
+/* FIX: keep checkbox/radio + text on same row inside form labels */
+.form-grid > label:has(> input[type="checkbox"]),
+.form-grid > label:has(> input[type="radio"]),
+.simple-form > label:has(> input[type="checkbox"]),
+.simple-form > label:has(> input[type="radio"]),
+label.field:has(> input[type="checkbox"]),
+label.field:has(> input[type="radio"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.4;
+}
+
+.form-grid > label:has(> input[type="checkbox"]) > span,
+.form-grid > label:has(> input[type="radio"]) > span,
+.simple-form > label:has(> input[type="checkbox"]) > span,
+.simple-form > label:has(> input[type="radio"]) > span,
+label.field:has(> input[type="checkbox"]) > span,
+label.field:has(> input[type="radio"]) > span {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 1rem;
 }
 
 .form-grid .item {

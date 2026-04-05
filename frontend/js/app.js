@@ -1070,12 +1070,12 @@ async function handleProfilePage() {
 
     $('#connectStripeBtn')?.addEventListener('click', async () => {
       try {
-        const base = `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, '')}`;
+        const base = window.location.origin;
         const data = await api('/stripe/connect/onboard', {
           method: 'POST',
           body: JSON.stringify({
-            refresh_url: `${base}profile.html?stripe=refresh`,
-            return_url: `${base}profile.html?stripe=return`
+            refresh_url: `${base}/profile.html?stripe=refresh`,
+            return_url: `${base}/profile.html?stripe=return`
           })
         });
 

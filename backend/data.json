@@ -1,6 +1,6 @@
 {
   "meta": {
-    "version": 4,
+    "version": 5,
     "created_at": "2026-04-05T04:02:15.909Z"
   },
   "users": [
@@ -57,6 +57,29 @@
       "password_hash": "$2a$10$2Lj.rdmS99r2TNPbRrpnluteZDh1dVuLfxi5iZ2D4YIcdjZsEC1Q2",
       "role": "supporter",
       "created_at": "2026-04-05T04:21:08.737Z",
+      "stripe_account_id": "acct_1TIpGUBLAcWjN4KD",
+      "stripe_onboarding_complete": true,
+      "stripe_charges_enabled": true,
+      "stripe_payouts_enabled": true,
+      "stripe_details_submitted": true,
+      "country": "",
+      "organization_name": "",
+      "show_email_publicly": false,
+      "allow_financial_support": true,
+      "allow_prayer_requests": true,
+      "allow_replies": true,
+      "hide_archived_projects": false,
+      "exclude_closed_projects": false,
+      "is_active": true,
+      "deactivated_at": null
+    },
+    {
+      "id": "15514207-30dd-4416-a4f1-4f1fa24ecbdc",
+      "name": "test2@test.com",
+      "email": "test2@test.com",
+      "password_hash": "$2a$10$81Fy3REVdhwpzuhn4oPNFuMR9IYMSEmkWqNEg2TwfQUs5Sodg/Vda",
+      "role": "supporter",
+      "created_at": "2026-04-05T12:42:54.935Z",
       "stripe_account_id": "",
       "stripe_onboarding_complete": false,
       "stripe_charges_enabled": false,
@@ -112,7 +135,8 @@
       "excluded": false,
       "funding_goal_currency": "USD",
       "campaign_expiry_date": "",
-      "project_links": []
+      "project_links": [],
+      "last_donation_at": null
     },
     {
       "id": "8e5464bf-5685-4c26-9819-19593dab730a",
@@ -151,7 +175,8 @@
       "excluded": false,
       "funding_goal_currency": "USD",
       "campaign_expiry_date": "",
-      "project_links": []
+      "project_links": [],
+      "last_donation_at": null
     },
     {
       "id": "46326c59-df70-4047-981d-f2ef19ef9a60",
@@ -190,7 +215,8 @@
       "excluded": false,
       "funding_goal_currency": "",
       "campaign_expiry_date": "",
-      "project_links": []
+      "project_links": [],
+      "last_donation_at": null
     },
     {
       "id": "0168fc51-521d-4a47-856c-26301675ab85",
@@ -214,7 +240,7 @@
       "funding_goal": 0,
       "funding_approved": false,
       "amount_raised": 0,
-      "admin_reviewed": false,
+      "admin_reviewed": true,
       "verified_ministry": false,
       "status": "active",
       "timeline": "Next week",
@@ -227,7 +253,48 @@
       "excluded": false,
       "funding_goal_currency": "",
       "campaign_expiry_date": "",
-      "project_links": []
+      "project_links": [],
+      "last_donation_at": null
+    },
+    {
+      "id": "46052357-f809-43e5-84f5-67c83af49c87",
+      "title": "Test 1 ",
+      "summary": "Test 1 ",
+      "description": "Test 1 ",
+      "country": "New Zealand",
+      "continent": "Oceania",
+      "city": "Auckland",
+      "category": "Mission trip",
+      "help_types": [
+        "Financial support"
+      ],
+      "requester_name": "Test",
+      "organization_name": "test",
+      "church_ministry_linked": "test",
+      "contact_email": "test@test.com",
+      "urgency": "normal",
+      "is_online": false,
+      "needs_financial_support": true,
+      "funding_goal": 500,
+      "funding_goal_currency": "USD",
+      "campaign_expiry_date": "2026-04-07",
+      "project_links": [
+        "Test 1"
+      ],
+      "funding_approved": true,
+      "amount_raised": 205,
+      "admin_reviewed": true,
+      "verified_ministry": false,
+      "status": "active",
+      "timeline": "tes",
+      "who_benefits": "test",
+      "why_it_matters": "Test 1 ",
+      "created_by": "873bda78-babd-4256-b5c9-180fa942c64e",
+      "created_at": "2026-04-05T12:42:16.194Z",
+      "owner_can_receive_payments": true,
+      "archived": false,
+      "excluded": false,
+      "last_donation_at": "2026-04-05T14:40:05.181Z"
     }
   ],
   "prayers": [
@@ -250,7 +317,144 @@
       "created_at": "2026-04-05T04:09:48.754Z"
     }
   ],
-  "donations": [],
+  "donations": [
+    {
+      "id": "c804e20a-d280-40a4-b7fa-51936efb4237",
+      "project_id": "46052357-f809-43e5-84f5-67c83af49c87",
+      "donor_name": "test",
+      "donor_email": "tes35453@test.com",
+      "amount_project": 5,
+      "amount_platform": 0,
+      "currency": "nzd",
+      "stripe_session_id": "cs_test_a1BR3JoH7iHsQgyreRi9jsxVRIr6REehjbJTtRtws7II5xD46uozQ2DVyH",
+      "stripe_account_id": "acct_1TIpGUBLAcWjN4KD",
+      "payment_status": "pending",
+      "donation_type": "project",
+      "created_at": "2026-04-05T13:30:29.351Z",
+      "stripe_payment_intent_id": "",
+      "processed_at": null,
+      "checkout_session_status": ""
+    },
+    {
+      "id": "770b2c44-12c2-47bb-8167-7fdcc0b63bca",
+      "project_id": "46052357-f809-43e5-84f5-67c83af49c87",
+      "donor_name": "test",
+      "donor_email": "tes35453@test.com",
+      "amount_project": 300,
+      "amount_platform": 0,
+      "currency": "nzd",
+      "stripe_session_id": "cs_test_a1ezNRGRPMbh8U7vuULGk6cRyMvk83rcrmKGeQonhcXqQNj81JfpgCEeRi",
+      "stripe_account_id": "acct_1TIpGUBLAcWjN4KD",
+      "payment_status": "pending",
+      "donation_type": "project",
+      "created_at": "2026-04-05T13:34:58.121Z",
+      "stripe_payment_intent_id": "",
+      "processed_at": null,
+      "checkout_session_status": ""
+    },
+    {
+      "id": "27dd7145-b8e3-460b-bc7c-bf9609057709",
+      "project_id": "46052357-f809-43e5-84f5-67c83af49c87",
+      "donor_name": "test",
+      "donor_email": "tes35453@test.com",
+      "amount_project": 304,
+      "amount_platform": 0,
+      "currency": "nzd",
+      "stripe_session_id": "cs_test_a1JZRvkMyJ8mgmbGRN6Q96QCYO9juqJLiRmQzZ0BAKP4k3xnWR4cq78Mfy",
+      "stripe_account_id": "acct_1TIpGUBLAcWjN4KD",
+      "payment_status": "pending",
+      "donation_type": "project",
+      "created_at": "2026-04-05T13:45:10.451Z",
+      "stripe_payment_intent_id": "",
+      "processed_at": null,
+      "checkout_session_status": ""
+    },
+    {
+      "id": "7b4d3737-0ee6-453b-bed0-fbb0c83c5aac",
+      "project_id": "46052357-f809-43e5-84f5-67c83af49c87",
+      "donor_name": "test",
+      "donor_email": "tes35453@test.com",
+      "amount_project": 304,
+      "amount_platform": 0,
+      "currency": "nzd",
+      "stripe_session_id": "cs_test_a1Qm3GYx25iLvfNVIuoQgkNGScn1s4ujWnZ0Ot4UVv5NUNckjP1j1murny",
+      "stripe_account_id": "acct_1TIpGUBLAcWjN4KD",
+      "payment_status": "pending",
+      "donation_type": "project",
+      "created_at": "2026-04-05T13:46:58.463Z",
+      "stripe_payment_intent_id": "",
+      "processed_at": null,
+      "checkout_session_status": ""
+    },
+    {
+      "id": "1beed59c-6d82-4dca-996b-18438ed163ce",
+      "project_id": "46052357-f809-43e5-84f5-67c83af49c87",
+      "donor_name": "test",
+      "donor_email": "tes35453@test.com",
+      "amount_project": 304,
+      "amount_platform": 0,
+      "currency": "nzd",
+      "stripe_session_id": "cs_test_a1rxGdOeHx0BvLhbphdLMYSLzam3wBJzb7aiulwqICs3qg0cgkjT6ZVgPe",
+      "stripe_account_id": "acct_1TIpGUBLAcWjN4KD",
+      "payment_status": "pending",
+      "donation_type": "project",
+      "created_at": "2026-04-05T13:49:59.739Z",
+      "stripe_payment_intent_id": "",
+      "processed_at": null,
+      "checkout_session_status": ""
+    },
+    {
+      "id": "f0bd6807-b839-4859-add7-ea1c233fe26b",
+      "project_id": "46052357-f809-43e5-84f5-67c83af49c87",
+      "donor_name": "test",
+      "donor_email": "tes35453@test.com",
+      "amount_project": 304,
+      "amount_platform": 0,
+      "currency": "nzd",
+      "stripe_session_id": "cs_test_a1OaAw75IZLfc30kjoPWQmp6Jt9pzKoBW5AMnfjwCeQDKV6z7k8pSL4jOk",
+      "stripe_account_id": "acct_1TIpGUBLAcWjN4KD",
+      "payment_status": "pending",
+      "donation_type": "project",
+      "created_at": "2026-04-05T13:51:28.861Z",
+      "stripe_payment_intent_id": "",
+      "processed_at": null,
+      "checkout_session_status": ""
+    },
+    {
+      "id": "8548964c-cfbe-476c-b98f-1c86b1c7c45f",
+      "project_id": "46052357-f809-43e5-84f5-67c83af49c87",
+      "donor_name": "test",
+      "donor_email": "tes35453@test.com",
+      "amount_project": 205,
+      "amount_platform": 0,
+      "currency": "nzd",
+      "stripe_session_id": "cs_test_a17zxPdzyXEOElq2J5aslSCutI2Iq7Q3TbWUHKDlUPglhkNGooNLSuCQKV",
+      "stripe_account_id": "acct_1TIpGUBLAcWjN4KD",
+      "payment_status": "pending",
+      "donation_type": "project",
+      "created_at": "2026-04-05T14:34:17.138Z",
+      "stripe_payment_intent_id": "",
+      "processed_at": null,
+      "checkout_session_status": ""
+    },
+    {
+      "id": "a3e4508a-859f-4330-ad8e-4502a10fb081",
+      "project_id": "46052357-f809-43e5-84f5-67c83af49c87",
+      "donor_name": "test",
+      "donor_email": "tes35453@test.com",
+      "amount_project": 205,
+      "amount_platform": 0,
+      "currency": "nzd",
+      "stripe_session_id": "cs_test_a1NjagjnkuqPK1TblUx6Ma5UFF8iG1AyPiJcfPc07cBu2plmtGtax87Mli",
+      "stripe_account_id": "acct_1TIpGUBLAcWjN4KD",
+      "payment_status": "paid",
+      "donation_type": "project",
+      "created_at": "2026-04-05T14:39:41.626Z",
+      "stripe_payment_intent_id": "pi_3TIrqJBHFGZXSpnU0f2XzYOR",
+      "processed_at": "2026-04-05T14:40:05.181Z",
+      "checkout_session_status": "paid"
+    }
+  ],
   "updates": [
     {
       "id": "73411860-f814-4539-95e6-490b33a23a67",
@@ -279,6 +483,13 @@
       "title": "Project submitted",
       "content": "This project has been submitted successfully.",
       "created_at": "2026-04-05T04:06:28.626Z"
+    },
+    {
+      "id": "12030f86-5d3a-47f5-983c-b764d3aec769",
+      "project_id": "46052357-f809-43e5-84f5-67c83af49c87",
+      "title": "Project submitted",
+      "content": "This project has been submitted and is waiting for admin review for financial support. Stripe is already connected for this profile.",
+      "created_at": "2026-04-05T12:42:16.194Z"
     }
   ],
   "reports": []
