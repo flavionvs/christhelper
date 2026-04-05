@@ -91,7 +91,72 @@ STRIPE_CURRENCY=nzd
 
 ---
 
-5. PAYMENT FLOW (IMPORTANT)
+5. LOCAL DEVELOPMENT – HOW TO RUN
+
+---
+
+IMPORTANT: You need 3 terminals running
+
+---
+
+## (1) BACKEND
+
+Go to backend folder:
+
+cd C:\dev\christhelper\backend
+
+Run:
+node server.js
+
+You should see:
+ChristHelper backend running on http://localhost:3000
+
+---
+
+## (2) FRONTEND
+
+Go to frontend folder:
+
+cd C:\dev\christhelper\frontend
+
+Run a local server (example using "serve"):
+
+npx serve .
+
+OR if you use another tool:
+
+* Live Server (VS Code)
+* http-server
+
+Example result:
+http://localhost:59922
+
+Open browser:
+http://localhost:59922/index.html
+
+---
+
+## (3) STRIPE WEBHOOK (VERY IMPORTANT)
+
+Open a NEW terminal and run:
+
+stripe listen --forward-to localhost:3000/webhook
+
+You should see:
+Ready! Your webhook signing secret is whsec_...
+
+Copy that secret into .env:
+
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+IMPORTANT:
+
+* Keep this terminal OPEN while testing payments
+* Without this, payments will NOT update your project
+
+---
+
+6. PAYMENT FLOW (IMPORTANT)
 
 ---
 
@@ -119,15 +184,9 @@ STRIPE_CURRENCY=nzd
 
 7. Frontend refresh → updated value
 
-IMPORTANT (LOCAL DEV):
-Stripe cannot reach localhost directly.
-
-You MUST run:
-stripe listen --forward-to localhost:3000/webhook
-
 ---
 
-6. DATA MODEL (SIMPLIFIED)
+7. DATA MODEL (SIMPLIFIED)
 
 ---
 
@@ -172,7 +231,7 @@ Other:
 
 ---
 
-7. STRIPE SETUP
+8. STRIPE SETUP
 
 ---
 
@@ -193,7 +252,7 @@ Important:
 
 ---
 
-8. WEBHOOK CONFIGURATION
+9. WEBHOOK CONFIGURATION
 
 ---
 
@@ -208,7 +267,7 @@ Production (future):
 
 ---
 
-9. CURRENT LIMITATIONS
+10. CURRENT LIMITATIONS
 
 ---
 
@@ -221,7 +280,7 @@ Production (future):
 
 ---
 
-10. NEXT IMPROVEMENTS (RECOMMENDED)
+11. NEXT IMPROVEMENTS (RECOMMENDED)
 
 ---
 
@@ -248,7 +307,7 @@ Long term:
 
 ---
 
-11. DEPLOYMENT (FUTURE)
+12. DEPLOYMENT (FUTURE)
 
 ---
 
@@ -271,7 +330,7 @@ Payments:
 
 ---
 
-12. IMPORTANT LESSONS (FROM DEV)
+13. IMPORTANT LESSONS (FROM DEV)
 
 ---
 
@@ -283,7 +342,7 @@ Payments:
 
 ---
 
-13. CURRENT STATUS
+14. CURRENT STATUS
 
 ---
 
