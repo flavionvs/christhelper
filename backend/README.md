@@ -1,6 +1,6 @@
 # ChristHelper Backend - Node 24 Safe
 
-This backend removes `better-sqlite3` and uses a simple JSON file database, so it works with Node 24 on Windows without Python or Visual Studio build tools.
+This backend uses a simple JSON file database, so it works with Node 24 on Windows without native SQLite build tools.
 
 ## Run
 
@@ -19,5 +19,14 @@ npm start
 ## Notes
 
 - Data is stored in `data.json`
-- Stripe is optional. If not configured, donation requests are recorded in demo mode.
-- API routes were kept compatible with the V1 frontend
+- Stripe is optional. If not configured, donation requests are recorded in demo mode
+- The backend now supports Stripe Connect Express onboarding for project owners
+- Profile routes:
+  - `GET /auth/me`
+  - `GET /profile`
+  - `POST /stripe/connect/onboard`
+  - `GET /stripe/connect/status`
+- Project donations only open when:
+  - admin approved financial support
+  - the project owner connected Stripe
+  - Stripe reports charges enabled for that owner account

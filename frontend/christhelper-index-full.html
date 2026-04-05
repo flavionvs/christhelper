@@ -12,15 +12,13 @@
       <a href="index.html" class="brand"><span class="brand-mark">✝</span> ChristHelper</a>
       <nav class="nav-links">
         <a href="index.html">Home</a>
-        <a href="#projects">Projects</a>
         <a href="explore-projects.html">Explore Projects</a>
+        <a href="#projects">Projects</a>
         <a href="submit.html">Submit Project</a>
         <a href="help-christhelper.html">Help ChristHelper</a>
         <a href="admin.html" data-admin class="hide">Admin</a>
       </nav>
       <div class="nav-actions">
-        <a href="profile.html" class="btn-outline hide" data-auth>Profile</a>
-        <span class="badge hide" data-auth data-stripe-state>Stripe</span>
         <span data-auth class="hide muted">Hi, <strong id="navUserName"></strong></span>
         <a href="login.html" class="btn-outline" data-guest>Sign in</a>
         <a href="register.html" class="btn" data-guest>Register</a>
@@ -66,8 +64,8 @@
       <div class="container kpi-row">
         <div class="card panel"><h3>Faith-first support</h3><p>Prayer, wisdom, and practical help matter too.</p></div>
         <div class="card panel"><h3>Safer giving</h3><p>Projects requesting financial support must go through admin review first.</p></div>
-        <div class="card panel"><h3>Useful from the first page</h3><p>Homepage already shows live projects.</p></div>
-        <div class="card panel"><h3>Simple MVP stack</h3><p>HTML, CSS, JavaScript, Node.js, Express, SQLite-style JSON storage, and Stripe Checkout.</p></div>
+        <div class="card panel"><h3>Useful from the first page</h3><p>The homepage already shows live projects.</p></div>
+        <div class="card panel"><h3>Simple MVP stack</h3><p>HTML, CSS, JavaScript, Node.js, Express, SQLite, and Stripe Checkout.</p></div>
       </div>
     </section>
 
@@ -78,7 +76,10 @@
             <h2>Active projects</h2>
             <p id="projectCount">Loading active projects...</p>
           </div>
-          <button class="btn-outline" data-load-projects>Refresh</button>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <a class="btn-outline" href="explore-projects.html">Explore Projects</a>
+            <button class="btn-outline" data-load-projects>Refresh</button>
+          </div>
         </div>
 
         <div class="card section-card">
@@ -168,36 +169,72 @@
   <script src="js/app.js"></script>
   <script>
     (function () {
-      function getReplyCount(project) {
-        return Number(project.reply_count ?? project.replyCount ?? project.repliesCount ?? project.replies ?? 0) || 0;
+      function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, function (char) {
+          return ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+          })[char];
+        });
       }
 
-      function getPrayerCount(project) {
-        return Number(project.prayer_count ?? project.prayerCount ?? project.prayersCount ?? project.prayers ?? 0) || 0;
+      function getProjectReplies(project) {
+        if (typeof project.replyCount === "number") return project.replyCount;
+        if (typeof project.repliesCount === "number") return project.repliesCount;
+        if (Array.isArray(project.replies)) return project.replies.length;
+        if (typeof project.replies === "number") return project.replies;
+        return 0;
       }
 
-      function engagementHtml(project) {
-        return `
-          <div class="project-engagement" style="margin-top:12px; display:flex; gap:16px; flex-wrap:wrap;">
-            <span>💬 <strong>${getReplyCount(project)}</strong> replies</span>
-            <span>🙏 <strong>${getPrayerCount(project)}</strong> prayers</span>
-          </div>
-        `;
+      function getProjectPrayers(project) {
+        if (typeof project.prayerCount === "number") return project.prayerCount;
+        if (typeof project.prayersCount === "number") return project.prayersCount;
+        if (Array.isArray(project.prayers)) return project.prayers.length;
+        if (typeof project.prayers === "number") return project.prayers;
+        return 0;
       }
 
-      function addEngagementToCards(projects) {
-        const cards = document.querySelectorAll('#projectsGrid .project-card, #projectsGrid .card, #projectsGrid article, #projectsGrid > div');
-        cards.forEach((card, index) => {
+      function createEngagementMarkup(project) {
+        const replies = getProjectReplies(project);
+        const prayers = getProjectPrayers(project);
+        return '<div class="project-engagement" style="margin-top:12px; display:flex; gap:16px; flex-wrap:wrap; font-size:14px;">' +
+          '<span>💬 <strong>' + replies + '</strong> replies</span>' +
+          '<span>🙏 <strong>' + prayers + '</strong> prayers</span>' +
+        '</div>';
+      }
+
+      function appendEngagementToExistingCards(projects) {
+        const cards = document.querySelectorAll('#projectsGrid .card, #projectsGrid .project-card, #projectsGrid article');
+        cards.forEach(function (card, index) {
           if (card.querySelector('.project-engagement')) return;
-          card.insertAdjacentHTML('beforeend', engagementHtml(projects[index] || {}));
+          const project = projects[index] || {};
+          card.insertAdjacentHTML('beforeend', createEngagementMarkup(project));
         });
       }
 
       const originalRenderProjects = window.renderProjects;
+
       if (typeof originalRenderProjects === 'function') {
         window.renderProjects = function (projects) {
           originalRenderProjects(projects);
-          addEngagementToCards(Array.isArray(projects) ? projects : []);
+          appendEngagementToExistingCards(Array.isArray(projects) ? projects : []);
+        };
+      } else {
+        window.renderProjects = function (projects) {
+          const grid = document.getElementById('projectsGrid');
+          if (!grid) return;
+
+          const safeProjects = Array.isArray(projects) ? projects : [];
+          grid.innerHTML = safeProjects.map(function (project) {
+            return '<div class="card project-card">' +
+              '<h3>' + escapeHtml(project.title || 'Untitled project') + '</h3>' +
+              '<p>' + escapeHtml(project.summary || project.description || '') + '</p>' +
+              createEngagementMarkup(project) +
+            '</div>';
+          }).join('');
         };
       }
     })();

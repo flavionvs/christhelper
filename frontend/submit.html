@@ -15,6 +15,8 @@
         <a href="help-christhelper.html">Help ChristHelper</a>
       </nav>
       <div class="nav-actions">
+        <a href="profile.html" class="btn-outline hide" data-auth>Profile</a>
+        <span class="badge hide" data-auth data-stripe-state>Stripe</span>
         <a href="login.html" class="btn-outline" data-guest>Sign in</a>
         <a href="register.html" class="btn" data-guest>Register</a>
       </div>
@@ -26,65 +28,161 @@
       <section class="card page-card">
         <div class="eyebrow">Submit a project</div>
         <h1 style="font-size:2.3rem;">Share a Christian need or ministry project</h1>
-        <p>Projects can ask for prayer, guidance, volunteers, resources, mentorship, services, and financial support. Financial support requests require admin review before payments are enabled.</p>
+        <p>
+          Projects can ask for prayer, guidance, volunteers, resources, mentorship, services, and financial support.
+          If a project needs financial support, Stripe must already be connected in your profile before submission.
+        </p>
 
         <form id="submitProjectForm" class="form-grid two">
-          <input name="title" placeholder="Project title" required>
-          <input name="summary" placeholder="Short summary" required>
-          <textarea name="description" placeholder="Full description" required></textarea>
-          <textarea name="why_it_matters" placeholder="Why it matters"></textarea>
-          <input name="country" placeholder="Country" required>
-          <input name="continent" placeholder="Continent" required>
-          <input name="city" placeholder="City or online">
-          <select name="category" required>
-            <option value="">Choose category</option>
-            <option>Mission trip</option>
-            <option>Evangelism</option>
-            <option>Church planting</option>
-            <option>Worship ministry</option>
-            <option>Youth ministry</option>
-            <option>Family support</option>
-            <option>Emergency need</option>
-            <option>Christian education</option>
-            <option>Bible distribution</option>
-            <option>Outreach event</option>
-            <option>Community service</option>
-            <option>Christian media</option>
-            <option>Christian technology</option>
-            <option>Counselling and guidance</option>
-          </select>
-          <input name="requester_name" placeholder="Requester name" required>
-          <input name="organization_name" placeholder="Organization or ministry name">
-          <input name="church_ministry_linked" placeholder="Church or ministry linked">
-          <input name="contact_email" type="email" placeholder="Contact email" required>
-          <input name="timeline" placeholder="Timeline">
-          <input name="who_benefits" placeholder="Who will benefit">
-          <select name="urgency">
-            <option value="normal">Urgency: Normal</option>
-            <option value="low">Low</option>
-            <option value="high">High</option>
-          </select>
-          <input name="funding_goal" type="number" min="0" step="0.01" placeholder="Funding goal if needed">
-          <div class="item">
-            <strong>Help types needed</strong>
-            <label><input type="checkbox" name="help_types" value="Financial support"> Financial support</label><br>
-            <label><input type="checkbox" name="help_types" value="Prayer"> Prayer</label><br>
-            <label><input type="checkbox" name="help_types" value="Guidance"> Guidance</label><br>
-            <label><input type="checkbox" name="help_types" value="Volunteer"> Volunteer</label><br>
-            <label><input type="checkbox" name="help_types" value="Mentorship"> Mentorship</label><br>
-            <label><input type="checkbox" name="help_types" value="Services"> Services</label><br>
-            <label><input type="checkbox" name="help_types" value="Resources"> Resources</label>
+
+          <label>
+            <span data-info="Write a clear and short title so people quickly understand the project.">Project title</span>
+            <input name="title" placeholder="Project title" required>
+          </label>
+
+          <label>
+            <span data-info="Write a short summary in one sentence about what the project needs.">Short summary</span>
+            <input name="summary" placeholder="Short summary" required>
+          </label>
+
+          <label style="grid-column:1/-1;">
+            <span data-info="Describe the project in more detail, what is happening, and what support is needed.">Full description</span>
+            <textarea name="description" placeholder="Full description" required></textarea>
+          </label>
+
+          <label style="grid-column:1/-1;">
+            <span data-info="Explain why this project matters and why people should care.">Why it matters</span>
+            <textarea name="why_it_matters" placeholder="Why it matters"></textarea>
+          </label>
+
+          <!-- ✅ FIXED COUNTRY -->
+          <label>
+            <span data-info="Select the country where the project is based.">Country</span>
+            <select id="projectCountry" name="country" required>
+              <option value="">-- Select country --</option>
+            </select>
+          </label>
+
+          <label>
+            <span data-info="This is filled automatically from the country.">Continent</span>
+            <input id="projectContinent" name="continent" placeholder="Continent" required readonly>
+          </label>
+
+          <label>
+            <span data-info="Add the city, town, region, or write online if remote.">City or online</span>
+            <input name="city" placeholder="City or online">
+          </label>
+
+          <label>
+            <span data-info="Choose the category that best matches your project.">Category</span>
+            <select name="category" required>
+              <option value="">Choose category</option>
+              <option>Mission trip</option>
+              <option>Evangelism</option>
+              <option>Church planting</option>
+              <option>Worship ministry</option>
+              <option>Youth ministry</option>
+              <option>Family support</option>
+              <option>Emergency need</option>
+              <option>Christian education</option>
+              <option>Bible distribution</option>
+              <option>Outreach event</option>
+              <option>Community service</option>
+              <option>Christian media</option>
+              <option>Christian technology</option>
+              <option>Counselling and guidance</option>
+            </select>
+          </label>
+
+          <label>
+            <span data-info="Name of the main person responsible for this project.">Requester name</span>
+            <input name="requester_name" placeholder="Requester name" required>
+          </label>
+
+          <label>
+            <span data-info="Add your church, ministry, or organisation name if relevant.">Organization or ministry name</span>
+            <input name="organization_name" placeholder="Organization or ministry name">
+          </label>
+
+          <label>
+            <span data-info="Add the church or ministry connected to this project.">Church or ministry linked</span>
+            <input name="church_ministry_linked" placeholder="Church or ministry linked">
+          </label>
+
+          <label>
+            <span data-info="This email is used for project contact and follow-up.">Contact email</span>
+            <input name="contact_email" type="email" placeholder="Contact email" required>
+          </label>
+
+          <label>
+            <span data-info="Add the expected timing, season, or target month for the project.">Timeline</span>
+            <input name="timeline" placeholder="Timeline">
+          </label>
+
+          <label>
+            <span data-info="Explain who will receive the benefit from this project.">Who will benefit</span>
+            <input name="who_benefits" placeholder="Who will benefit">
+          </label>
+
+          <label>
+            <span data-info="Choose how urgent this need is.">Urgency</span>
+            <select name="urgency">
+              <option value="normal">Urgency: Normal</option>
+              <option value="low">Low</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+
+          <!-- REST OF YOUR FILE UNCHANGED -->
+
+          <div class="item" style="grid-column:1/-1;">
+            <strong data-info="Select all types of support needed for this project.">Help types needed</strong>
+            <div class="checkbox-row" style="margin-top:10px;">
+              <label><input type="checkbox" name="help_types" value="Financial support"> Financial support</label>
+              <label><input type="checkbox" name="help_types" value="Prayer"> Prayer</label>
+              <label><input type="checkbox" name="help_types" value="Guidance"> Guidance</label>
+              <label><input type="checkbox" name="help_types" value="Volunteer"> Volunteer</label>
+              <label><input type="checkbox" name="help_types" value="Mentorship"> Mentorship</label>
+              <label><input type="checkbox" name="help_types" value="Services"> Services</label>
+              <label><input type="checkbox" name="help_types" value="Resources"> Resources</label>
+            </div>
           </div>
-          <div class="item">
-            <strong>Settings</strong>
-            <label><input type="checkbox" name="needs_financial_support"> This project needs financial support</label><br>
-            <label><input type="checkbox" name="is_online"> This is online / remote</label>
+
+          <div class="item" style="grid-column:1/-1;">
+            <strong data-info="Choose the project settings below.">Settings</strong>
+            <div class="checkbox-row" style="margin-top:10px;">
+              <label><input id="needsFinancialSupport" type="checkbox" name="needs_financial_support"> This project needs financial support</label>
+              <label><input type="checkbox" name="is_online"> This is online / remote</label>
+            </div>
           </div>
-          <div style="grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap;">
+
+          <label id="financialGoalWrap" class="hide">
+            <span>Funding goal in USD</span>
+            <input id="fundingGoal" name="funding_goal" type="number">
+          </label>
+
+          <label id="campaignExpiryWrap" class="hide">
+            <span>Campaign expiry date</span>
+            <input id="campaignExpiryDate" name="campaign_expiry_date" type="date">
+          </label>
+
+          <input id="fundingGoalCurrency" name="funding_goal_currency" type="hidden">
+
+          <label style="grid-column:1/-1;">
+            <span>Project links</span>
+            <textarea name="project_links"></textarea>
+          </label>
+
+          <div style="grid-column:1/-1;">
             <button class="btn" type="submit">Submit project</button>
-            <a class="btn-outline" href="login.html">Login first</a>
           </div>
+
         </form>
+      </section>
+
+      <section class="card page-card" style="margin-top:24px;">
+        <h2>All projects</h2>
+        <div id="allProjectsList" class="list"></div>
       </section>
     </div>
   </main>

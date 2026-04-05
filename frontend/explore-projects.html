@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChristHelper | Christian support platform</title>
+  <title>Explore Projects | ChristHelper</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -12,7 +12,6 @@
       <a href="index.html" class="brand"><span class="brand-mark">✝</span> ChristHelper</a>
       <nav class="nav-links">
         <a href="index.html">Home</a>
-        <a href="#projects">Projects</a>
         <a href="explore-projects.html">Explore Projects</a>
         <a href="submit.html">Submit Project</a>
         <a href="help-christhelper.html">Help ChristHelper</a>
@@ -30,52 +29,11 @@
   </header>
 
   <main>
-    <section class="hero">
-      <div class="container hero-grid">
-        <div class="card hero-copy">
-          <div class="eyebrow">Christian support platform</div>
-          <h1>Support Christian projects, ministries, and people with prayer, guidance, volunteering, and financial help.</h1>
-          <p>Connect believers with real needs and meaningful ways to help.</p>
-          <div class="search-row">
-            <input id="q" placeholder="Search by project, country, ministry, keyword">
-            <a class="btn" href="#projects">Browse projects</a>
-            <a class="btn-outline" href="submit.html">Submit project</a>
-            <a class="btn-outline" href="explore-projects.html">Explore Projects</a>
-          </div>
-          <div class="badge-row">
-            <span class="badge">Prayer</span>
-            <span class="badge">Guidance</span>
-            <span class="badge">Volunteering</span>
-            <span class="badge">Mentorship</span>
-            <span class="badge">Financial support</span>
-          </div>
-        </div>
-
-        <div class="card hero-side">
-          <h2>How ChristHelper works</h2>
-          <div class="list">
-            <div class="item"><strong>1. Browse live projects</strong>Filter by country, continent, category, and type of help needed.</div>
-            <div class="item"><strong>2. Choose how to support</strong>Pray, reply, offer services, mentor, volunteer, or donate.</div>
-            <div class="item"><strong>3. Keep safety first</strong>Financial support is only enabled after admin review.</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section class="section">
-      <div class="container kpi-row">
-        <div class="card panel"><h3>Faith-first support</h3><p>Prayer, wisdom, and practical help matter too.</p></div>
-        <div class="card panel"><h3>Safer giving</h3><p>Projects requesting financial support must go through admin review first.</p></div>
-        <div class="card panel"><h3>Useful from the first page</h3><p>Homepage already shows live projects.</p></div>
-        <div class="card panel"><h3>Simple MVP stack</h3><p>HTML, CSS, JavaScript, Node.js, Express, SQLite-style JSON storage, and Stripe Checkout.</p></div>
-      </div>
-    </section>
-
-    <section class="section" id="projects">
       <div class="container">
         <div class="section-head">
           <div>
-            <h2>Active projects</h2>
+            <h2>Explore projects</h2>
             <p id="projectCount">Loading active projects...</p>
           </div>
           <button class="btn-outline" data-load-projects>Refresh</button>
@@ -83,6 +41,7 @@
 
         <div class="card section-card">
           <div class="filter-grid">
+            <input id="q" placeholder="Search by project, country, ministry, keyword">
             <input id="country" placeholder="Country">
             <select id="continent">
               <option value="">All continents</option>

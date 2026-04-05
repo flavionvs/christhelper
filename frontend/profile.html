@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChristHelper | My Profile</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container nav">
+      <a href="index.html" class="brand"><span class="brand-mark">✝</span> ChristHelper</a>
+
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="explore-projects.html">Explore Projects</a>
+        <a href="submit.html">Submit Project</a>
+        <a href="help-christhelper.html">Help ChristHelper</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="login.html" class="btn-outline" data-guest>Sign in</a>
+        <a href="register.html" class="btn" data-guest>Register</a>
+        <a href="profile.html" class="btn-outline hide" data-auth>Profile</a>
+        <span class="badge hide" data-auth data-stripe-state>Stripe</span>
+        <button class="btn-outline hide" data-auth data-logout>Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+    <div class="container">
+      <section class="hero compact-hero">
+        <div>
+          <span class="eyebrow">My account</span>
+          <h1>Profile</h1>
+          <p>
+            Manage your account details, Stripe connection, and project preferences.
+          </p>
+        </div>
+      </section>
+
+      <div id="profilePage">
+        <section class="card profile-card">
+          <div class="section-heading">
+            <h2>Account overview</h2>
+            <p>Your information and payout setup will appear here.</p>
+          </div>
+
+          <div class="profile-grid">
+            <div class="profile-block">
+              <h3>Personal details</h3>
+              <div class="form-grid">
+                <label class="field">
+                  <span>Name</span>
+                  <input type="text" id="profileName" placeholder="Your full name">
+                </label>
+
+                <label class="field">
+                  <span>Email</span>
+                  <input type="email" id="profileEmail" placeholder="you@example.com">
+                </label>
+
+                <label class="field">
+                  <span>Country</span>
+                  <input type="text" id="profileCountry" placeholder="New Zealand">
+                </label>
+
+                <label class="field">
+                  <span>Church / Organisation</span>
+                  <input type="text" id="profileOrganisation" placeholder="Optional">
+                </label>
+              </div>
+
+              <div class="inline-actions">
+                <button class="btn" id="saveProfileBtn" type="button">Save profile</button>
+              </div>
+            </div>
+
+            <div class="profile-block">
+              <h3>Stripe connection</h3>
+              <p class="muted">
+                Connect Stripe to receive financial support directly to your payout account.
+              </p>
+
+              <div class="status-list">
+                <div class="status-row">
+                  <span>Status</span>
+                  <strong id="stripeStatusText">Not connected</strong>
+                </div>
+                <div class="status-row">
+                  <span>Payouts enabled</span>
+                  <strong id="stripePayoutsText">No</strong>
+                </div>
+                <div class="status-row">
+                  <span>Charges enabled</span>
+                  <strong id="stripeChargesText">No</strong>
+                </div>
+              </div>
+
+              <div class="inline-actions">
+                <button class="btn" id="connectStripeBtn" type="button">Connect Stripe</button>
+                <button class="btn-outline" id="refreshStripeBtn" type="button">Refresh status</button>
+                <button class="btn-outline danger" id="disconnectStripeBtn" type="button">Disconnect account</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card profile-card">
+          <div class="section-heading">
+            <h2>Project settings</h2>
+            <p>Control what appears publicly on your profile and projects.</p>
+          </div>
+
+          <div class="form-grid">
+            <label class="checkbox-field">
+              <input type="checkbox" id="showEmailPublicly">
+              <span>Show my email publicly on projects</span>
+            </label>
+
+            <label class="checkbox-field">
+              <input type="checkbox" id="allowFinancialSupport">
+              <span>Allow financial support on my approved projects</span>
+            </label>
+
+            <label class="checkbox-field">
+              <input type="checkbox" id="allowPrayerRequests">
+              <span>Allow prayer support and prayer counters</span>
+            </label>
+
+            <label class="checkbox-field">
+              <input type="checkbox" id="allowReplies">
+              <span>Allow public replies and encouragement messages</span>
+            </label>
+
+            <label class="checkbox-field">
+              <input type="checkbox" id="hideArchivedProjects">
+              <span>Hide archived projects from my public profile</span>
+            </label>
+
+            <label class="checkbox-field">
+              <input type="checkbox" id="excludeClosedProjects">
+              <span>Exclude completed / closed projects from public listings</span>
+            </label>
+          </div>
+
+          <div class="inline-actions">
+            <button class="btn" id="savePreferencesBtn" type="button">Save preferences</button>
+          </div>
+        </section>
+
+        <section class="card profile-card">
+          <div class="section-heading">
+            <h2>My projects</h2>
+            <p>Quick access to active, draft, archived, and excluded projects.</p>
+          </div>
+
+          <div class="project-tabs">
+            <button class="btn-outline" type="button" data-project-filter="all">All</button>
+            <button class="btn-outline" type="button" data-project-filter="active">Active</button>
+            <button class="btn-outline" type="button" data-project-filter="draft">Drafts</button>
+            <button class="btn-outline" type="button" data-project-filter="archived">Archived</button>
+            <button class="btn-outline" type="button" data-project-filter="excluded">Excluded</button>
+          </div>
+
+          <div id="profileProjectsList" class="stack-list">
+            <p class="muted">Your projects will load here.</p>
+          </div>
+        </section>
+
+        <section class="card profile-card">
+          <div class="section-heading">
+            <h2>Account actions</h2>
+            <p>Manage visibility and account access.</p>
+          </div>
+
+          <div class="inline-actions">
+            <button class="btn-outline" id="changePasswordBtn" type="button">Change password</button>
+            <button class="btn-outline" id="downloadDataBtn" type="button">Download my data</button>
+            <button class="btn-outline danger" id="deactivateAccountBtn" type="button">Deactivate account</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html
