@@ -1,4 +1,11 @@
-const API_BASE = localStorage.getItem('christhelper.api') || 'http://localhost:3000';
+const DEFAULT_API_BASE = (
+  window.location.hostname === 'www.christhelper.com' ||
+  window.location.hostname === 'christhelper.com'
+)
+  ? 'https://api.christhelper.com'
+  : 'http://localhost:3000';
+
+const API_BASE = (localStorage.getItem('christhelper.api') || DEFAULT_API_BASE).replace(/\/+$/, '');
 let token = localStorage.getItem('christhelper.token');
 let currentUser = JSON.parse(localStorage.getItem('christhelper.user') || 'null');
 
