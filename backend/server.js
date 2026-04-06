@@ -7,14 +7,26 @@ const Stripe = require('stripe');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { DatabaseSync } = require('node:sqlite');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret';
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://127.0.0.1:5500').replace(/\/+$/, '');
 const CURRENCY = (process.env.STRIPE_CURRENCY || 'nzd').toLowerCase();
-const DATA_FILE = path.resolve(__dirname, process.env.DATA_FILE || './data.json');
+const DB_PATH = path.resolve(process.env.DB_PATH || path.join(__dirname, 'christhelper.db'));
+const LEGACY_DATA_FILE = path.resolve(__dirname, process.env.DATA_FILE || './data.json');
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+const sqlite = new DatabaseSync(DB_PATH);
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS app_state (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )
+`);
 
 app.use(cors());
 app.use('/webhook', express.raw({ type: 'application/json' }));
@@ -388,17 +400,41 @@ function createSeedData() {
   return seeded;
 }
 
+function hasSQLiteState() {
+  const row = sqlite.prepare('SELECT value FROM app_state WHERE key = ?').get('main');
+  return Boolean(row && row.value);
+}
+
+function importLegacyJsonIfPresent() {
+  if (!fs.existsSync(LEGACY_DATA_FILE)) return null;
+  const raw = fs.readFileSync(LEGACY_DATA_FILE, 'utf8').trim();
+  if (!raw) return null;
+  return JSON.parse(raw);
+}
+
+function persistDb(db) {
+  sqlite.prepare(`
+    INSERT INTO app_state (key, value, updated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(key) DO UPDATE SET
+      value = excluded.value,
+      updated_at = excluded.updated_at
+  `).run('main', JSON.stringify(db), now());
+}
+
 function readDb() {
-  if (!fs.existsSync(DATA_FILE)) {
-    const seeded = createSeedData();
-    fs.writeFileSync(DATA_FILE, JSON.stringify(seeded, null, 2));
+  if (!hasSQLiteState()) {
+    const imported = importLegacyJsonIfPresent();
+    const seeded = imported || createSeedData();
+    persistDb(seeded);
     return seeded;
   }
 
-  const raw = fs.readFileSync(DATA_FILE, 'utf8').trim();
+  const row = sqlite.prepare('SELECT value FROM app_state WHERE key = ?').get('main');
+  const raw = String(row?.value || '').trim();
   if (!raw) {
     const seeded = createSeedData();
-    fs.writeFileSync(DATA_FILE, JSON.stringify(seeded, null, 2));
+    persistDb(seeded);
     return seeded;
   }
 
@@ -457,7 +493,7 @@ function readDb() {
 
 function writeDb(db) {
   syncProjectFundingEligibility(db);
-  fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2));
+  persistDb(db);
 }
 
 function withDb(action) {
@@ -576,7 +612,8 @@ app.get('/health', (req, res) => {
     ok: true,
     app: 'christhelper-backend-node24-safe',
     time: now(),
-    data_file: DATA_FILE,
+    db_path: DB_PATH,
+    legacy_data_file: LEGACY_DATA_FILE,
     frontend_url: FRONTEND_URL,
     stripe_configured: Boolean(stripe),
     webhook_secret_configured: Boolean(process.env.STRIPE_WEBHOOK_SECRET)
@@ -1626,7 +1663,8 @@ readDb();
 app.listen(PORT, () => {
   console.log(`ChristHelper backend running on http://localhost:${PORT}`);
   console.log(`Frontend URL: ${FRONTEND_URL}`);
-  console.log(`Data file: ${DATA_FILE}`);
+  console.log(`SQLite DB path: ${DB_PATH}`);
+  console.log(`Legacy data file path: ${LEGACY_DATA_FILE}`);
   console.log(`Stripe configured: ${Boolean(stripe)}`);
   console.log(`Webhook secret configured: ${Boolean(process.env.STRIPE_WEBHOOK_SECRET)}`);
   console.log('Demo admin: admin@christhelper.local / admin123');
