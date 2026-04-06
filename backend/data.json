@@ -422,6 +422,50 @@
       "denied_reason": "",
       "cancellation_reason": "",
       "cancelled_at": null
+    },
+    {
+      "id": "e0974f66-2457-4323-b2a4-a36fa284c7d5",
+      "title": "test",
+      "summary": "test 0350",
+      "description": "test 0350",
+      "country": "Bahrain",
+      "continent": "Asia",
+      "city": "Online",
+      "category": "Worship ministry",
+      "help_types": [
+        "Financial support"
+      ],
+      "requester_name": "test 0350",
+      "organization_name": "test 0350",
+      "church_ministry_linked": "test 0350",
+      "contact_email": "test@test.com",
+      "urgency": "normal",
+      "is_online": false,
+      "needs_financial_support": true,
+      "funding_goal": 10,
+      "funding_goal_currency": "USD",
+      "campaign_expiry_date": "2026-04-10",
+      "project_links": [
+        "test 0350"
+      ],
+      "funding_approved": true,
+      "amount_raised": 2,
+      "admin_reviewed": true,
+      "verified_ministry": false,
+      "status": "active",
+      "timeline": "test 0350",
+      "who_benefits": "test 0350",
+      "why_it_matters": "test 0350",
+      "created_by": "873bda78-babd-4256-b5c9-180fa942c64e",
+      "created_at": "2026-04-06T03:50:45.149Z",
+      "owner_can_receive_payments": true,
+      "archived": false,
+      "excluded": false,
+      "last_donation_at": "2026-04-06T03:52:47.227Z",
+      "financial_denied": false,
+      "denied_reason": "",
+      "cancellation_reason": "",
+      "cancelled_at": null
     }
   ],
   "prayers": [
@@ -431,6 +475,20 @@
       "name": "Test",
       "message": "Test",
       "created_at": "2026-04-05T04:08:33.409Z"
+    },
+    {
+      "id": "958ff3d3-03a5-4466-89b9-00ff16b986da",
+      "project_id": "46052357-f809-43e5-84f5-67c83af49c87",
+      "name": "Test",
+      "message": "Prayed for this project.",
+      "created_at": "2026-04-06T04:31:53.115Z"
+    },
+    {
+      "id": "a7a6c17f-a5b0-410d-9d8d-53d8be699adb",
+      "project_id": "e0974f66-2457-4323-b2a4-a36fa284c7d5",
+      "name": "Test 0434",
+      "message": "Test 0434",
+      "created_at": "2026-04-06T04:34:32.496Z"
     }
   ],
   "replies": [
@@ -614,6 +672,23 @@
       "stripe_payment_intent_id": "pi_3TJ1VJBHFGZXSpnU0mwCnVnI",
       "processed_at": "2026-04-06T00:59:03.614Z",
       "checkout_session_status": "paid"
+    },
+    {
+      "id": "9b7ac52e-8224-4e55-8d39-fb7ac571b307",
+      "project_id": "e0974f66-2457-4323-b2a4-a36fa284c7d5",
+      "donor_name": "test",
+      "donor_email": "test0351@test.com",
+      "amount_project": 2,
+      "amount_platform": 1,
+      "currency": "nzd",
+      "stripe_session_id": "cs_test_a1w9TxJyBg6PikErlQRrc0UqpkF0XQSKYiJsQIk7ydPP4fFLNOokxLolOU",
+      "stripe_account_id": "acct_1TIpGUBLAcWjN4KD",
+      "payment_status": "paid",
+      "donation_type": "project",
+      "created_at": "2026-04-06T03:52:16.302Z",
+      "stripe_payment_intent_id": "pi_3TJ4DPBHFGZXSpnU1ucFMrQj",
+      "processed_at": "2026-04-06T03:52:47.227Z",
+      "checkout_session_status": "paid"
     }
   ],
   "updates": [
@@ -665,6 +740,13 @@
       "title": "Project submitted",
       "content": "This project has been submitted and is waiting for admin review for financial support. Stripe is already connected for this profile.",
       "created_at": "2026-04-06T00:56:39.421Z"
+    },
+    {
+      "id": "6213b313-7bb0-4f26-87de-3b0763f02578",
+      "project_id": "e0974f66-2457-4323-b2a4-a36fa284c7d5",
+      "title": "Project submitted",
+      "content": "This project has been submitted and is waiting for admin review for financial support. Stripe is already connected for this profile.",
+      "created_at": "2026-04-06T03:50:45.149Z"
     }
   ],
   "reports": []

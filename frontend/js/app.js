@@ -363,11 +363,12 @@ async function loadProjectDetails() {
                 <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
               </div>
               ${donationAvailable ? `
+                <div class="notice" style="margin-top:16px;">Payments for financial support are processed in USD. Stripe transaction fees apply per payment, so the amount paid by the supporter and the net amount received by the project owner may be different.</div>
                 <form id="projectDonationForm" class="simple-form" style="margin-top:16px;">
                   <input name="donor_name" placeholder="Your name">
                   <input name="donor_email" type="email" placeholder="Your email">
-                  <input name="amount_project" type="number" min="1" step="0.01" placeholder="Amount for this project" required>
-                  <input name="amount_platform" type="number" min="0" step="0.01" placeholder="Optional support for ChristHelper">
+                  <input name="amount_project" type="number" min="1" step="0.01" placeholder="Amount for this project (USD)" required>
+                  <input name="amount_platform" type="number" min="0" step="0.01" placeholder="Optional support for ChristHelper (USD)">
                   <button class="btn" type="submit">Continue to secure payment</button>
                 </form>
               ` : '<p class="muted" style="margin-top:14px;">This project is approved, but the owner still needs to finish Stripe onboarding before donations can be accepted.</p>'}

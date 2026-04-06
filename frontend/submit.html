@@ -30,7 +30,7 @@
         <h1 style="font-size:2.3rem;">Share a Christian need or ministry project</h1>
         <p>
           Projects can ask for prayer, guidance, volunteers, resources, mentorship, services, and financial support.
-          If a project needs financial support, Stripe must already be connected in your profile before submission.
+          If a project needs financial support, Stripe must already be connected in your profile before submission. Financial payments are processed in USD and Stripe transaction fees apply per payment, so the amount paid and the net amount received may be different.
         </p>
 
         <form id="submitProjectForm" class="form-grid two">
@@ -158,6 +158,7 @@
 
           <label id="financialGoalWrap" class="hide">
             <span>Funding goal in USD</span>
+            <small class="muted">Payments are processed in USD. Stripe transaction fees apply per payment, so the amount paid and the net amount received may be different.</small>
             <input id="fundingGoal" name="funding_goal" type="number">
           </label>
 
