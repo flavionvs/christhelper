@@ -18,6 +18,18 @@ function formatUsd(value) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value || 0));
 }
 
+function formatCurrencyByCode(value, currency) {
+  const normalizedCurrency = String(currency || 'NZD').toUpperCase();
+  return new Intl.NumberFormat('en-NZ', { style: 'currency', currency: normalizedCurrency }).format(Number(value || 0));
+}
+
+function formatIsoDateTime(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return safeHtml(String(value));
+  return date.toLocaleString();
+}
+
 function safeHtml(text) {
   return String(text || '')
     .replace(/&/g, '&amp;')
@@ -736,6 +748,170 @@ function getProfileFieldValue(source, ...keys) {
   return '';
 }
 
+
+function renderStripeSummarySection(summary, options = {}) {
+  const stripeConnected = Boolean(options.stripeConnected);
+  const stripeReady = Boolean(options.stripeReady);
+
+  if (!stripeConnected) {
+    return `
+      <section class="card panel">
+        <h2>Stripe earnings</h2>
+        <p class="muted">Connect Stripe first to view your balance, recent transactions, and payouts.</p>
+      </section>
+    `;
+  }
+
+  if (!summary) {
+    return `
+      <section class="card panel">
+        <h2>Stripe earnings</h2>
+        <p class="muted">${stripeReady ? 'Loading Stripe balance and recent activity...' : 'Finish Stripe onboarding to unlock your Stripe earnings view.'}</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
+          <button class="btn" id="openStripeDashboardBtn" type="button">Open Stripe dashboard</button>
+          <button class="btn-outline" id="refreshStripeSummaryBtn" type="button">Refresh earnings</button>
+        </div>
+      </section>
+    `;
+  }
+
+  const balance = summary.balance || {};
+  const account = summary.account || {};
+  const local = summary.local_summary || {};
+  const recentTransactions = Array.isArray(summary.recent_transactions) ? summary.recent_transactions : [];
+  const payouts = Array.isArray(summary.payouts) ? summary.payouts : [];
+  const recentDonations = Array.isArray(local.recent_donations) ? local.recent_donations : [];
+  const currency = balance.currency || local.currency || account.default_currency || 'NZD';
+
+  return `
+    <section class="card panel">
+      <h2>Stripe earnings</h2>
+      <p class="muted">This section shows your Stripe connected account balance plus recent donation records from ChristHelper.</p>
+
+      <div class="stats-grid stripe-summary-grid">
+        <div class="stat">
+          <strong>${formatCurrencyByCode(balance.available || 0, currency)}</strong>
+          <span class="muted">Available balance</span>
+        </div>
+        <div class="stat">
+          <strong>${formatCurrencyByCode(balance.pending || 0, currency)}</strong>
+          <span class="muted">Pending balance</span>
+        </div>
+        <div class="stat">
+          <strong>${formatCurrencyByCode(local.total_received || 0, local.currency || currency)}</strong>
+          <span class="muted">Received on ChristHelper</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
+        <button class="btn" id="openStripeDashboardBtn" type="button">Open Stripe dashboard</button>
+        <button class="btn-outline" id="refreshStripeSummaryBtn" type="button">Refresh earnings</button>
+      </div>
+
+      <div class="notice" style="margin-top:16px;">
+        In test mode Stripe Express access uses a one-time login link. Use the dashboard button each time you want to open Stripe.
+      </div>
+
+      <div class="list" style="margin-top:16px;">
+        <div class="item"><strong>Stripe account</strong>${safeHtml(account.id || 'Not connected')}</div>
+        <div class="item"><strong>Charges enabled</strong>${account.charges_enabled ? 'Yes' : 'No'}</div>
+        <div class="item"><strong>Payouts enabled</strong>${account.payouts_enabled ? 'Yes' : 'No'}</div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:18px;">
+        <h3 style="margin-bottom:10px;">Recent Stripe transactions</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Net</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${recentTransactions.length
+              ? recentTransactions.map((item) => `
+                <tr>
+                  <td>${safeHtml(formatIsoDateTime(item.created))}</td>
+                  <td>${safeHtml(item.description || item.type || 'Transaction')}</td>
+                  <td>${safeHtml(formatCurrencyByCode(item.net || 0, item.currency || currency))}</td>
+                  <td>${safeHtml(item.status || '—')}</td>
+                </tr>
+              `).join('')
+              : '<tr><td colspan="4">No Stripe transactions found yet.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap" style="margin-top:18px;">
+        <h3 style="margin-bottom:10px;">Recent payouts</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Created</th>
+              <th>Arrival</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${payouts.length
+              ? payouts.map((item) => `
+                <tr>
+                  <td>${safeHtml(formatIsoDateTime(item.created))}</td>
+                  <td>${safeHtml(formatIsoDateTime(item.arrival_date))}</td>
+                  <td>${safeHtml(formatCurrencyByCode(item.amount || 0, item.currency || currency))}</td>
+                  <td>${safeHtml(item.status || '—')}</td>
+                </tr>
+              `).join('')
+              : '<tr><td colspan="4">No payouts found yet.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap" style="margin-top:18px;">
+        <h3 style="margin-bottom:10px;">Recent ChristHelper donations</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Donor</th>
+              <th>Project amount</th>
+              <th>Payment intent</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${recentDonations.length
+              ? recentDonations.map((item) => `
+                <tr>
+                  <td>${safeHtml(formatIsoDateTime(item.processed_at || item.created_at))}</td>
+                  <td>${safeHtml(item.donor_name || 'Anonymous')}</td>
+                  <td>${safeHtml(formatCurrencyByCode(item.amount_project || 0, item.currency || currency))}</td>
+                  <td>${safeHtml(item.stripe_payment_intent_id || '—')}</td>
+                </tr>
+              `).join('')
+              : '<tr><td colspan="4">No paid donations recorded yet.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+async function openStripeDashboard() {
+  try {
+    const data = await api('/stripe/connect/dashboard-link');
+    if (data?.url) {
+      window.location.href = data.url;
+      return;
+    }
+    alert('Unable to open Stripe dashboard.');
+  } catch (error) {
+    alert(error.message || 'Unable to open Stripe dashboard.');
+  }
+}
+
 function normalizeProfilePreferences(user) {
   return {
     show_email_publicly: Boolean(user?.show_email_publicly),
@@ -856,9 +1032,10 @@ async function handleProfilePage() {
   root.innerHTML = '<section class="card page-card"><p>Loading profile...</p></section>';
 
   try {
-    const [{ user, projects }, stripeStatus] = await Promise.all([
+    const [{ user, projects }, stripeStatus, stripeSummary] = await Promise.all([
       api('/profile'),
-      api('/stripe/connect/status').catch(() => ({ configured: false, user: currentUser }))
+      api('/stripe/connect/status').catch(() => ({ configured: false, user: currentUser })),
+      api('/stripe/connect/summary').catch(() => null)
     ]);
 
     const mergedUser = { ...user, ...(stripeStatus?.user || {}) };
@@ -974,6 +1151,7 @@ async function handleProfilePage() {
           </div>
 
           <div class="stack">
+            ${renderStripeSummarySection(stripeSummary, { stripeConnected, stripeReady })}
             <section class="card panel">
               <h2>My projects</h2>
               <p class="muted">Projects you submitted on ChristHelper.</p>
@@ -1091,6 +1269,16 @@ async function handleProfilePage() {
         location.reload();
       } catch (error) {
         alert(error.message);
+      }
+    });
+
+    $('#openStripeDashboardBtn')?.addEventListener('click', openStripeDashboard);
+    $('#refreshStripeSummaryBtn')?.addEventListener('click', async () => {
+      try {
+        await refreshCurrentUser();
+        await handleProfilePage();
+      } catch (error) {
+        alert(error.message || 'Unable to refresh Stripe earnings.');
       }
     });
 

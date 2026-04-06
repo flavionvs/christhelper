@@ -724,3 +724,16 @@ label.field:has(> input[type="radio"]) > span {
     min-width: 180px;
   }
 }
+
+
+/* ===== STRIPE PROFILE ===== */
+
+.stripe-summary-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 720px) {
+  .stripe-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}

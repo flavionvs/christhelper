@@ -32,6 +32,32 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function sumStripeBalanceAmounts(entries = [], currency = CURRENCY) {
+  const target = String(currency || '').toLowerCase();
+  return entries
+    .filter((item) => String(item.currency || '').toLowerCase() === target)
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+}
+
+function mapStripeBalanceTransaction(item) {
+  return {
+    id: item.id,
+    type: item.type || item.reporting_category || 'transaction',
+    amount: Number(item.amount || 0) / 100,
+    fee: Number(item.fee || 0) / 100,
+    net: Number(item.net || 0) / 100,
+    currency: String(item.currency || CURRENCY).toUpperCase(),
+    description: item.description || '',
+    created: item.created ? new Date(item.created * 1000).toISOString() : null,
+    available_on: item.available_on ? new Date(item.available_on * 1000).toISOString() : null,
+    source: typeof item.source === 'string'
+      ? item.source
+      : (item.source && typeof item.source === 'object' ? item.source.id || '' : ''),
+    status: item.status || ''
+  };
+}
+
+
 const COUNTRY_TO_CONTINENT = {
   'Afghanistan': 'Asia',
   'Albania': 'Europe',
@@ -808,6 +834,115 @@ app.get('/stripe/connect/status', authRequired, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Unable to load Stripe account status' });
+  }
+});
+
+
+app.get('/stripe/connect/dashboard-link', authRequired, async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(400).json({ error: 'Stripe is not configured yet on the backend' });
+    }
+
+    const db = readDb();
+    const user = db.users.find((item) => item.id === req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.stripe_account_id) {
+      return res.status(400).json({ error: 'Stripe is not connected for this profile yet' });
+    }
+
+    const link = await stripe.accounts.createLoginLink(user.stripe_account_id);
+    res.json({ url: link.url });
+  } catch (error) {
+    console.error('Unable to create Stripe dashboard link', error);
+    res.status(500).json({ error: 'Unable to create Stripe dashboard access link' });
+  }
+});
+
+app.get('/stripe/connect/summary', authRequired, async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(400).json({ error: 'Stripe is not configured yet on the backend' });
+    }
+
+    const db = readDb();
+    const user = db.users.find((item) => item.id === req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user.stripe_account_id) {
+      return res.status(400).json({ error: 'Stripe is not connected for this profile yet' });
+    }
+
+    await refreshStripeAccountState(req.user.id);
+
+    const [account, balance, payouts, balanceTransactions] = await Promise.all([
+      stripe.accounts.retrieve(user.stripe_account_id),
+      stripe.balance.retrieve({}, { stripeAccount: user.stripe_account_id }),
+      stripe.payouts.list({ limit: 5 }, { stripeAccount: user.stripe_account_id }),
+      stripe.balanceTransactions.list({ limit: 10 }, { stripeAccount: user.stripe_account_id })
+    ]);
+
+    const ownedProjectIds = new Set(
+      db.projects.filter((project) => project.created_by === req.user.id).map((project) => project.id)
+    );
+
+    const localDonations = db.donations
+      .filter((donation) => donation.payment_status === 'paid' && donation.project_id && ownedProjectIds.has(donation.project_id))
+      .sort((a, b) => String(b.processed_at || b.created_at).localeCompare(String(a.processed_at || a.created_at)))
+      .slice(0, 10)
+      .map((donation) => ({
+        id: donation.id,
+        donor_name: donation.donor_name || 'Anonymous',
+        donor_email: donation.donor_email || '',
+        amount_project: Number(donation.amount_project || 0),
+        amount_platform: Number(donation.amount_platform || 0),
+        currency: String(donation.currency || CURRENCY).toUpperCase(),
+        project_id: donation.project_id || '',
+        processed_at: donation.processed_at || null,
+        created_at: donation.created_at || null,
+        stripe_payment_intent_id: donation.stripe_payment_intent_id || '',
+        stripe_session_id: donation.stripe_session_id || ''
+      }));
+
+    const totalReceivedLocal = db.donations
+      .filter((donation) => donation.payment_status === 'paid' && donation.project_id && ownedProjectIds.has(donation.project_id))
+      .reduce((sum, donation) => sum + Number(donation.amount_project || 0), 0);
+
+    res.json({
+      account: {
+        id: user.stripe_account_id,
+        charges_enabled: Boolean(account.charges_enabled),
+        payouts_enabled: Boolean(account.payouts_enabled),
+        details_submitted: Boolean(account.details_submitted),
+        default_currency: String(account.default_currency || CURRENCY).toUpperCase()
+      },
+      balance: {
+        currency: String(CURRENCY || 'nzd').toUpperCase(),
+        available: sumStripeBalanceAmounts(balance.available, CURRENCY) / 100,
+        pending: sumStripeBalanceAmounts(balance.pending, CURRENCY) / 100,
+        instant_available: sumStripeBalanceAmounts(balance.instant_available || [], CURRENCY) / 100
+      },
+      payouts: (payouts.data || []).map((item) => ({
+        id: item.id,
+        amount: Number(item.amount || 0) / 100,
+        currency: String(item.currency || CURRENCY).toUpperCase(),
+        arrival_date: item.arrival_date ? new Date(item.arrival_date * 1000).toISOString() : null,
+        created: item.created ? new Date(item.created * 1000).toISOString() : null,
+        description: item.description || '',
+        method: item.method || '',
+        status: item.status || '',
+        type: item.type || ''
+      })),
+      recent_transactions: (balanceTransactions.data || []).map(mapStripeBalanceTransaction),
+      local_summary: {
+        total_received: totalReceivedLocal,
+        currency: String(CURRENCY || 'nzd').toUpperCase(),
+        paid_donations_count: db.donations.filter((donation) => donation.payment_status === 'paid' && donation.project_id && ownedProjectIds.has(donation.project_id)).length,
+        recent_donations: localDonations
+      }
+    });
+  } catch (error) {
+    console.error('Unable to load Stripe summary', error);
+    res.status(500).json({ error: 'Unable to load Stripe summary' });
   }
 });
 
