@@ -50,8 +50,8 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 14px 0;
+  gap: 14px;
+  padding: 10px 0;
 }
 
 .brand {
@@ -73,10 +73,51 @@ button, input, select, textarea {
   font-size: 1.2rem;
 }
 
+.nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.nav-toggle:hover {
+  background: var(--surface-alt);
+}
+
+.nav-toggle-bar {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 999px;
+  margin: 2px 0;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
 .nav-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -84,10 +125,10 @@ button, input, select, textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 14px;
+  padding: 7px 12px;
   border-radius: 999px;
   color: var(--muted);
-  font-size: 0.96rem;
+  font-size: 0.92rem;
   font-weight: 600;
   background: transparent;
   border: 1px solid transparent;
@@ -109,7 +150,7 @@ button, input, select, textarea {
 
 .nav-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -118,7 +159,7 @@ button, input, select, textarea {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 18px;
+  padding: 10px 16px;
   border-radius: 999px;
   border: none;
   cursor: pointer;
@@ -622,42 +663,71 @@ label.field:has(> input[type="radio"]) > span {
 
 @media (max-width: 720px) {
   .nav {
-    flex-direction: row;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
-    justify-content: space-between;
-    gap: 4px;
-    padding: 6px 0;
+    gap: 8px;
+    padding: 8px 0;
   }
 
   .brand {
-    flex: 1 1 100%;
-    justify-content: center;
-    font-size: 0.95rem;
-    margin-bottom: 4px;
+    min-width: 0;
+    font-size: 0.98rem;
+    gap: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .nav-links {
-    flex: 1 1 100%;
-    justify-content: center;
-    gap: 2px;
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    font-size: 1rem;
   }
 
-  .nav-links a {
-    padding: 4px 6px;
-    font-size: 0.72rem;
+  .nav-toggle {
+    display: inline-flex;
   }
 
   .nav-actions {
-    flex: 1 1 100%;
-    justify-content: center;
     gap: 6px;
-    margin-top: 4px;
+    justify-content: flex-end;
   }
 
-  .btn, .btn-outline {
-    padding: 6px 10px;
-    font-size: 0.75rem;
+  .nav-actions .btn,
+  .nav-actions .btn-outline,
+  .nav-actions .badge,
+  .nav-actions button {
+    padding: 7px 10px;
+    font-size: 0.76rem;
+  }
+
+  .nav-links {
+    display: none;
+    grid-column: 1 / -1;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding-top: 8px;
+  }
+
+  .nav-links.is-open {
+    display: flex;
+  }
+
+  .nav-links a {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  .nav-links a.active {
+    box-shadow: none;
   }
 
   .hero-grid, .split-grid, .footer-grid, .projects-grid, .filter-grid, .kpi-row, .stats-grid, .search-row, .form-grid.two, .form-grid.three {
