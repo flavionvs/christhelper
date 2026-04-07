@@ -28,30 +28,30 @@ sqlite.exec(`
   )
 `);
 
+const allowedOrigins = Array.from(new Set(
+  (process.env.CORS_ORIGINS || `${FRONTEND_URL},https://www.christhelper.com,https://christhelper.com` || '')
+    .split(',')
+    .map(origin => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean)
+));
 
 app.use((req, res, next) => {
-  const originalUrl = req.url || '';
-  const [pathPart, queryPart = ''] = originalUrl.split('?');
-  const normalizedPath = pathPart.replace(/\/+/g, '/');
-  req.url = queryPart ? `${normalizedPath}?${queryPart}` : normalizedPath;
+  req.url = req.url.replace(/^\/\/+/, '/').replace(/\/\/{2,}/g, '/');
   next();
 });
 
-const allowedOrigins = (process.env.CORS_ORIGINS || FRONTEND_URL || '')
-  .split(',')
-  .map(origin => origin.trim())
-  .filter(Boolean);
-
-['https://www.christhelper.com', 'https://christhelper.com'].forEach((origin) => {
-  if (!allowedOrigins.includes(origin)) allowedOrigins.push(origin);
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} origin=${req.headers.origin || '-'} host=${req.headers.host || '-'}`);
+  next();
 });
 
 app.use(cors({
   origin(origin, callback) {
+    const normalizedOrigin = String(origin || '').replace(/\/+$/, '');
     if (!origin) return callback(null, true);
     if (allowedOrigins.length === 0) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error(`CORS blocked for origin: ${origin}`));
+    if (allowedOrigins.includes(normalizedOrigin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${normalizedOrigin}`));
   }
 }));
 
@@ -633,7 +633,7 @@ function applyPaidDonation(db, donation, sessionLike = null) {
   return { changed: true, donation, project };
 }
 
-app.get('/health', (req, res) => {
+app.get(['/health','/api/health'], (req, res) => {
   res.json({
     ok: true,
     app: 'christhelper-backend-node24-safe',
@@ -1033,7 +1033,7 @@ app.post('/stripe/connect/disconnect', authRequired, (req, res) => {
   res.json({ message: 'Stripe disconnected', user: result });
 });
 
-app.get(['/projects', '/projects/'], (req, res) => {
+app.get(['/projects','/api/projects'], (req, res) => {
   const { country, continent, helpType, category, q, financialOnly, reviewedOnly, verifiedOnly, urgency } = req.query;
   const db = readDb();
 
@@ -1078,7 +1078,7 @@ app.get(['/projects', '/projects/'], (req, res) => {
   res.json({ items: clone(items) });
 });
 
-app.get(['/projects/:id', '/projects/:id/'], (req, res) => {
+app.get(['/projects/:id','/api/projects/:id'], (req, res) => {
   const db = readDb();
   const project = db.projects.find((item) => item.id === req.params.id);
   if (!project) return res.status(404).json({ error: 'Project not found' });

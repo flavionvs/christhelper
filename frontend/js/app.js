@@ -1,18 +1,12 @@
-const DEFAULT_API_BASE = (
-  window.location.hostname === 'www.christhelper.com' ||
-  window.location.hostname === 'christhelper.com'
-)
-  ? 'https://api.christhelper.com'
-  : 'http://localhost:3000';
+const API_CANDIDATES = Array.from(new Set([
+  localStorage.getItem('christhelper.api') || '',
+  'https://api.christhelper.com',
+  `${window.location.origin.replace(/\/+$/, '')}/api`,
+  `${window.location.origin.replace(/\/+$/, '')}`
+].map((value) => String(value || '').replace(/\/+$/, '')).filter(Boolean)));
 
+let API_BASE = API_CANDIDATES[0] || 'https://api.christhelper.com';
 const SITE_ORIGIN = window.location.origin.replace(/\/+$/, '');
-const savedApiBase = (localStorage.getItem('christhelper.api') || '').trim().replace(/\/+$/, '');
-const API_BASE_CANDIDATES = Array.from(new Set([
-  savedApiBase,
-  DEFAULT_API_BASE,
-  `${SITE_ORIGIN}/api`
-].filter(Boolean)));
-
 let token = localStorage.getItem('christhelper.token');
 let currentUser = JSON.parse(localStorage.getItem('christhelper.user') || 'null');
 
@@ -29,10 +23,31 @@ function appPath(path = '') {
   return cleanPath ? `${SITE_ORIGIN}/${cleanPath}` : `${SITE_ORIGIN}/`;
 }
 
-function apiUrl(base, path = '') {
-  const cleanBase = String(base || '').replace(/\/+$/, '');
+function apiUrl(path = '') {
   const cleanPath = String(path || '').replace(/^\/+/, '');
-  return cleanPath ? `${cleanBase}/${cleanPath}` : cleanBase;
+  return cleanPath ? `${API_BASE}/${cleanPath}` : API_BASE;
+}
+
+
+function rememberWorkingApiBase(base) {
+  API_BASE = String(base || '').replace(/\/+$/, '');
+  localStorage.setItem('christhelper.api', API_BASE);
+}
+
+function normalizeFetchError(error) {
+  const message = String(error?.message || error || 'Request failed');
+  return message === 'Failed to fetch'
+    ? `Failed to fetch from ${API_BASE}. Check Frontend env, CORS, Front Door route, and DNS.`
+    : message;
+}
+
+async function fetchJsonWithBase(base, path, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(`${String(base).replace(/\/+$/, '')}${path}`, { ...options, headers });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+  return data;
 }
 
 function normalizeBrowserPath() {
@@ -86,32 +101,21 @@ function setStoredAuth(nextToken, user) {
 }
 
 async function api(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-  if (token) headers.Authorization = `Bearer ${token}`;
+  const normalizedPath = String(path || '').startsWith('/') ? String(path) : `/${String(path || '')}`;
 
   let lastError = null;
-
-  for (const base of API_BASE_CANDIDATES) {
+  for (const base of API_CANDIDATES) {
     try {
-      const response = await fetch(apiUrl(base, path), { ...options, headers });
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        const message = data.error || `Request failed (${response.status})`;
-        throw new Error(message);
-      }
-
-      if (base !== API_BASE_CANDIDATES[0]) {
-        localStorage.setItem('christhelper.api', String(base).replace(/\/+$/, ''));
-      }
-
+      const data = await fetchJsonWithBase(base, normalizedPath, options);
+      rememberWorkingApiBase(base);
       return data;
     } catch (error) {
       lastError = error;
+      console.warn('API attempt failed', { base, path: normalizedPath, message: error?.message || String(error) });
     }
   }
 
-  throw lastError || new Error('Request failed');
+  throw new Error(normalizeFetchError(lastError));
 }
 
 async function refreshCurrentUser() {
@@ -256,7 +260,8 @@ async function loadProjects() {
       ? items.map(projectCard).join('')
       : '<div class="card panel"><p>No projects found with these filters.</p></div>';
   } catch (error) {
-    grid.innerHTML = `<div class="card panel"><p>${safeHtml(error.message)}</p></div>`;
+    const candidates = API_CANDIDATES.map(safeHtml).join('<br>');
+    grid.innerHTML = `<div class="card panel"><p>${safeHtml(error.message)}</p><p class="muted" style="margin-top:10px;">API candidates tried:</p><div class="muted">${candidates}</div></div>`;
   }
 }
 
