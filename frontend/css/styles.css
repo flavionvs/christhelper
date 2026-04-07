@@ -622,12 +622,36 @@ label.field:has(> input[type="radio"]) > span {
 
 @media (max-width: 720px) {
   .nav {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
-  .nav-links, .nav-actions {
+  .brand {
+    flex: 1;
+    font-size: 1rem;
+  }
+
+  .nav-links {
+    flex: 1 100%;
     justify-content: center;
+    gap: 6px;
+  }
+
+  .nav-links a {
+    padding: 6px 10px;
+    font-size: 0.82rem;
+  }
+
+  .nav-actions {
+    gap: 6px;
+  }
+
+  .btn, .btn-outline {
+    padding: 8px 12px;
+    font-size: 0.82rem;
   }
 
   .hero-grid, .split-grid, .footer-grid, .projects-grid, .filter-grid, .kpi-row, .stats-grid, .search-row, .form-grid.two, .form-grid.three {
