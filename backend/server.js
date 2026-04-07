@@ -28,10 +28,23 @@ sqlite.exec(`
   )
 `);
 
+
+app.use((req, res, next) => {
+  const originalUrl = req.url || '';
+  const [pathPart, queryPart = ''] = originalUrl.split('?');
+  const normalizedPath = pathPart.replace(/\/+/g, '/');
+  req.url = queryPart ? `${normalizedPath}?${queryPart}` : normalizedPath;
+  next();
+});
+
 const allowedOrigins = (process.env.CORS_ORIGINS || FRONTEND_URL || '')
   .split(',')
   .map(origin => origin.trim())
   .filter(Boolean);
+
+['https://www.christhelper.com', 'https://christhelper.com'].forEach((origin) => {
+  if (!allowedOrigins.includes(origin)) allowedOrigins.push(origin);
+});
 
 app.use(cors({
   origin(origin, callback) {
@@ -1020,7 +1033,7 @@ app.post('/stripe/connect/disconnect', authRequired, (req, res) => {
   res.json({ message: 'Stripe disconnected', user: result });
 });
 
-app.get('/projects', (req, res) => {
+app.get(['/projects', '/projects/'], (req, res) => {
   const { country, continent, helpType, category, q, financialOnly, reviewedOnly, verifiedOnly, urgency } = req.query;
   const db = readDb();
 
@@ -1065,7 +1078,7 @@ app.get('/projects', (req, res) => {
   res.json({ items: clone(items) });
 });
 
-app.get('/projects/:id', (req, res) => {
+app.get(['/projects/:id', '/projects/:id/'], (req, res) => {
   const db = readDb();
   const project = db.projects.find((item) => item.id === req.params.id);
   if (!project) return res.status(404).json({ error: 'Project not found' });

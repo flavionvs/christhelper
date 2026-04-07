@@ -5,8 +5,14 @@ const DEFAULT_API_BASE = (
   ? 'https://api.christhelper.com'
   : 'http://localhost:3000';
 
-const API_BASE = (localStorage.getItem('christhelper.api') || DEFAULT_API_BASE).replace(/\/+$/, '');
 const SITE_ORIGIN = window.location.origin.replace(/\/+$/, '');
+const savedApiBase = (localStorage.getItem('christhelper.api') || '').trim().replace(/\/+$/, '');
+const API_BASE_CANDIDATES = Array.from(new Set([
+  savedApiBase,
+  DEFAULT_API_BASE,
+  `${SITE_ORIGIN}/api`
+].filter(Boolean)));
+
 let token = localStorage.getItem('christhelper.token');
 let currentUser = JSON.parse(localStorage.getItem('christhelper.user') || 'null');
 
@@ -23,9 +29,10 @@ function appPath(path = '') {
   return cleanPath ? `${SITE_ORIGIN}/${cleanPath}` : `${SITE_ORIGIN}/`;
 }
 
-function apiUrl(path = '') {
+function apiUrl(base, path = '') {
+  const cleanBase = String(base || '').replace(/\/+$/, '');
   const cleanPath = String(path || '').replace(/^\/+/, '');
-  return cleanPath ? `${API_BASE}/${cleanPath}` : API_BASE;
+  return cleanPath ? `${cleanBase}/${cleanPath}` : cleanBase;
 }
 
 function normalizeBrowserPath() {
@@ -82,11 +89,29 @@ async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(apiUrl(path), { ...options, headers });
-  const data = await response.json().catch(() => ({}));
+  let lastError = null;
 
-  if (!response.ok) throw new Error(data.error || 'Request failed');
-  return data;
+  for (const base of API_BASE_CANDIDATES) {
+    try {
+      const response = await fetch(apiUrl(base, path), { ...options, headers });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const message = data.error || `Request failed (${response.status})`;
+        throw new Error(message);
+      }
+
+      if (base !== API_BASE_CANDIDATES[0]) {
+        localStorage.setItem('christhelper.api', String(base).replace(/\/+$/, ''));
+      }
+
+      return data;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('Request failed');
 }
 
 async function refreshCurrentUser() {
