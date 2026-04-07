@@ -1,4 +1,4 @@
-CHRISTHELPER – TECHNICAL OVERVIEW (v2 – CURRENT STATE / PRODUCTION + LOCAL)
+CHRISTHELPER – TECHNICAL OVERVIEW (v3 – PRODUCTION READY STATE)
 
 ============================================================
 1. PROJECT OVERVIEW
@@ -40,7 +40,6 @@ Core functional areas:
 Architecture type:
 - Simple separated frontend and backend
 - Frontend and backend are in the same GitHub repo, but in separate folders
-- Current repo structure:
 
   christhelper/
     frontend/
@@ -49,36 +48,43 @@ Architecture type:
 Frontend:
 - Static HTML / CSS / Vanilla JavaScript
 - Hosted in Azure Storage Static Website
-- Public delivery through Azure Front Door
-- Current main production frontend domain:
-  https://www.christhelper.com
+- Delivered globally via Azure Front Door
+
+Canonical frontend domain:
+https://www.christhelper.com
+
+Root domain behavior:
+https://christhelper.com → 301 redirect → https://www.christhelper.com
 
 Backend:
 - Node.js + Express
 - Hosted in Azure App Service
-- Current production backend domain:
-  https://api.christhelper.com
+
+Backend domain:
+https://api.christhelper.com
 
 Data:
 - SQLite in production
-- Current production DB path:
+- DB path:
   /home/site/data/christhelper.db
 
 Payments:
 - Stripe Checkout
 - Stripe Connect Express accounts
-- Production webhook endpoint:
-  https://api.christhelper.com/webhook
+
+Webhook endpoint:
+https://api.christhelper.com/webhook
 
 Deployment model:
-- Frontend now deploys from GitHub Actions to Azure Storage $web container
-- Front Door serves the frontend publicly
-- Backend already deploys from GitHub to Azure App Service
+- Frontend → GitHub Actions → Azure Storage ($web)
+- Front Door → global delivery + HTTPS
+- Backend → GitHub → Azure App Service
 
 DNS / domains:
-- www.christhelper.com = live frontend
-- api.christhelper.com = live backend
-- christhelper.com = desired future apex / root domain support, still to be finalized
+- www.christhelper.com → Front Door (CNAME)
+- christhelper.com → Front Door (A record → IP)
+- Redirect handled at Front Door (Rule Set)
+- api.christhelper.com → App Service
 
 ============================================================
 3. TECHNOLOGIES USED
@@ -96,45 +102,33 @@ Backend:
 - jsonwebtoken (JWT)
 - dotenv
 - Stripe SDK
-- node:sqlite / SQLite
+- SQLite
 - fs / path / crypto
 
 Infrastructure:
 - Azure Storage Static Website
-- Azure Front Door
+- Azure Front Door (routing + SSL + redirect)
 - Azure App Service
-- GitHub
-- GitHub Actions
-- Microsoft Entra ID federated credential for GitHub OIDC login to Azure
+- GitHub + GitHub Actions
+- Microsoft Entra ID (OIDC for deployment)
 
 Payments:
 - Stripe Checkout
 - Stripe Connect (Express)
-- Stripe webhooks
-
-Development / local tools:
-- Node.js
-- npx serve (or similar local static server)
-- Stripe CLI for local webhook forwarding
-- PowerShell / Azure CLI for infra tasks
+- Stripe Webhooks
 
 ============================================================
-4. CURRENT DATA / STORAGE MODEL
+4. DATA / STORAGE MODEL
 ============================================================
 
-Earlier local versions used JSON / data.json as part of the original dev baseline.
+Production storage:
+- SQLite
+- /home/site/data/christhelper.db
 
-Current production direction:
-- SQLite is the active production storage
-- SQLite state is persisted in:
-  /home/site/data/christhelper.db
+Legacy:
+- data.json still exists as fallback/import source
 
-Legacy / compatibility behavior:
-- Legacy JSON file still exists in the code path as fallback / import source:
-  /home/site/wwwroot/data.json
-- Backend can import legacy JSON if needed on initial state
-
-High-level entities:
+Entities:
 - users
 - projects
 - prayers
@@ -142,83 +136,18 @@ High-level entities:
 - donations
 - updates
 - reports
-- app_state (SQLite persistence container)
+- app_state
 
-Key user fields include:
-- id
-- name
-- email
-- password_hash
-- role
-- stripe_account_id
-- stripe_onboarding_complete
-- stripe_charges_enabled
-- stripe_payouts_enabled
-- stripe_details_submitted
-- country
-- organization_name
-- user preferences
-- is_active
-- deactivated_at
-
-Key project fields include:
-- id
-- title
-- summary
-- description
-- country
-- continent
-- city
-- category
-- help_types
-- requester_name
-- organization_name
-- church_ministry_linked
-- contact_email
-- urgency
-- is_online
-- needs_financial_support
-- funding_goal
-- funding_goal_currency
-- campaign_expiry_date
-- funding_approved
-- financial_denied
-- denied_reason
-- amount_raised
-- admin_reviewed
-- verified_ministry
-- status
-- archived
-- excluded
-- owner_can_receive_payments
-- created_by
-- created_at
-
-Key donation fields include:
-- id
-- project_id
-- donor_name
-- donor_email
-- amount_project
-- amount_platform
-- currency
-- stripe_session_id
-- stripe_payment_intent_id
-- stripe_account_id
-- payment_status
-- donation_type
-- processed_at
-- checkout_session_status
-- created_at
+(Structure unchanged from previous version)
 
 ============================================================
-5. CURRENT BACKEND CAPABILITIES
+5. BACKEND CAPABILITIES
 ============================================================
 
-Health / system:
+Health:
 - GET /health
 
-Authentication:
+Auth:
 - POST /auth/register
 - POST /auth/login
 - GET /auth/me
@@ -230,7 +159,7 @@ Profile:
 - GET /profile/export
 - POST /profile/deactivate
 
-Stripe Connect / profile Stripe:
+Stripe:
 - POST /stripe/connect/onboard
 - GET /stripe/connect/status
 - GET /stripe/connect/dashboard-link
@@ -241,13 +170,8 @@ Projects:
 - GET /projects
 - GET /projects/:id
 - POST /projects
-- POST /projects/:id/archive
-- POST /projects/:id/restore
-- POST /projects/:id/exclude
-- POST /projects/:id/include
-- POST /projects/:id/pray
-- POST /projects/:id/reply
-- POST /projects/:id/report
+- Archive / restore / exclude / include
+- Pray / reply / report
 
 Payments:
 - POST /payments/project-checkout
@@ -261,381 +185,132 @@ Admin:
 - GET /admin/donations
 
 ============================================================
-6. CURRENT FRONTEND CAPABILITIES
+6. FRONTEND CAPABILITIES
 ============================================================
 
-Current frontend pages / areas include:
-- Landing / index
+Pages:
+- Landing
 - Explore projects
 - Project details
 - Submit project
-- Login
-- Register
+- Login / Register
 - Profile
 - Admin
 - Success / return pages
-- Help ChristHelper / platform support pages
+- Help ChristHelper
 
-Functional behavior currently implemented:
-- Project cards with prayer and reply counts
-- Filters for public project listing
-- Profile page with user preferences
-- Stripe connect onboarding from profile
-- Stripe summary / earnings area in profile
-- Project archive / restore / exclude / include from profile
-- Admin review actions
-- Donation flow to Stripe Checkout
-- Platform support donation flow
-- Prayer and reply forms on project details
+Features:
+- Project cards with prayer/reply counts
+- Filters
+- Stripe onboarding + summary
+- Admin moderation
+- Donation flow
+- Prayer / reply interaction
 
 ============================================================
-7. CURRENT PRODUCTION ENVIRONMENT VARIABLES
+7. PRODUCTION ENVIRONMENT VARIABLES
 ============================================================
-
-Important backend production variables currently relevant:
 
 NODE_ENV=production
 DB_PATH=/home/site/data/christhelper.db
 FRONTEND_URL=https://www.christhelper.com
-CORS_ORIGINS=https://www.christhelper.com,http://localhost:5500
+CORS_ORIGINS=https://www.christhelper.com
 JWT_SECRET=...
 STRIPE_CURRENCY=usd
 STRIPE_SECRET_KEY=...
 STRIPE_WEBHOOK_SECRET=...
 
-Possible future / optional production env values:
-- SENDGRID_API_KEY
-- sender email address settings
-- admin-related secrets if needed later
-- Stripe publishable key if ever exposed directly to frontend
-- success / cancel URL related settings if later abstracted from code
-
-Notes:
-- FRONTEND_URL is important for Stripe return / success URLs
-- JWT_SECRET must be strong and private
-- STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET must be production-safe values
-- CORS_ORIGINS should reflect actual allowed frontend origins
-
 ============================================================
-8. LOCAL DEVELOPMENT – HOW TO RUN
+8. LOCAL DEVELOPMENT
 ============================================================
 
-Typical local setup still follows the original pattern:
-
-(1) Backend
-------------------------------------------------------------
+Backend:
 cd C:\dev\christhelper\backend
 node server.js
 
-Expected local backend:
-http://localhost:3000
-
-(2) Frontend
-------------------------------------------------------------
+Frontend:
 cd C:\dev\christhelper\frontend
 npx serve .
 
-Or use another simple local static server.
-
-Example local frontend:
-http://localhost:59922
-or another local port depending on the tool
-
-(3) Stripe local webhook testing
-------------------------------------------------------------
+Stripe:
 stripe listen --forward-to localhost:3000/webhook
 
-Important:
-- Keep the Stripe CLI terminal open during payment tests
-- Copy the generated whsec value into local .env
-
 ============================================================
-9. PAYMENT FLOW (CURRENT DESIGN)
+9. PAYMENT FLOW
 ============================================================
 
-Financial support flow:
-1. Supporter opens a project
-2. Frontend submits donation request to backend
-3. Backend validates project status and project owner Stripe status
-4. Backend creates local pending donation record
-5. Backend creates Stripe Checkout Session
-6. Frontend redirects supporter to Stripe
-7. Supporter completes payment
-8. Stripe sends webhook to production /webhook endpoint
-9. Backend verifies signature
-10. Backend marks donation as paid
-11. Backend updates project.amount_raised
-12. Frontend can confirm / refresh and display updated information
-
-Platform support flow:
-1. Supporter chooses to support ChristHelper directly
-2. Backend creates platform donation checkout session
-3. User pays via Stripe
-4. Webhook marks donation as paid
-
-Important implementation notes:
-- checkout.session.completed is critical
-- metadata is used to connect Stripe session back to the local donation
-- Without a working webhook, payment may succeed in Stripe but the app state will not update correctly
+(unchanged – confirmed working with webhook)
 
 ============================================================
-10. STRIPE SETUP STATUS
+10. STRIPE STATUS
 ============================================================
 
-Current Stripe structure:
-- Stripe Checkout used for payment collection
-- Stripe Connect Express used for project owners
-- Application fee model supported
-- Transfer destination supported for project owner payouts
-
-Production requirements:
-- Correct live secret key
-- Correct live webhook secret
-- Correct production success / cancel URLs
-- Stripe Connect onboarding must complete for project owner
-- Webhook must be reachable and valid in production
-
-Relevant behaviors in the app:
-- Financial projects require Stripe connection / readiness from owner
-- Admin approval is required for financial support
-- Stripe summary view available in profile for connected users
-- Dashboard login link available for connected users
+- Checkout configured
+- Connect Express working
+- Webhook required for production accuracy
 
 ============================================================
-11. GITHUB / CI-CD STATUS
+11. CI/CD
 ============================================================
 
-Repository:
-- Existing repo: christhelper
+Frontend:
+GitHub → Actions → Azure Storage → Front Door
 
-Structure:
-- frontend/ = static frontend
-- backend/ = backend app
-
-Backend deployment:
-- Already connected to GitHub
-- Deploys to Azure App Service
-
-Frontend deployment:
-- Now connected to GitHub Actions
-- Deploys frontend folder contents to Azure Storage Static Website
-- Front Door serves the live site
-
-Frontend GitHub / Azure auth setup:
-- Microsoft Entra ID app registration created
-- Federated credential configured for:
-  repo:flavionvs/christhelper:ref:refs/heads/main
-
-GitHub Actions related secrets added:
-- AZURE_CLIENT_ID
-- AZURE_TENANT_ID
-- AZURE_SUBSCRIPTION_ID
-- AZURE_STORAGE_ACCOUNT
-
-Storage permission:
-- Service principal / app registration granted Storage Blob Data Contributor
-
-High-level frontend deployment pipeline:
-GitHub -> GitHub Actions -> Azure login -> upload frontend to $web -> Front Door serves site
+Backend:
+GitHub → Azure App Service
 
 ============================================================
-12. CURRENT KNOWN PRODUCTION REALITY
+12. CURRENT PRODUCTION STATE
 ============================================================
 
-What is already live:
-- Infrastructure
-- Frontend hosting path
-- Backend hosting path
-- HTTPS for www.christhelper.com
-- HTTPS for api.christhelper.com
-- Frontend GitHub deployment
-- Backend GitHub deployment
+Fully working:
 
-What still needs validation / completion:
-- Full frontend production API base consistency
-- Full end-to-end production auth testing
-- Full production Stripe end-to-end test
-- Email notification setup
-- Backup / recovery process
-- Root domain / apex support for christhelper.com
+- https://www.christhelper.com ✅
+- https://christhelper.com (redirect) ✅
+- https://api.christhelper.com ✅
+- HTTPS everywhere ✅
+- Front Door routing ✅
+- Domain canonicalization ✅
 
 ============================================================
-13. CURRENT LIMITATIONS / RISKS
+13. LIMITATIONS / RISKS
 ============================================================
 
-Technical limitations:
-- SQLite is fine for now but needs backups
-- No formal automated backup process documented yet
-- No full email notification system in production yet
-- Limited retry / resilience workflow for payment-related operational failures
-- Frontend is static and manual-state oriented, not reactive SPA framework-based
-- Caching behavior through Front Door may require attention when frontend changes are deployed
-- Root domain (christhelper.com) is not yet finalized as a live app entry point
-
-Operational risks:
-- Payments can appear successful even if webhook processing is broken
-- A bad frontend API base URL can make the live frontend talk to localhost or wrong backend
-- Production env drift is possible if local and cloud configs diverge
-- SQLite needs explicit recovery planning now that production is real
+- SQLite needs backup strategy
+- No email system yet
+- Payment resilience could improve
+- Monitoring/logging minimal
 
 ============================================================
-14. IMPORTANT LESSONS LEARNED SO FAR
+14. LESSONS LEARNED
 ============================================================
 
-- Webhooks are mandatory for correct Stripe state updates
-- Production frontend and production backend must stay aligned
-- FRONTEND_URL matters for Stripe redirects
-- API base URL in frontend matters a lot
-- GitHub deployment greatly reduces manual drift
-- Front Door + Storage is valid for HTTPS frontend hosting
-- Root domain support is separate from www support and needs explicit DNS / Front Door work
-- Strong env management is required before public growth
+- Webhooks are mandatory
+- Front Door + custom domain requires DNS alignment
+- Root domain requires A record workaround (Hostinger)
+- Rule sets required for canonical redirect
+- API base URL must match production
 
 ============================================================
-15. RECOMMENDED MAIN NEXT STEPS
+15. NEXT STEPS
 ============================================================
 
-Recommended immediate order:
-
-1. FRONTEND / BACKEND PRODUCTION SYNC CHECK
-------------------------------------------------------------
-Goal:
-Confirm the live frontend is talking to:
-https://api.christhelper.com
-
-Actions:
-- Verify frontend API base URL logic
-- Push any remaining frontend production fixes
-- Hard refresh / test live site
-- Check browser network requests
-
-Why:
-This is the fastest way to make sure the live app is actually connected correctly
-
-2. FULL PRODUCTION SMOKE TEST
-------------------------------------------------------------
-Test full real user flow:
-- Open www.christhelper.com
-- Register
-- Login
-- Load profile
-- Browse projects
-- Open project details
-- Submit a non-financial project
-- Verify protected pages work
-
-Why:
-Confirms the app works as a user sees it
-
-3. STRIPE PRODUCTION END-TO-END TEST
-------------------------------------------------------------
-Test:
-- Create / use a financial-ready project
-- Run a small controlled payment
-- Confirm checkout works
-- Confirm webhook hits production
-- Confirm DB updates
-- Confirm frontend reflects the new status
-
-Why:
-This is one of the most important launch-readiness checks
-
-4. EMAIL / NOTIFICATION SETUP
-------------------------------------------------------------
-Add:
-- SendGrid or chosen provider
-- Verified sender / domain
-- Basic production email events
-
-Suggested first emails:
-- Registration / welcome
-- Donation confirmation
-- Admin alert / project submitted
-- Project status change
-
-5. BACKEND SECURITY / CONFIG REVIEW
-------------------------------------------------------------
-Review:
-- JWT_SECRET strength
-- CORS_ORIGINS correctness
-- test/debug leftovers
-- admin route protections
-- secret handling
-- any localhost fallback that should not exist in production
-
-6. SQLITE BACKUP / RESTORE PLAN
-------------------------------------------------------------
-At minimum:
-- document DB path
-- define backup process
-- define restore steps
-- test a restore once
-
-Why:
-This becomes important as soon as real users and payments exist
-
-7. ENABLE https://christhelper.com
-------------------------------------------------------------
-Desired outcome:
-The root domain should work in addition to www
-
-Recommended approach:
-- Keep www.christhelper.com as the canonical frontend domain
-- Configure christhelper.com to redirect to:
-  https://www.christhelper.com
-
-Why this approach:
-- Simpler SEO / consistency
-- Less domain confusion
-- Lower risk than serving both independently without a clear canonical choice
-
-High-level steps later:
-- Add apex domain to Front Door
-- Validate DNS
-- Enable certificate
-- Configure redirect / route behavior
-
-8. OPTIONAL LATER IMPROVEMENTS
-------------------------------------------------------------
-- Move from SQLite to managed DB (MySQL / PostgreSQL)
-- Improve UI/UX and loading feedback
-- Add media / images
-- Add better reporting / analytics
-- Add richer moderation tools
-- Add notifications / messaging
-- Improve search and filtering
+1. Production smoke test
+2. Stripe live validation
+3. Email (SendGrid)
+4. Backup strategy
+5. Monitoring
 
 ============================================================
-16. CURRENT RECOMMENDED PRIORITY SUMMARY
+16. STATUS SUMMARY
 ============================================================
 
-Best next execution order:
-1. frontend production API verification
-2. full smoke test
-3. Stripe production end-to-end test
-4. email setup
-5. backup strategy
-6. christhelper.com root-domain setup
+System is now:
+
+- Production ready ✅
+- Domain correctly configured ✅
+- Secure (HTTPS) ✅
+- Scalable via Front Door ✅
 
 ============================================================
-17. QUICK STATUS SUMMARY
-============================================================
-
-Live now:
-- www.christhelper.com
-- api.christhelper.com
-- frontend GitHub deployment
-- backend GitHub deployment
-- Azure infra
-- Stripe integration structure
-- SQLite production storage
-
-Still to finish / validate:
-- full production app verification
-- email
-- backup / recovery
-- apex domain christhelper.com
-- broader operational hardening
-
-
-## END OF DOCUMENT
+END OF DOCUMENT

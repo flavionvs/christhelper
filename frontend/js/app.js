@@ -6,6 +6,7 @@ const DEFAULT_API_BASE = (
   : 'http://localhost:3000';
 
 const API_BASE = (localStorage.getItem('christhelper.api') || DEFAULT_API_BASE).replace(/\/+$/, '');
+const SITE_ORIGIN = window.location.origin.replace(/\/+$/, '');
 let token = localStorage.getItem('christhelper.token');
 let currentUser = JSON.parse(localStorage.getItem('christhelper.user') || 'null');
 
@@ -15,6 +16,28 @@ function $(selector) {
 
 function $all(selector) {
   return Array.from(document.querySelectorAll(selector));
+}
+
+function appPath(path = '') {
+  const cleanPath = String(path || '').replace(/^\/+/, '');
+  return cleanPath ? `${SITE_ORIGIN}/${cleanPath}` : `${SITE_ORIGIN}/`;
+}
+
+function apiUrl(path = '') {
+  const cleanPath = String(path || '').replace(/^\/+/, '');
+  return cleanPath ? `${API_BASE}/${cleanPath}` : API_BASE;
+}
+
+function normalizeBrowserPath() {
+  const normalizedPath = window.location.pathname.replace(/\/{2,}/g, '/');
+  const normalizedSearch = window.location.search || '';
+  const normalizedHash = window.location.hash || '';
+  const normalizedUrl = `${normalizedPath}${normalizedSearch}${normalizedHash}`;
+  const currentUrl = `${window.location.pathname}${normalizedSearch}${normalizedHash}`;
+
+  if (normalizedUrl !== currentUrl) {
+    window.history.replaceState({}, '', normalizedUrl);
+  }
 }
 
 function formatMoney(value) {
@@ -59,7 +82,7 @@ async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const response = await fetch(apiUrl(path), { ...options, headers });
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) throw new Error(data.error || 'Request failed');
@@ -109,7 +132,7 @@ function setAuthUi() {
 
 function logout() {
   setStoredAuth('', null);
-  window.location.href = 'index.html';
+  window.location.href = appPath('index.html');
 }
 
 function getReplyCount(project) {
@@ -175,9 +198,9 @@ function projectCard(project) {
         </div>
       ` : '<div class="notice">Financial support is not enabled for this project yet or this project is seeking non-financial help.</div>'}
       <div class="project-actions">
-        <a class="btn" href="project.html?id=${project.id}">View details</a>
-        <a class="btn-outline" href="project.html?id=${project.id}#pray">Pray</a>
-        <a class="btn-outline" href="project.html?id=${project.id}#reply">Reply</a>
+        <a class="btn" href="/project.html?id=${project.id}">View details</a>
+        <a class="btn-outline" href="/project.html?id=${project.id}#pray">Pray</a>
+        <a class="btn-outline" href="/project.html?id=${project.id}#reply">Reply</a>
       </div>
     </article>
   `;
@@ -230,7 +253,7 @@ async function loadAllProjectsForSubmitPage() {
             <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
               <span class="badge">💬 ${getReplyCount(project)} replies</span>
               <span class="badge">🙏 ${getPrayerCount(project)} prayers</span>
-              <a class="btn-outline" href="project.html?id=${project.id}">Open</a>
+              <a class="btn-outline" href="/project.html?id=${project.id}">Open</a>
             </div>
           </div>
         `).join('')
@@ -467,7 +490,7 @@ function handleAuthForms() {
       try {
         const data = await api('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
         setStoredAuth(data.token, data.user);
-        window.location.href = 'profile.html';
+        window.location.href = appPath('profile.html');
       } catch (error) {
         alert(error.message);
       }
@@ -482,7 +505,7 @@ function handleAuthForms() {
       try {
         const data = await api('/auth/login', { method: 'POST', body: JSON.stringify(payload) });
         setStoredAuth(data.token, data.user);
-        window.location.href = 'profile.html';
+        window.location.href = appPath('profile.html');
       } catch (error) {
         alert(error.message);
       }
@@ -617,7 +640,7 @@ function toggleFinancialFields() {
 
 function parseProjectLinks(rawValue) {
   return String(rawValue || '')
-    .split(/\n|,/)
+    .split(/\n|,/) 
     .map(item => item.trim())
     .filter(Boolean);
 }
@@ -688,13 +711,13 @@ function handleSubmitProject() {
 
       if (!currentUser?.stripe_account_id) {
         alert('Please connect Stripe in your profile before submitting a project that needs financial support.');
-        window.location.href = 'profile.html';
+        window.location.href = appPath('profile.html');
         return;
       }
 
       if (!currentUser?.stripe_charges_enabled) {
         alert('Your Stripe account is connected, but setup is not finished yet. Please finish Stripe onboarding in your profile before submitting a financial project.');
-        window.location.href = 'profile.html';
+        window.location.href = appPath('profile.html');
         return;
       }
 
@@ -722,7 +745,7 @@ function handleSubmitProject() {
       buildCountryDropdown();
       fillContinentFromCountry();
       toggleFinancialFields();
-      window.location.href = 'profile.html';
+      window.location.href = appPath('profile.html');
     } catch (error) {
       alert(error.message.includes('Missing token') ? 'Please login first to submit a project.' : error.message);
     }
@@ -969,7 +992,7 @@ function renderProfileProjectList(projects, filter = 'all') {
             </div>
 
             <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-              <a class="btn-outline" href="project.html?id=${project.id}">View</a>
+              <a class="btn-outline" href="/project.html?id=${project.id}">View</a>
               ${status !== 'archived' ? `<button class="btn-outline" type="button" data-project-action="archive" data-project-id="${project.id}">Archive</button>` : ''}
               ${status === 'archived' ? `<button class="btn-outline" type="button" data-project-action="restore" data-project-id="${project.id}">Restore</button>` : ''}
               ${status !== 'excluded' ? `<button class="btn-outline" type="button" data-project-action="exclude" data-project-id="${project.id}">Exclude</button>` : ''}
@@ -1033,7 +1056,7 @@ async function handleProfilePage() {
   if (!root) return;
 
   if (!token) {
-    root.innerHTML = '<section class="card page-card"><h1>Your profile</h1><p>Please sign in first.</p><p><a class="btn" href="login.html">Sign in</a></p></section>';
+    root.innerHTML = '<section class="card page-card"><h1>Your profile</h1><p>Please sign in first.</p><p><a class="btn" href="/login.html">Sign in</a></p></section>';
     return;
   }
 
@@ -1175,7 +1198,7 @@ async function handleProfilePage() {
               <div id="profileProjectsList" class="list"></div>
 
               <div style="margin-top:16px;">
-                <a class="btn" href="submit.html">Submit new project</a>
+                <a class="btn" href="/submit.html">Submit new project</a>
               </div>
             </section>
 
@@ -1256,12 +1279,11 @@ async function handleProfilePage() {
 
     $('#connectStripeBtn')?.addEventListener('click', async () => {
       try {
-        const base = window.location.origin;
         const data = await api('/stripe/connect/onboard', {
           method: 'POST',
           body: JSON.stringify({
-            refresh_url: `${base}/profile.html?stripe=refresh`,
-            return_url: `${base}/profile.html?stripe=return`
+            refresh_url: appPath('profile.html?stripe=refresh'),
+            return_url: appPath('profile.html?stripe=return')
           })
         });
 
@@ -1574,6 +1596,7 @@ function initButtons() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  normalizeBrowserPath();
   setAuthUi();
   initButtons();
   handleAuthForms();
