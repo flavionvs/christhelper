@@ -621,7 +621,6 @@ label.field:has(> input[type="radio"]) > span {
 }
 
 @media (max-width: 720px) {
-
   .nav {
     flex-direction: row;
     flex-wrap: wrap;
@@ -659,49 +658,6 @@ label.field:has(> input[type="radio"]) > span {
   .btn, .btn-outline {
     padding: 6px 10px;
     font-size: 0.75rem;
-  }
-
-  .hero-grid, .split-grid, .footer-grid, .projects-grid, .filter-grid, .kpi-row, .stats-grid, .search-row, .form-grid.two, .form-grid.three {
-    grid-template-columns: 1fr;
-  }
-
-  .hero {
-    padding-top: 28px;
-  }
-
-  .hero-copy, .hero-side, .section-card, .panel, .auth-card, .page-card {
-    padding: 20px;
-  }
-
-  .checkbox-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-
-  .brand {
-    flex: 1;
-    font-size: 1rem;
-  }
-
-  .nav-links {
-    flex: 1 100%;
-    justify-content: center;
-    gap: 6px;
-  }
-
-  .nav-links a {
-    padding: 6px 10px;
-    font-size: 0.82rem;
-  }
-
-  .nav-actions {
-    gap: 6px;
-  }
-
-  .btn, .btn-outline {
-    padding: 8px 12px;
-    font-size: 0.82rem;
   }
 
   .hero-grid, .split-grid, .footer-grid, .projects-grid, .filter-grid, .kpi-row, .stats-grid, .search-row, .form-grid.two, .form-grid.three {
