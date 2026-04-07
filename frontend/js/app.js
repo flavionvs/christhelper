@@ -1,12 +1,24 @@
-const API_CANDIDATES = Array.from(new Set([
-  localStorage.getItem('christhelper.api') || '',
-  'https://api.christhelper.com',
-  `${window.location.origin.replace(/\/+$/, '')}/api`,
-  `${window.location.origin.replace(/\/+$/, '')}`
-].map((value) => String(value || '').replace(/\/+$/, '')).filter(Boolean)));
-
-let API_BASE = API_CANDIDATES[0] || 'https://api.christhelper.com';
+const DEFAULT_API_BASE = 'https://api.christhelper.com';
 const SITE_ORIGIN = window.location.origin.replace(/\/+$/, '');
+
+function getFixedApiBase() {
+  const stored = String(localStorage.getItem('christhelper.api') || '').trim().replace(/\/+$/, '');
+
+  if (stored === DEFAULT_API_BASE) return DEFAULT_API_BASE;
+
+  // Ignore old or broken values saved from local/dev or same-origin fallbacks.
+  if (!stored) return DEFAULT_API_BASE;
+  if (stored.includes('localhost') || stored.includes('127.0.0.1')) return DEFAULT_API_BASE;
+  if (stored === SITE_ORIGIN || stored === `${SITE_ORIGIN}/api`) return DEFAULT_API_BASE;
+  if (stored.endsWith('.azurestaticapps.net') || stored.endsWith('.azurefd.net')) return DEFAULT_API_BASE;
+  if (!/^https:\/\//i.test(stored)) return DEFAULT_API_BASE;
+
+  return stored;
+}
+
+let API_BASE = getFixedApiBase();
+localStorage.setItem('christhelper.api', API_BASE);
+const API_CANDIDATES = [API_BASE];
 let token = localStorage.getItem('christhelper.token');
 let currentUser = JSON.parse(localStorage.getItem('christhelper.user') || 'null');
 
