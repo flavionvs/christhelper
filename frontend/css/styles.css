@@ -50,33 +50,33 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 14px 0;
+  gap: 14px;
+  padding: 10px 0;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: 1.08rem;
 }
 
 .brand-mark {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 11px;
   background: linear-gradient(135deg, var(--primary), #5aa97e);
   color: white;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
 }
 
 .nav-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -84,14 +84,15 @@ button, input, select, textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 14px;
+  padding: 7px 12px;
   border-radius: 999px;
   color: var(--muted);
-  font-size: 0.96rem;
+  font-size: 0.92rem;
   font-weight: 600;
   background: transparent;
   border: 1px solid transparent;
   transition: 0.2s ease;
+  line-height: 1.2;
 }
 
 .nav-links a:hover {
@@ -109,7 +110,7 @@ button, input, select, textarea {
 
 .nav-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -118,12 +119,13 @@ button, input, select, textarea {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 18px;
+  padding: 10px 16px;
   border-radius: 999px;
   border: none;
   cursor: pointer;
   transition: 0.2s ease;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .btn {
@@ -621,37 +623,54 @@ label.field:has(> input[type="radio"]) > span {
 }
 
 @media (max-width: 720px) {
+  .header {
+    position: sticky;
+  }
+
   .nav {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
+    padding: 8px 0;
   }
 
   .brand {
-    flex: 1;
-    font-size: 1rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 8px;
+    font-size: 0.95rem;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: 0.95rem;
   }
 
   .nav-links {
-    flex: 1 100%;
+    flex: 1 1 100%;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .nav-links a {
+    padding: 5px 8px;
+    font-size: 0.76rem;
+    border-radius: 999px;
+  }
+
+  .nav-actions {
+    width: 100%;
     justify-content: center;
     gap: 6px;
   }
 
-  .nav-links a {
-    padding: 6px 10px;
-    font-size: 0.82rem;
-  }
-
-  .nav-actions {
-    gap: 6px;
-  }
-
   .btn, .btn-outline {
-    padding: 8px 12px;
-    font-size: 0.82rem;
+    padding: 7px 10px;
+    font-size: 0.78rem;
   }
 
   .hero-grid, .split-grid, .footer-grid, .projects-grid, .filter-grid, .kpi-row, .stats-grid, .search-row, .form-grid.two, .form-grid.three {
