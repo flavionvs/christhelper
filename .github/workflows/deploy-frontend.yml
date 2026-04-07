@@ -1,12 +1,12 @@
-name: Deploy Frontend to Azure Storage
+name: Deploy Frontend (Azure Storage Static Website)
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'frontend/**'
-      - '.github/workflows/deploy-frontend.yml'
+      - "frontend/**"
+      - ".github/workflows/deploy-frontend.yml"
   workflow_dispatch:
 
 permissions:
@@ -21,6 +21,21 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Guard - ensure frontend/index.html exists
+        run: |
+          test -f "frontend/index.html" || (echo "ERROR: frontend/index.html missing. Refusing deploy." && exit 1)
+
+      - name: Guard - block uppercase HTML files in frontend root
+        run: |
+          if ls frontend/*.html 1> /dev/null 2>&1; then
+            bad=$(ls frontend/*.html | grep -E '/[A-Z]' || true)
+            if [ -n "$bad" ]; then
+              echo "ERROR: Uppercase .html files found (case-sensitive deploy risk):"
+              echo "$bad"
+              exit 1
+            fi
+          fi
+
       - name: Azure login
         uses: azure/login@v2
         with:
@@ -28,13 +43,13 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Upload frontend to $web
+      - name: Sync frontend to Azure Storage ($web)
         run: |
-          az storage blob upload-batch \
+          az storage blob sync \
             --account-name "${{ secrets.AZURE_STORAGE_ACCOUNT }}" \
-            --destination '$web' \
-            --source './frontend' \
-            --overwrite true \
+            --container '$web' \
+            --source 'frontend' \
+            --delete-destination true \
             --auth-mode login
 
       - name: Show deployed files
@@ -44,3 +59,19 @@ jobs:
             --container-name '$web' \
             --auth-mode login \
             --output table
+
+      - name: Show purge target
+        run: |
+          echo "Purging Azure Front Door endpoint:"
+          echo "Resource Group: christhelper-rg"
+          echo "Profile Name:  christhelper-fd"
+          echo "Endpoint Name: christhelper-www-afaahue8fhe2a2ca"
+
+      - name: Purge Azure Front Door cache (async)
+        run: |
+          az afd endpoint purge \
+            --resource-group "christhelper-rg" \
+            --profile-name "christhelper-fd" \
+            --endpoint-name "christhelper-www-afaahue8fhe2a2ca" \
+            --content-paths "/*" \
+            --no-wait
