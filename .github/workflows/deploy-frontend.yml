@@ -72,6 +72,6 @@ jobs:
           az afd endpoint purge \
             --resource-group "christhelper-rg" \
             --profile-name "christhelper-fd" \
-            --endpoint-name "christhelper-www-afaahue8fhe2a2ca" \
+            --endpoint-name "christhelper-www" \
             --content-paths "/*" \
             --no-wait
