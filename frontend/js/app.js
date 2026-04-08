@@ -1632,31 +1632,6 @@ function initAdminFilters() {
   });
 }
 
-
-function initMobileNav() {
-  const toggle = document.getElementById('navToggle');
-  const nav = document.getElementById('primaryNav');
-  if (!toggle || !nav) return;
-
-  function closeNav() {
-    nav.classList.remove('is-open');
-    toggle.setAttribute('aria-expanded', 'false');
-  }
-
-  toggle.addEventListener('click', () => {
-    const isOpen = nav.classList.toggle('is-open');
-    toggle.setAttribute('aria-expanded', String(isOpen));
-  });
-
-  nav.querySelectorAll('a').forEach((link) => {
-    link.addEventListener('click', closeNav);
-  });
-
-  window.addEventListener('resize', () => {
-    if (window.innerWidth > 720) closeNav();
-  });
-}
-
 function initButtons() {
   document.querySelectorAll('[data-logout]').forEach(el => el.addEventListener('click', logout));
   document.querySelectorAll('[data-load-projects]').forEach(el => el.addEventListener('click', loadProjects));
@@ -1666,7 +1641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   normalizeBrowserPath();
   setAuthUi();
   initButtons();
-  initMobileNav();
+  initMobileMenu();
   handleAuthForms();
   handleSubmitProject();
   handlePlatformDonation();
@@ -1683,3 +1658,30 @@ window.denyProject = denyProject;
 window.cancelProject = cancelProject;
 window.reactivateProject = reactivateProject;
 window.markReviewed = markReviewed;
+
+
+// ===== MOBILE MENU =====
+function initMobileMenu() {
+  const toggle = document.getElementById('navToggle');
+  const nav = document.getElementById('navMenu');
+  if (!toggle || !nav) return;
+
+  toggle.addEventListener('click', function () {
+    const isOpen = nav.classList.toggle('is-open');
+    toggle.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  nav.querySelectorAll('a').forEach(function (link) {
+    link.addEventListener('click', function () {
+      nav.classList.remove('is-open');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > 720) {
+      nav.classList.remove('is-open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
