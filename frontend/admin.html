@@ -134,6 +134,62 @@
           </tbody>
         </table>
       </section>
+
+      <section class="card panel">
+        <h2>Users list</h2>
+        <p>Search, filter, and manage registered users.</p>
+        <div class="admin-filter-grid">
+          <label class="field">
+            <span>Search</span>
+            <input type="text" id="adminUserSearch" placeholder="Search by name, email, country, or organisation">
+          </label>
+
+          <label class="field">
+            <span>Role</span>
+            <select id="adminUserRoleFilter">
+              <option value="">All roles</option>
+              <option value="admin">Admin</option>
+              <option value="supporter">Supporter</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Status</span>
+            <select id="adminUserStatusFilter">
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </label>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+          <button class="btn" type="button" id="adminApplyUserFiltersBtn">Apply filters</button>
+          <button class="btn-outline" type="button" id="adminClearUserFiltersBtn">Clear</button>
+          <span class="badge" id="adminUsersCount">0 users</span>
+        </div>
+      </section>
+
+      <section class="card panel table-wrap">
+        <h2>User management</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Country</th>
+              <th>Organisation</th>
+              <th>Projects</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminUsersTable">
+            <tr><td colspan="8">Loading...</td></tr>
+          </tbody>
+        </table>
+      </section>
     </div>
   </main>
 

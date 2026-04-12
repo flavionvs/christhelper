@@ -918,3 +918,44 @@ label.field:has(> input[type="radio"]) > span {
   margin: 0;
   font-size: 0.95rem;
 }
+
+
+.admin-user-cell {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-user-cell strong {
+  line-height: 1.2;
+}
+
+.admin-user-meta {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.admin-actions {
+  min-width: 240px;
+}
+
+.admin-actions-row.wrap {
+  flex-wrap: wrap;
+}
+
+.btn-xs.btn-danger {
+  border-color: rgba(182, 67, 67, 0.25);
+  color: var(--danger);
+}
+
+.btn-xs.btn-danger:hover {
+  background: rgba(182, 67, 67, 0.08);
+}
+
+.btn-xs.btn-warn {
+  border-color: rgba(151, 111, 24, 0.25);
+  color: var(--warning);
+}
+
+.btn-xs.btn-warn:hover {
+  background: rgba(151, 111, 24, 0.08);
+}

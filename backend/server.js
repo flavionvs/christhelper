@@ -530,6 +530,22 @@ function withDb(action) {
   return result;
 }
 
+function getAdminUserView(db, user) {
+  if (!user) return null;
+  const projectCount = db.projects.filter((item) => item.created_by === user.id).length;
+  const activeProjectCount = db.projects.filter((item) => item.created_by === user.id && String(item.status || 'active') === 'active' && !item.archived && !item.excluded).length;
+  const donationCount = db.donations.filter((item) => item.project_id && db.projects.some((project) => project.id === item.project_id && project.created_by === user.id)).length;
+
+  return {
+    ...publicUser(user),
+    created_at: user.created_at || null,
+    last_login_at: user.last_login_at || null,
+    project_count: projectCount,
+    active_project_count: activeProjectCount,
+    donation_count: donationCount
+  };
+}
+
 function publicUser(user) {
   if (!user) return null;
   return {
@@ -753,6 +769,9 @@ app.post('/auth/login', (req, res) => {
   if (!user || user.is_active === false || !bcrypt.compareSync(String(password || ''), user.password_hash)) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
+
+  user.last_login_at = now();
+  writeDb(db);
 
   const payload = publicUser(user);
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
@@ -1729,6 +1748,86 @@ app.post('/webhook', (req, res) => {
   }
 
   res.json({ received: true });
+});
+
+app.get('/admin/users', authRequired, adminRequired, (req, res) => {
+  const db = readDb();
+  const items = [...db.users]
+    .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
+    .map((user) => getAdminUserView(db, user));
+  res.json({ items: clone(items) });
+});
+
+app.post('/admin/users/:id/inactivate', authRequired, adminRequired, (req, res) => {
+  const updated = withDb((db) => {
+    const user = db.users.find((item) => item.id === req.params.id);
+    if (!user) return { error: 'User not found', status: 404 };
+    if (user.id === req.user.id) return { error: 'You cannot inactivate your own admin account', status: 400 };
+
+    user.is_active = false;
+    user.deactivated_at = now();
+
+    for (const project of db.projects) {
+      if (project.created_by === user.id && String(project.status || 'active') === 'active') {
+        project.status = 'inactive';
+        project.archived = true;
+      }
+    }
+
+    return { user: getAdminUserView(db, user) };
+  });
+
+  if (updated?.error) return res.status(updated.status || 400).json({ error: updated.error });
+  res.json({ message: 'User inactivated', user: updated.user });
+});
+
+app.post('/admin/users/:id/activate', authRequired, adminRequired, (req, res) => {
+  const updated = withDb((db) => {
+    const user = db.users.find((item) => item.id === req.params.id);
+    if (!user) return { error: 'User not found', status: 404 };
+
+    user.is_active = true;
+    user.deactivated_at = null;
+    return { user: getAdminUserView(db, user) };
+  });
+
+  if (updated?.error) return res.status(updated.status || 400).json({ error: updated.error });
+  res.json({ message: 'User activated', user: updated.user });
+});
+
+app.post('/admin/users/:id/promote', authRequired, adminRequired, (req, res) => {
+  const updated = withDb((db) => {
+    const user = db.users.find((item) => item.id === req.params.id);
+    if (!user) return { error: 'User not found', status: 404 };
+
+    user.role = 'admin';
+    return { user: getAdminUserView(db, user) };
+  });
+
+  if (updated?.error) return res.status(updated.status || 400).json({ error: updated.error });
+  res.json({ message: 'User promoted to admin', user: updated.user });
+});
+
+app.delete('/admin/users/:id', authRequired, adminRequired, (req, res) => {
+  const updated = withDb((db) => {
+    const userIndex = db.users.findIndex((item) => item.id === req.params.id);
+    if (userIndex === -1) return { error: 'User not found', status: 404 };
+
+    const user = db.users[userIndex];
+    if (user.id === req.user.id) return { error: 'You cannot delete your own admin account', status: 400 };
+    if (String(user.role || '') === 'admin') return { error: 'Delete is blocked for admin users. Inactivate the account instead.', status: 400 };
+
+    const ownsProjects = db.projects.some((project) => project.created_by === user.id);
+    if (ownsProjects) {
+      return { error: 'This user already owns projects. Inactivate the account instead of deleting it.', status: 400 };
+    }
+
+    db.users.splice(userIndex, 1);
+    return { ok: true };
+  });
+
+  if (updated?.error) return res.status(updated.status || 400).json({ error: updated.error });
+  res.json({ message: 'User deleted' });
 });
 
 app.get('/admin/donations', authRequired, adminRequired, (req, res) => {

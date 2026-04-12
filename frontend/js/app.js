@@ -1479,6 +1479,7 @@ async function handleProfilePage() {
 
 let adminProjectsCache = [];
 let adminDonationsCache = [];
+let adminUsersCache = [];
 
 function getAdminFundingStatus(project) {
   if (!project?.needs_financial_support) return 'Not applied';
@@ -1696,6 +1697,170 @@ function initAdminFilters() {
   });
 }
 
+
+function matchesAdminUserFilters(user) {
+  const search = ($('#adminUserSearch')?.value || '').trim().toLowerCase();
+  const role = $('#adminUserRoleFilter')?.value || '';
+  const status = $('#adminUserStatusFilter')?.value || '';
+
+  if (search) {
+    const haystack = [
+      user.name,
+      user.email,
+      user.country,
+      user.organization_name,
+      user.role,
+      user.id
+    ].filter(Boolean).join(' ').toLowerCase();
+    if (!haystack.includes(search)) return false;
+  }
+
+  if (role && String(user.role || '') !== role) return false;
+  if (status === 'active' && user.is_active === false) return false;
+  if (status === 'inactive' && user.is_active !== false) return false;
+
+  return true;
+}
+
+function getAdminUserRoleBadge(user) {
+  return String(user?.role || '') === 'admin'
+    ? '<span class="badge good">Admin</span>'
+    : '<span class="badge">Supporter</span>';
+}
+
+function getAdminUserStatusBadge(user) {
+  return user?.is_active === false
+    ? '<span class="badge warn">Inactive</span>'
+    : '<span class="badge good">Active</span>';
+}
+
+function renderAdminUsers(items) {
+  const table = $('#adminUsersTable');
+  if (!table) return;
+
+  const filtered = (items || []).filter(matchesAdminUserFilters);
+  const countEl = $('#adminUsersCount');
+  if (countEl) countEl.textContent = `${filtered.length} user${filtered.length === 1 ? '' : 's'}`;
+
+  if (!filtered.length) {
+    table.innerHTML = '<tr><td colspan="8">No users found with these filters.</td></tr>';
+    return;
+  }
+
+  table.innerHTML = filtered.map((user) => {
+    const isSelf = currentUser?.id && user.id === currentUser.id;
+    const inactive = user.is_active === false;
+    return `
+      <tr>
+        <td>
+          <div class="admin-user-cell">
+            <strong>${safeHtml(user.name || 'Unnamed user')}</strong>
+            <span class="admin-user-meta">${safeHtml(user.email || '—')}</span>
+            <span class="admin-user-meta">ID: ${safeHtml(user.id)}</span>
+          </div>
+        </td>
+        <td>${getAdminUserRoleBadge(user)}</td>
+        <td>${getAdminUserStatusBadge(user)}</td>
+        <td>${safeHtml(user.country || '—')}</td>
+        <td>${safeHtml(user.organization_name || '—')}</td>
+        <td>${Number(user.project_count || 0)}</td>
+        <td>${formatIsoDateTime(user.created_at)}</td>
+        <td>
+          <div class="admin-actions">
+            <div class="admin-user-meta" style="margin-bottom:8px;">
+              ${user.last_login_at ? `Last login: ${safeHtml(formatIsoDateTime(user.last_login_at))}` : 'Last login: —'}
+              ${isSelf ? '<br>Your account' : ''}
+            </div>
+            <div class="admin-actions-row wrap">
+              <button class="btn-outline btn-xs ${inactive ? '' : 'btn-warn'}" onclick="toggleUserActive('${safeHtml(user.id)}', ${inactive ? 'true' : 'false'})" ${isSelf ? 'disabled' : ''}>
+                ${inactive ? 'Activate' : 'Inactivate'}
+              </button>
+              <button class="btn-outline btn-xs" onclick="promoteUserToAdmin('${safeHtml(user.id)}')" ${String(user.role) === 'admin' ? 'disabled' : ''}>
+                Promote to Admin
+              </button>
+              <button class="btn-outline btn-xs btn-danger" onclick="deleteUserAccount('${safeHtml(user.id)}')" ${isSelf ? 'disabled' : ''}>
+                Exclude
+              </button>
+            </div>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function loadAdminUsers() {
+  const table = $('#adminUsersTable');
+  if (!table) return;
+
+  try {
+    const { items } = await api('/admin/users');
+    adminUsersCache = Array.isArray(items) ? items : [];
+    renderAdminUsers(adminUsersCache);
+  } catch (error) {
+    table.innerHTML = `<tr><td colspan="8">${safeHtml(error.message)}. Login as admin first.</td></tr>`;
+  }
+}
+
+async function toggleUserActive(id, currentlyInactive) {
+  const action = currentlyInactive ? 'activate' : 'inactivate';
+  const ok = window.confirm(`Are you sure you want to ${action} this user?`);
+  if (!ok) return;
+
+  try {
+    await api(`/admin/users/${id}/${action}`, { method: 'POST', body: JSON.stringify({}) });
+    alert(`User ${action}d successfully.`);
+    await loadAdminUsers();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function promoteUserToAdmin(id) {
+  const ok = window.confirm('Are you sure you want to promote this user to admin?');
+  if (!ok) return;
+
+  try {
+    await api(`/admin/users/${id}/promote`, { method: 'POST', body: JSON.stringify({}) });
+    alert('User promoted to admin.');
+    await loadAdminUsers();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function deleteUserAccount(id) {
+  const ok = window.confirm('Are you sure you want to exclude this user? This permanently removes the account when allowed.');
+  if (!ok) return;
+
+  try {
+    await api(`/admin/users/${id}`, { method: 'DELETE' });
+    alert('User removed successfully.');
+    await loadAdminUsers();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+function initAdminUserFilters() {
+  const table = $('#adminUsersTable');
+  if (!table) return;
+
+  $('#adminApplyUserFiltersBtn')?.addEventListener('click', () => renderAdminUsers(adminUsersCache));
+  $('#adminClearUserFiltersBtn')?.addEventListener('click', () => {
+    ['adminUserSearch', 'adminUserRoleFilter', 'adminUserStatusFilter'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    renderAdminUsers(adminUsersCache);
+  });
+
+  document.getElementById('adminUserSearch')?.addEventListener('input', () => renderAdminUsers(adminUsersCache));
+  ['adminUserRoleFilter', 'adminUserStatusFilter'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('change', () => renderAdminUsers(adminUsersCache));
+  });
+}
+
 function initButtons() {
   document.querySelectorAll('[data-logout]').forEach(el => el.addEventListener('click', logout));
   document.querySelectorAll('[data-load-projects]').forEach(el => el.addEventListener('click', loadProjects));
@@ -1714,7 +1879,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadProjectDetails();
   handleProfilePage();
   initAdminFilters();
+  initAdminUserFilters();
   loadAdmin();
+  loadAdminUsers();
 });
 
 window.approveProject = approveProject;
@@ -1722,6 +1889,9 @@ window.denyProject = denyProject;
 window.cancelProject = cancelProject;
 window.reactivateProject = reactivateProject;
 window.markReviewed = markReviewed;
+window.toggleUserActive = toggleUserActive;
+window.promoteUserToAdmin = promoteUserToAdmin;
+window.deleteUserAccount = deleteUserAccount;
 
 
 
