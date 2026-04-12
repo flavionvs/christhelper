@@ -405,6 +405,84 @@ input[type="radio"] {
   gap: 8px;
 }
 
+
+.project-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.review-status-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #e8f7ef;
+  color: var(--primary-dark);
+  border: 1px solid #cfe8da;
+  font-size: 0.95rem;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.review-status-icon-lg {
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+}
+
+.compact-status-row {
+  margin-top: -2px;
+}
+
+.response-type-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.response-type-option {
+  position: relative;
+}
+
+.response-type-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.response-type-option span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  padding: 11px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.response-type-option input:checked + span {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.response-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
 .progress-wrap {
   display: grid;
   gap: 8px;
@@ -646,6 +724,9 @@ label.field:has(> input[type="radio"]) > span {
 /* ===== RESPONSIVE ===== */
 
 @media (max-width: 1024px) {
+  .project-title-row {
+    align-items: center;
+  }
   .hero-grid, .split-grid, .footer-grid, .projects-grid, .filter-grid, .kpi-row, .stats-grid {
     grid-template-columns: 1fr 1fr;
   }

@@ -199,12 +199,15 @@ function projectCard(project) {
     ? Math.min(100, Math.round((project.amount_raised / project.funding_goal) * 100))
     : 0;
 
-  const badges = [
-    project.admin_reviewed ? '<span class="badge good">Admin reviewed</span>' : '',
+  const visibleHelpTypes = (project.help_types || []).filter(type => String(type || '').toLowerCase() !== 'financial support');
+  const statusBits = [
     project.verified_ministry ? '<span class="badge good">Verified ministry</span>' : '',
-    project.needs_financial_support && !project.owner_can_receive_payments ? '<span class="badge warn">Stripe setup pending</span>' : '',
-    project.urgency === 'high' ? '<span class="badge alert">Urgent</span>' : `<span class="badge warn">${safeHtml(project.urgency)}</span>`
+    project.urgency === 'high' ? '<span class="badge alert">Urgent</span>' : ''
   ].join(' ');
+
+  const reviewedIcon = project.admin_reviewed
+    ? '<span class="review-status-icon" title="Admin reviewed" aria-label="Admin reviewed">✓</span>'
+    : '';
 
   const goalText = project.funding_goal_currency === 'USD'
     ? formatUsd(project.funding_goal)
@@ -217,12 +220,17 @@ function projectCard(project) {
         <span class="badge">${safeHtml(project.continent)}</span>
         <span class="badge">${safeHtml(project.category)}</span>
       </div>
-      <h3>${safeHtml(project.title)}</h3>
-      <p>${safeHtml(project.summary)}</p>
-      <div class="project-meta">
-        ${(project.help_types || []).map(h => `<span class="badge">${safeHtml(h)}</span>`).join('')}
+      <div class="project-title-row">
+        <h3>${safeHtml(project.title)}</h3>
+        ${reviewedIcon}
       </div>
-      <div>${badges}</div>
+      <p>${safeHtml(project.summary)}</p>
+      ${visibleHelpTypes.length ? `
+        <div class="project-meta">
+          ${visibleHelpTypes.map(h => `<span class="badge">${safeHtml(h)}</span>`).join('')}
+        </div>
+      ` : ''}
+      ${statusBits ? `<div class="project-meta compact-status-row">${statusBits}</div>` : ''}
       <div class="project-meta">
         <span class="badge">💬 ${getReplyCount(project)} replies</span>
         <span class="badge">🙏 ${getPrayerCount(project)} prayers</span>
@@ -235,13 +243,11 @@ function projectCard(project) {
             <span class="muted">Goal ${goalText}</span>
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-          ${project.owner_can_receive_payments ? '' : '<div class="notice" style="margin-top:12px;">This project is approved, but the owner still needs to finish Stripe onboarding before donations can open.</div>'}
         </div>
-      ` : '<div class="notice">Financial support is not enabled for this project yet or this project is seeking non-financial help.</div>'}
+      ` : '<div class="notice">View details to see full support options and project status.</div>'}
       <div class="project-actions">
-        <a class="btn" href="/project.html?id=${project.id}">View details</a>
-        <a class="btn-outline" href="/project.html?id=${project.id}#pray">Pray</a>
-        <a class="btn-outline" href="/project.html?id=${project.id}#reply">Reply</a>
+        <a class="btn" href="project.html?id=${project.id}">View details</a>
+        <a class="btn-outline" href="project.html?id=${project.id}#respond">Respond</a>
       </div>
     </article>
   `;
@@ -295,7 +301,7 @@ async function loadAllProjectsForSubmitPage() {
             <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
               <span class="badge">💬 ${getReplyCount(project)} replies</span>
               <span class="badge">🙏 ${getPrayerCount(project)} prayers</span>
-              <a class="btn-outline" href="/project.html?id=${project.id}">Open</a>
+              <a class="btn-outline" href="project.html?id=${project.id}">Open</a>
             </div>
           </div>
         `).join('')
@@ -303,6 +309,30 @@ async function loadAllProjectsForSubmitPage() {
   } catch (error) {
     wrap.innerHTML = `<p>${safeHtml(error.message)}</p>`;
   }
+}
+
+function buildCombinedResponses(prayers = [], replies = []) {
+  const prayerItems = prayers.map(item => ({
+    kind: 'Prayer',
+    name: item.name || 'Anonymous',
+    message: item.message || '',
+    typeLabel: 'Prayer',
+    createdAt: item.created_at || item.createdAt || ''
+  }));
+
+  const replyItems = replies.map(item => ({
+    kind: 'Reply',
+    name: item.name || 'Anonymous',
+    message: item.message || '',
+    typeLabel: item.type || 'Reply',
+    createdAt: item.created_at || item.createdAt || ''
+  }));
+
+  return [...prayerItems, ...replyItems].sort((a, b) => {
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return bTime - aTime;
+  });
 }
 
 async function loadProjectDetails() {
@@ -336,13 +366,17 @@ async function loadProjectDetails() {
               <span class="badge">${safeHtml(project.category)}</span>
               <span class="badge">${project.is_online ? 'Online' : safeHtml(project.city || 'Local')}</span>
             </div>
-            <h1 style="font-size:2.3rem;margin-top:12px;">${safeHtml(project.title)}</h1>
+            <div class="project-title-row" style="margin-top:12px;">
+              <h1 style="font-size:2.3rem;margin:0;">${safeHtml(project.title)}</h1>
+              ${project.admin_reviewed ? '<span class="review-status-icon review-status-icon-lg" title="Admin reviewed" aria-label="Admin reviewed">✓</span>' : ''}
+            </div>
             <p>${safeHtml(project.summary)}</p>
             <div class="badge-row">
               ${(project.help_types || []).map(h => `<span class="badge">${safeHtml(h)}</span>`).join('')}
-              ${project.admin_reviewed ? '<span class="badge good">Admin reviewed</span>' : ''}
               ${project.verified_ministry ? '<span class="badge good">Verified church/ministry</span>' : ''}
-              ${project.needs_financial_support && !project.owner_can_receive_payments ? '<span class="badge warn">Stripe onboarding still needed</span>' : ''}
+              ${project.urgency === 'high' ? '<span class="badge alert">Urgent</span>' : ''}
+              ${project.needs_financial_support ? '<span class="badge">Financial support requested</span>' : ''}
+              ${project.needs_financial_support && !project.owner_can_receive_payments ? '<span class="badge warn">Stripe setup pending</span>' : ''}
             </div>
             <div class="stats-row">
               <div class="stat"><strong>${stats.prayer_count}</strong><span class="muted">Prayer supporters</span></div>
@@ -374,41 +408,49 @@ async function loadProjectDetails() {
             </div>
           </section>
 
-          <section class="card panel" id="pray">
-            <h2>Prayer support</h2>
-            <p>Prayer is a real form of support on ChristHelper. Let the requester know you prayed.</p>
-            <form id="prayForm" class="simple-form">
-              <input name="name" placeholder="Your name (optional)">
-              <textarea name="message" placeholder="Short encouragement or prayer note"></textarea>
-              <button class="btn" type="submit">I prayed for this</button>
-            </form>
-            <div id="prayerList" class="list" style="margin-top:16px;">
-              ${prayers.length
-                ? prayers.map(item => `<div class="item"><strong>${safeHtml(item.name || 'Anonymous')}</strong>${safeHtml(item.message || '')}</div>`).join('')
-                : '<p class="muted">No prayer messages yet.</p>'}
-            </div>
-          </section>
-
-          <section class="card panel" id="reply">
-            <h2>Reply, guidance, volunteer or mentorship</h2>
-            <form id="replyForm" class="simple-form">
-              <select name="type" required>
-                <option value="">Select support type</option>
+          <section class="card panel" id="respond">
+            <h2>Respond</h2>
+            <p>Send one message and choose whether it is a prayer or a reply.</p>
+            <form id="respondForm" class="simple-form">
+              <div class="response-type-toggle" role="radiogroup" aria-label="Response type">
+                <label class="response-type-option">
+                  <input type="radio" name="response_kind" value="prayer" checked>
+                  <span>Prayer</span>
+                </label>
+                <label class="response-type-option">
+                  <input type="radio" name="response_kind" value="reply">
+                  <span>Reply</span>
+                </label>
+              </div>
+              <select name="type" id="responseSupportType" class="hide">
+                <option value="">Select reply type</option>
                 <option>Guidance</option>
                 <option>Volunteer</option>
                 <option>Mentorship</option>
                 <option>Services</option>
                 <option>Encouragement</option>
               </select>
-              <input name="name" placeholder="Your name" required>
-              <input name="email" type="email" placeholder="Your email (optional)">
-              <textarea name="message" placeholder="How would you like to help?" required></textarea>
-              <button class="btn" type="submit">Send support offer</button>
+              <input name="name" placeholder="Your name${token ? '' : ' (optional)'}">
+              <input name="email" id="responseEmail" type="email" placeholder="Your email (optional)" class="hide">
+              <textarea name="message" id="responseMessage" placeholder="Write your prayer or reply" required></textarea>
+              <button class="btn" type="submit">Send response</button>
             </form>
-            <div id="replyList" class="list" style="margin-top:16px;">
-              ${replies.length
-                ? replies.map(item => `<div class="item"><strong>${safeHtml(item.type)} · ${safeHtml(item.name)}</strong>${safeHtml(item.message)}</div>`).join('')
-                : '<p class="muted">No replies yet.</p>'}
+          </section>
+
+          <section class="card panel">
+            <h2>Community responses</h2>
+            <div id="responseList" class="list" style="margin-top:16px;">
+              ${buildCombinedResponses(prayers, replies).length
+                ? buildCombinedResponses(prayers, replies).map(item => `
+                    <div class="item response-item">
+                      <div class="response-item-head">
+                        <strong>${safeHtml(item.name)}</strong>
+                        <span class="badge ${item.kind === 'Prayer' ? 'good' : ''}">${safeHtml(item.typeLabel)}</span>
+                      </div>
+                      <div>${safeHtml(item.message || '')}</div>
+                    </div>
+                  `).join('')
+                : '<p class="muted">No responses yet.</p>'}
             </div>
           </section>
 
@@ -444,7 +486,7 @@ async function loadProjectDetails() {
                   <button class="btn" type="submit">Continue to secure payment</button>
                 </form>
               ` : '<p class="muted" style="margin-top:14px;">This project is approved, but the owner still needs to finish Stripe onboarding before donations can be accepted.</p>'}
-            ` : '<p class="muted">Financial support is not available yet for this project. You can still pray, reply, volunteer, and encourage.</p>'}
+            ` : '<p class="muted">Financial support is not available yet for this project. You can still respond with prayer, guidance, volunteering, and encouragement.</p>'}
           </section>
 
           <section class="card panel">
@@ -464,25 +506,56 @@ async function loadProjectDetails() {
         </aside>
       </div>
     `;
+    const respondForm = $('#respondForm');
+    const responseTypeInputs = $all('input[name="response_kind"]');
+    const responseSupportType = $('#responseSupportType');
+    const responseEmail = $('#responseEmail');
+    const responseMessage = $('#responseMessage');
 
-    $('#prayForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target);
-      try {
-        await api(`/projects/${id}/pray`, { method: 'POST', body: JSON.stringify(Object.fromEntries(fd)) });
-        alert('Prayer support recorded. Thank you.');
-        location.reload();
-      } catch (error) {
-        alert(error.message);
+    function syncRespondForm() {
+      const selected = document.querySelector('input[name="response_kind"]:checked')?.value || 'prayer';
+      const isReply = selected === 'reply';
+      responseSupportType?.classList.toggle('hide', !isReply);
+      responseEmail?.classList.toggle('hide', !isReply);
+      if (responseSupportType) responseSupportType.required = isReply;
+      if (responseEmail && !isReply) responseEmail.value = '';
+      if (responseSupportType && !isReply) responseSupportType.value = '';
+      if (responseMessage) {
+        responseMessage.placeholder = isReply
+          ? 'Write your reply, offer, guidance, or encouragement'
+          : 'Write your prayer or encouragement';
       }
-    });
+    }
 
-    $('#replyForm')?.addEventListener('submit', async (e) => {
+    responseTypeInputs.forEach(input => input.addEventListener('change', syncRespondForm));
+    syncRespondForm();
+
+    respondForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
+      const kind = fd.get('response_kind');
       try {
-        await api(`/projects/${id}/reply`, { method: 'POST', body: JSON.stringify(Object.fromEntries(fd)) });
-        alert('Your support offer has been sent.');
+        if (kind === 'prayer') {
+          await api(`/projects/${id}/pray`, {
+            method: 'POST',
+            body: JSON.stringify({
+              name: fd.get('name'),
+              message: fd.get('message')
+            })
+          });
+          alert('Prayer support recorded. Thank you.');
+        } else {
+          await api(`/projects/${id}/reply`, {
+            method: 'POST',
+            body: JSON.stringify({
+              type: fd.get('type'),
+              name: fd.get('name'),
+              email: fd.get('email'),
+              message: fd.get('message')
+            })
+          });
+          alert('Your response has been sent.');
+        }
         location.reload();
       } catch (error) {
         alert(error.message);
