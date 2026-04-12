@@ -903,3 +903,18 @@ label.field:has(> input[type="radio"]) > span {
     grid-template-columns: 1fr;
   }
 }
+
+
+.verse-card {
+  text-align: center;
+}
+
+.verse-card h3 {
+  margin-bottom: 8px;
+  font-size: 1rem;
+}
+
+.verse-card p {
+  margin: 0;
+  font-size: 0.95rem;
+}

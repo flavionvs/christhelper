@@ -271,6 +271,7 @@ function normalizeDonation(donation) {
   if (!Object.prototype.hasOwnProperty.call(donation, 'stripe_payment_intent_id')) donation.stripe_payment_intent_id = '';
   if (!Object.prototype.hasOwnProperty.call(donation, 'processed_at')) donation.processed_at = null;
   if (!Object.prototype.hasOwnProperty.call(donation, 'checkout_session_status')) donation.checkout_session_status = '';
+  if (!Object.prototype.hasOwnProperty.call(donation, 'donor_message')) donation.donor_message = '';
 
   return donation;
 }
@@ -1019,6 +1020,7 @@ app.get('/stripe/connect/summary', authRequired, async (req, res) => {
         id: donation.id,
         donor_name: donation.donor_name || 'Anonymous',
         donor_email: donation.donor_email || '',
+        donor_message: donation.donor_message || '',
         amount_project: Number(donation.amount_project || 0),
         amount_platform: Number(donation.amount_platform || 0),
         currency: String(donation.currency || CURRENCY).toUpperCase(),
@@ -1452,7 +1454,7 @@ app.post('/admin/projects/:id/review', authRequired, adminRequired, (req, res) =
 
 app.post('/payments/project-checkout', async (req, res) => {
   try {
-    const { project_id, donor_name, donor_email, amount_project, amount_platform } = req.body || {};
+    const { project_id, donor_name, donor_email, donor_message, amount_project, amount_platform } = req.body || {};
     const db = readDb();
     const project = db.projects.find((item) => item.id === project_id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
@@ -1485,6 +1487,7 @@ app.post('/payments/project-checkout', async (req, res) => {
         project_id,
         donor_name: donor_name || 'Anonymous',
         donor_email: donor_email || '',
+        donor_message: String(donor_message || '').trim(),
         amount_project: projectAmount,
         amount_platform: platformAmount,
         currency: CURRENCY,
@@ -1526,13 +1529,17 @@ app.post('/payments/project-checkout', async (req, res) => {
         application_fee_amount: applicationFee || undefined,
         transfer_data: {
           destination: owner.stripe_account_id
-        }
+        },
+        description: donor_message
+          ? `Support for ${project.title} — ${String(donor_message).trim().slice(0, 180)}`
+          : `Support for ${project.title}`
       },
       metadata: {
         donation_id: donation.id,
         project_id: project_id,
         owner_user_id: owner.id,
-        donation_type: 'project'
+        donation_type: 'project',
+        donor_message: String(donor_message || '').trim().slice(0, 300)
       }
     });
 

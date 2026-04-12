@@ -475,8 +475,9 @@ async function loadProjectDetails() {
                 <form id="projectDonationForm" class="simple-form" style="margin-top:16px;">
                   <input name="donor_name" placeholder="Your name">
                   <input name="donor_email" type="email" placeholder="Your email">
+                  <textarea name="donor_message" placeholder="Optional message"></textarea>
                   <input name="amount_project" type="number" min="1" step="0.01" placeholder="Amount for this project (USD)" required>
-                  <input name="amount_platform" type="number" min="0" step="0.01" placeholder="Optional support for ChristHelper (USD)">
+                  <input name="amount_platform" type="number" min="0" step="0.01" placeholder="Optional support value (USD)">
                   <button class="btn" type="submit">Continue to secure payment</button>
                 </form>
               ` : '<p class="muted" style="margin-top:14px;">This project is approved, but the owner still needs to finish Stripe onboarding before donations can be accepted.</p>'}
@@ -944,7 +945,7 @@ function renderStripeSummarySection(summary, options = {}) {
       </div>
 
       <div class="notice" style="margin-top:16px;">
-        In test mode Stripe Express access uses a one-time login link. Use the dashboard button each time you want to open Stripe.
+        Stripe Express access uses a secure login link. Use the dashboard button whenever you want to open Stripe.
       </div>
 
       <div class="list" style="margin-top:16px;">
@@ -1216,6 +1217,7 @@ async function handleProfilePage() {
 
               <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
                 <button class="btn" id="saveProfileBtn" type="button">Save profile</button>
+                ${mergedUser?.role === 'admin' ? '<a class="btn-outline" href="/admin.html">Open admin page</a>' : ''}
               </div>
             </section>
 
