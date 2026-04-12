@@ -58,7 +58,7 @@
           <h2>How ChristHelper works</h2>
           <div class="list">
             <div class="item"><strong>1. Browse live projects</strong>Filter by country, continent, category, and type of help needed.</div>
-            <div class="item"><strong>2. Choose how to support</strong>Pray, reply, offer services, mentor, volunteer, or donate.</div>
+            <div class="item"><strong>2. Choose how to support</strong>Respond with prayer or a reply, offer services, mentor, volunteer, or donate.</div>
             <div class="item"><strong>3. Keep safety first</strong>Financial support is only enabled after admin review.</div>
           </div>
         </div>
@@ -172,77 +172,5 @@
   </footer>
 
   <script src="js/app.js"></script>
-  <script>
-    (function () {
-      function escapeHtml(value) {
-        return String(value ?? "").replace(/[&<>"']/g, function (char) {
-          return ({
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            '"': "&quot;",
-            "'": "&#39;"
-          })[char];
-        });
-      }
-
-      function getProjectReplies(project) {
-        if (typeof project.replyCount === "number") return project.replyCount;
-        if (typeof project.repliesCount === "number") return project.repliesCount;
-        if (Array.isArray(project.replies)) return project.replies.length;
-        if (typeof project.replies === "number") return project.replies;
-        return 0;
-      }
-
-      function getProjectPrayers(project) {
-        if (typeof project.prayerCount === "number") return project.prayerCount;
-        if (typeof project.prayersCount === "number") return project.prayersCount;
-        if (Array.isArray(project.prayers)) return project.prayers.length;
-        if (typeof project.prayers === "number") return project.prayers;
-        return 0;
-      }
-
-      function createEngagementMarkup(project) {
-        const replies = getProjectReplies(project);
-        const prayers = getProjectPrayers(project);
-        return '<div class="project-engagement" style="margin-top:12px; display:flex; gap:16px; flex-wrap:wrap; font-size:14px;">' +
-          '<span>💬 <strong>' + replies + '</strong> replies</span>' +
-          '<span>🙏 <strong>' + prayers + '</strong> prayers</span>' +
-        '</div>';
-      }
-
-      function appendEngagementToExistingCards(projects) {
-        const cards = document.querySelectorAll('#projectsGrid .card, #projectsGrid .project-card, #projectsGrid article');
-        cards.forEach(function (card, index) {
-          if (card.querySelector('.project-engagement')) return;
-          const project = projects[index] || {};
-          card.insertAdjacentHTML('beforeend', createEngagementMarkup(project));
-        });
-      }
-
-      const originalRenderProjects = window.renderProjects;
-
-      if (typeof originalRenderProjects === 'function') {
-        window.renderProjects = function (projects) {
-          originalRenderProjects(projects);
-          appendEngagementToExistingCards(Array.isArray(projects) ? projects : []);
-        };
-      } else {
-        window.renderProjects = function (projects) {
-          const grid = document.getElementById('projectsGrid');
-          if (!grid) return;
-
-          const safeProjects = Array.isArray(projects) ? projects : [];
-          grid.innerHTML = safeProjects.map(function (project) {
-            return '<div class="card project-card">' +
-              '<h3>' + escapeHtml(project.title || 'Untitled project') + '</h3>' +
-              '<p>' + escapeHtml(project.summary || project.description || '') + '</p>' +
-              createEngagementMarkup(project) +
-            '</div>';
-          }).join('');
-        };
-      }
-    })();
-  </script>
 </body>
 </html>

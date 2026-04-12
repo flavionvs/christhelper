@@ -412,16 +412,10 @@ async function loadProjectDetails() {
             <h2>Respond</h2>
             <p>Send one message and choose whether it is a prayer or a reply.</p>
             <form id="respondForm" class="simple-form">
-              <div class="response-type-toggle" role="radiogroup" aria-label="Response type">
-                <label class="response-type-option">
-                  <input type="radio" name="response_kind" value="prayer" checked>
-                  <span>Prayer</span>
-                </label>
-                <label class="response-type-option">
-                  <input type="radio" name="response_kind" value="reply">
-                  <span>Reply</span>
-                </label>
-              </div>
+              <select name="kind" id="responseKind" required>
+                <option value="prayer">Prayer</option>
+                <option value="reply">Reply</option>
+              </select>
               <select name="type" id="responseSupportType" class="hide">
                 <option value="">Select reply type</option>
                 <option>Guidance</option>
@@ -432,7 +426,7 @@ async function loadProjectDetails() {
               </select>
               <input name="name" placeholder="Your name${token ? '' : ' (optional)'}">
               <input name="email" id="responseEmail" type="email" placeholder="Your email (optional)" class="hide">
-              <textarea name="message" id="responseMessage" placeholder="Write your prayer or reply" required></textarea>
+              <textarea name="message" id="responseMessage" placeholder="Write your response" required></textarea>
               <button class="btn" type="submit">Send response</button>
             </form>
           </section>
@@ -507,13 +501,13 @@ async function loadProjectDetails() {
       </div>
     `;
     const respondForm = $('#respondForm');
-    const responseTypeInputs = $all('input[name="response_kind"]');
+    const responseKind = $('#responseKind');
     const responseSupportType = $('#responseSupportType');
     const responseEmail = $('#responseEmail');
     const responseMessage = $('#responseMessage');
 
     function syncRespondForm() {
-      const selected = document.querySelector('input[name="response_kind"]:checked')?.value || 'prayer';
+      const selected = responseKind?.value || 'prayer';
       const isReply = selected === 'reply';
       responseSupportType?.classList.toggle('hide', !isReply);
       responseEmail?.classList.toggle('hide', !isReply);
@@ -527,35 +521,30 @@ async function loadProjectDetails() {
       }
     }
 
-    responseTypeInputs.forEach(input => input.addEventListener('change', syncRespondForm));
+    responseKind?.addEventListener('change', syncRespondForm);
     syncRespondForm();
 
     respondForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
-      const kind = fd.get('response_kind');
+      const kind = String(fd.get('kind') || 'prayer').toLowerCase();
+
       try {
-        if (kind === 'prayer') {
-          await api(`/projects/${id}/pray`, {
-            method: 'POST',
-            body: JSON.stringify({
-              name: fd.get('name'),
-              message: fd.get('message')
-            })
-          });
-          alert('Prayer support recorded. Thank you.');
-        } else {
-          await api(`/projects/${id}/reply`, {
-            method: 'POST',
-            body: JSON.stringify({
-              type: fd.get('type'),
-              name: fd.get('name'),
-              email: fd.get('email'),
-              message: fd.get('message')
-            })
-          });
-          alert('Your response has been sent.');
-        }
+        const result = await api(`/projects/${id}/respond`, {
+          method: 'POST',
+          body: JSON.stringify({
+            kind,
+            type: fd.get('type'),
+            name: fd.get('name') || 'Anonymous',
+            email: fd.get('email'),
+            message: fd.get('message')
+          })
+        });
+
+        alert(result?.message || 'Your response has been sent.');
+        e.target.reset();
+        if (responseKind) responseKind.value = 'prayer';
+        syncRespondForm();
         location.reload();
       } catch (error) {
         alert(error.message);

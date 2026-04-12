@@ -604,6 +604,69 @@ function getOwnedProjectOr403(db, projectId, userId) {
   return { project };
 }
 
+function normalizeResponseKind(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'prayer' || normalized === 'pray') return 'prayer';
+  if (normalized === 'reply' || normalized === 'respond' || normalized === 'response') return 'reply';
+  return '';
+}
+
+function createProjectResponse(db, projectId, payload = {}) {
+  const project = db.projects.find((item) => item.id === projectId);
+  if (!project) return { error: 'Project not found', status: 404 };
+
+  const kind = normalizeResponseKind(payload.kind || payload.response_kind || payload.category || payload.mode || payload.action || payload.type);
+  const name = String(payload.name || 'Anonymous').trim() || 'Anonymous';
+  const email = String(payload.email || '').trim();
+  const message = String(payload.message || '').trim();
+  const replyType = String(payload.type || payload.reply_type || '').trim();
+
+  if (!kind) {
+    return { error: 'Response kind must be prayer or reply', status: 400 };
+  }
+
+  if (!message) {
+    return { error: 'Message is required', status: 400 };
+  }
+
+  if (kind === 'prayer') {
+    const prayer = {
+      id: createId(),
+      project_id: projectId,
+      name,
+      message,
+      created_at: now()
+    };
+    db.prayers.push(prayer);
+    return {
+      kind,
+      item: clone(prayer),
+      message: 'Prayer support recorded. Thank you.'
+    };
+  }
+
+  if (!replyType) {
+    return { error: 'Reply type is required', status: 400 };
+  }
+
+  const reply = {
+    id: createId(),
+    project_id: projectId,
+    type: replyType,
+    name,
+    email,
+    message,
+    created_at: now()
+  };
+  db.replies.push(reply);
+
+  return {
+    kind,
+    item: clone(reply),
+    message: 'Your response has been sent.'
+  };
+}
+
 function applyPaidDonation(db, donation, sessionLike = null) {
   if (!donation) return { changed: false, reason: 'Donation not found' };
 
@@ -1285,48 +1348,31 @@ app.post('/projects/:id/include', authRequired, (req, res) => {
   res.json({ message: 'Project included', project: result.project });
 });
 
-app.post('/projects/:id/pray', (req, res) => {
-  const { name, message } = req.body || {};
-  const result = withDb((db) => {
-    const project = db.projects.find((item) => item.id === req.params.id);
-    if (!project) return false;
-    db.prayers.push({
-      id: createId(),
-      project_id: req.params.id,
-      name: name || 'Anonymous',
-      message: message || 'Prayed for this project.',
-      created_at: now()
-    });
-    return true;
-  });
+app.post('/projects/:id/respond', (req, res) => {
+  const result = withDb((db) => createProjectResponse(db, req.params.id, req.body || {}));
 
-  if (!result) return res.status(404).json({ error: 'Project not found' });
-  res.json({ message: 'Prayer support recorded' });
+  if (result?.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json({
+    message: result.message,
+    kind: result.kind,
+    item: result.item
+  });
+});
+
+app.post('/projects/:id/pray', (req, res) => {
+  const body = { ...(req.body || {}), kind: 'prayer' };
+  const result = withDb((db) => createProjectResponse(db, req.params.id, body));
+
+  if (result?.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json({ message: result.message, kind: result.kind, item: result.item });
 });
 
 app.post('/projects/:id/reply', (req, res) => {
-  const { type, name, email, message } = req.body || {};
-  if (!type || !name || !message) {
-    return res.status(400).json({ error: 'Type, name and message are required' });
-  }
+  const body = { ...(req.body || {}), kind: 'reply' };
+  const result = withDb((db) => createProjectResponse(db, req.params.id, body));
 
-  const result = withDb((db) => {
-    const project = db.projects.find((item) => item.id === req.params.id);
-    if (!project) return false;
-    db.replies.push({
-      id: createId(),
-      project_id: req.params.id,
-      type,
-      name,
-      email: email || '',
-      message,
-      created_at: now()
-    });
-    return true;
-  });
-
-  if (!result) return res.status(404).json({ error: 'Project not found' });
-  res.json({ message: 'Support offer sent' });
+  if (result?.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json({ message: result.message, kind: result.kind, item: result.item });
 });
 
 app.post('/projects/:id/report', (req, res) => {

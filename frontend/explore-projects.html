@@ -130,41 +130,5 @@
   </footer>
 
   <script src="js/app.js"></script>
-  <script>
-    (function () {
-      function getReplyCount(project) {
-        return Number(project.reply_count ?? project.replyCount ?? project.repliesCount ?? project.replies ?? 0) || 0;
-      }
-
-      function getPrayerCount(project) {
-        return Number(project.prayer_count ?? project.prayerCount ?? project.prayersCount ?? project.prayers ?? 0) || 0;
-      }
-
-      function engagementHtml(project) {
-        return `
-          <div class="project-engagement" style="margin-top:12px; display:flex; gap:16px; flex-wrap:wrap;">
-            <span>💬 <strong>${getReplyCount(project)}</strong> replies</span>
-            <span>🙏 <strong>${getPrayerCount(project)}</strong> prayers</span>
-          </div>
-        `;
-      }
-
-      function addEngagementToCards(projects) {
-        const cards = document.querySelectorAll('#projectsGrid .project-card, #projectsGrid .card, #projectsGrid article, #projectsGrid > div');
-        cards.forEach((card, index) => {
-          if (card.querySelector('.project-engagement')) return;
-          card.insertAdjacentHTML('beforeend', engagementHtml(projects[index] || {}));
-        });
-      }
-
-      const originalRenderProjects = window.renderProjects;
-      if (typeof originalRenderProjects === 'function') {
-        window.renderProjects = function (projects) {
-          originalRenderProjects(projects);
-          addEngagementToCards(Array.isArray(projects) ? projects : []);
-        };
-      }
-    })();
-  </script>
 </body>
 </html>
