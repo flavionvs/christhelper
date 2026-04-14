@@ -265,6 +265,29 @@ function normalizeProject(project) {
   return project;
 }
 
+
+function isProjectPubliclyVisible(project) {
+  if (!project || typeof project !== 'object') return false;
+
+  const status = String(project.status || 'active').toLowerCase();
+  const visibility = String(project.visibility || '').toLowerCase();
+  const fullyViewable = project.fully_viewable !== false && project.is_fully_viewable !== false;
+
+  if (project.excluded || project.is_excluded) return false;
+  if (project.archived || project.is_archived) return false;
+  if (!fullyViewable) return false;
+  if (['draft', 'inactive', 'cancelled', 'restricted', 'hidden'].includes(status)) return false;
+  if (visibility && ['private', 'restricted', 'hidden', 'draft'].includes(visibility)) return false;
+  if (project.display_approved === false) return false;
+  if (project.approved_for_display === false) return false;
+  if (project.publicly_visible === false) return false;
+  if (project.is_public === false) return false;
+  if (project.admin_reviewed === false) return false;
+  if (project.needs_financial_support && !project.funding_approved) return false;
+
+  return true;
+}
+
 function normalizeDonation(donation) {
   if (!donation || typeof donation !== 'object') return donation;
 
@@ -1121,7 +1144,7 @@ app.get(['/projects','/api/projects'], (req, res) => {
   const { country, continent, helpType, category, q, financialOnly, reviewedOnly, verifiedOnly, urgency } = req.query;
   const db = readDb();
 
-  let items = db.projects.filter((project) => project.status === 'active' && !project.archived && !project.excluded);
+  let items = db.projects.filter((project) => isProjectPubliclyVisible(project));
 
   if (country) items = items.filter((project) => project.country === country);
   if (continent) items = items.filter((project) => project.continent === continent);

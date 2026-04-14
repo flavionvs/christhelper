@@ -185,6 +185,27 @@ function getReplyCount(project) {
   return 0;
 }
 
+
+function isProjectPubliclyVisible(project) {
+  const status = String(project?.status || 'active').toLowerCase();
+  const visibility = String(project?.visibility || '').toLowerCase();
+  const fullyViewable = project?.fully_viewable !== false && project?.is_fully_viewable !== false;
+
+  if (!project) return false;
+  if (project.excluded || project.is_excluded) return false;
+  if (project.archived || project.is_archived) return false;
+  if (!fullyViewable) return false;
+  if (['draft', 'inactive', 'cancelled', 'restricted', 'hidden'].includes(status)) return false;
+  if (visibility && ['private', 'restricted', 'hidden', 'draft'].includes(visibility)) return false;
+  if (project.display_approved === false) return false;
+  if (project.approved_for_display === false) return false;
+  if (project.publicly_visible === false) return false;
+  if (project.is_public === false) return false;
+  if (project.admin_reviewed === false) return false;
+  if (project.needs_financial_support && !project.funding_approved) return false;
+  return true;
+}
+
 function getPrayerCount(project) {
   if (typeof project.prayer_count === 'number') return project.prayer_count;
   if (typeof project.prayerCount === 'number') return project.prayerCount;
@@ -199,12 +220,6 @@ function projectCard(project) {
     ? Math.min(100, Math.round((project.amount_raised / project.funding_goal) * 100))
     : 0;
 
-  const visibleHelpTypes = (project.help_types || []).filter(type => String(type || '').toLowerCase() !== 'financial support');
-  const statusBits = [
-    project.verified_ministry ? '<span class="badge good">Verified ministry</span>' : '',
-    project.urgency === 'high' ? '<span class="badge alert">Urgent</span>' : ''
-  ].join(' ');
-
   const reviewedIcon = project.admin_reviewed
     ? '<span class="review-status-icon" title="Admin reviewed" aria-label="Admin reviewed">✓</span>'
     : '';
@@ -213,29 +228,18 @@ function projectCard(project) {
     ? formatUsd(project.funding_goal)
     : formatMoney(project.funding_goal);
 
+  const metaLine = [project.country, project.continent, project.category].filter(Boolean).map(safeHtml).join(' · ');
+  const requesterLine = [project.requester_name, project.organization_name].filter(Boolean).map(safeHtml).join(' · ');
+
   return `
     <article class="card project-card">
-      <div class="project-meta">
-        <span class="badge">${safeHtml(project.country)}</span>
-        <span class="badge">${safeHtml(project.continent)}</span>
-        <span class="badge">${safeHtml(project.category)}</span>
-      </div>
+      ${metaLine ? `<div class="project-meta-line">${metaLine}</div>` : ''}
       <div class="project-title-row">
         <h3>${safeHtml(project.title)}</h3>
         ${reviewedIcon}
       </div>
       <p>${safeHtml(project.summary)}</p>
-      ${visibleHelpTypes.length ? `
-        <div class="project-meta">
-          ${visibleHelpTypes.map(h => `<span class="badge">${safeHtml(h)}</span>`).join('')}
-        </div>
-      ` : ''}
-      ${statusBits ? `<div class="project-meta compact-status-row">${statusBits}</div>` : ''}
-      <div class="project-meta">
-        <span class="badge">💬 ${getReplyCount(project)} replies</span>
-        <span class="badge">🙏 ${getPrayerCount(project)} prayers</span>
-      </div>
-      <p><strong>Requester:</strong> ${safeHtml(project.requester_name)}${project.organization_name ? ` · ${safeHtml(project.organization_name)}` : ''}</p>
+      ${requesterLine ? `<div class="project-requester"><strong>Requester:</strong> ${requesterLine}</div>` : ''}
       ${project.needs_financial_support && project.funding_approved ? `
         <div class="progress-wrap">
           <div style="display:flex;justify-content:space-between;gap:12px;">
@@ -244,10 +248,16 @@ function projectCard(project) {
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
         </div>
-      ` : '<div class="notice">View details to see full support options and project status.</div>'}
-      <div class="project-actions">
-        <a class="btn" href="project.html?id=${project.id}">View details</a>
-        <a class="btn-outline" href="project.html?id=${project.id}#respond">Respond</a>
+      ` : ''}
+      <div class="project-actions project-actions-main">
+        <div class="project-engagement">
+          <span class="action-pill">💬 ${getReplyCount(project)} replies</span>
+          <span class="action-pill">🙏 ${getPrayerCount(project)} prayers</span>
+        </div>
+        <div class="project-action-buttons">
+          <a class="btn" href="project.html?id=${project.id}">View details</a>
+          <a class="btn-outline" href="project.html?id=${project.id}#respond">Respond</a>
+        </div>
       </div>
     </article>
   `;
@@ -273,9 +283,10 @@ async function loadProjects() {
 
   try {
     const { items } = await api(`/projects?${params.toString()}`);
-    if ($('#projectCount')) $('#projectCount').textContent = `${items.length} active projects`;
-    grid.innerHTML = items.length
-      ? items.map(projectCard).join('')
+    const visibleItems = (items || []).filter(isProjectPubliclyVisible);
+    if ($('#projectCount')) $('#projectCount').textContent = `${visibleItems.length} active projects`;
+    grid.innerHTML = visibleItems.length
+      ? visibleItems.map(projectCard).join('')
       : '<div class="card panel"><p>No projects found with these filters.</p></div>';
   } catch (error) {
     const candidates = API_CANDIDATES.map(safeHtml).join('<br>');
@@ -291,8 +302,9 @@ async function loadAllProjectsForSubmitPage() {
 
   try {
     const { items } = await api('/projects');
-    wrap.innerHTML = items.length
-      ? items.map(project => `
+    const visibleItems = (items || []).filter(isProjectPubliclyVisible);
+    wrap.innerHTML = visibleItems.length
+      ? visibleItems.map(project => `
           <div class="item">
             <strong>${safeHtml(project.title)}</strong>
             <div class="muted" style="margin-top:6px;">
