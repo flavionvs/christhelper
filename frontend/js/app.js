@@ -185,27 +185,6 @@ function getReplyCount(project) {
   return 0;
 }
 
-
-function isProjectPubliclyVisible(project) {
-  const status = String(project?.status || 'active').toLowerCase();
-  const visibility = String(project?.visibility || '').toLowerCase();
-  const fullyViewable = project?.fully_viewable !== false && project?.is_fully_viewable !== false;
-
-  if (!project) return false;
-  if (project.excluded || project.is_excluded) return false;
-  if (project.archived || project.is_archived) return false;
-  if (!fullyViewable) return false;
-  if (['draft', 'inactive', 'cancelled', 'restricted', 'hidden'].includes(status)) return false;
-  if (visibility && ['private', 'restricted', 'hidden', 'draft'].includes(visibility)) return false;
-  if (project.display_approved === false) return false;
-  if (project.approved_for_display === false) return false;
-  if (project.publicly_visible === false) return false;
-  if (project.is_public === false) return false;
-  if (project.admin_reviewed === false) return false;
-  if (project.needs_financial_support && !project.funding_approved) return false;
-  return true;
-}
-
 function getPrayerCount(project) {
   if (typeof project.prayer_count === 'number') return project.prayer_count;
   if (typeof project.prayerCount === 'number') return project.prayerCount;
@@ -221,25 +200,26 @@ function projectCard(project) {
     : 0;
 
   const reviewedIcon = project.admin_reviewed
-    ? '<span class="review-status-icon" title="Admin reviewed" aria-label="Admin reviewed">✓</span>'
+    ? '<span class="review-status-icon" title="Approved for public display" aria-label="Approved for public display">✓</span>'
     : '';
 
   const goalText = project.funding_goal_currency === 'USD'
     ? formatUsd(project.funding_goal)
     : formatMoney(project.funding_goal);
 
-  const metaLine = [project.country, project.continent, project.category].filter(Boolean).map(safeHtml).join(' · ');
-  const requesterLine = [project.requester_name, project.organization_name].filter(Boolean).map(safeHtml).join(' · ');
-
   return `
     <article class="card project-card">
-      ${metaLine ? `<div class="project-meta-line">${metaLine}</div>` : ''}
+      <div class="project-meta">
+        <span class="badge">${safeHtml(project.country)}</span>
+        <span class="badge">${safeHtml(project.continent)}</span>
+        <span class="badge">${safeHtml(project.category)}</span>
+      </div>
       <div class="project-title-row">
         <h3>${safeHtml(project.title)}</h3>
         ${reviewedIcon}
       </div>
-      <p>${safeHtml(project.summary)}</p>
-      ${requesterLine ? `<div class="project-requester"><strong>Requester:</strong> ${requesterLine}</div>` : ''}
+      <p class="project-summary">${safeHtml(project.summary)}</p>
+      <p><strong>Requester:</strong> ${safeHtml(project.requester_name)}${project.organization_name ? ` · ${safeHtml(project.organization_name)}` : ''}</p>
       ${project.needs_financial_support && project.funding_approved ? `
         <div class="progress-wrap">
           <div style="display:flex;justify-content:space-between;gap:12px;">
@@ -248,15 +228,13 @@ function projectCard(project) {
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
         </div>
-      ` : ''}
-      <div class="project-actions project-actions-main">
-        <div class="project-engagement">
-          <span class="action-pill">💬 ${getReplyCount(project)} replies</span>
-          <span class="action-pill">🙏 ${getPrayerCount(project)} prayers</span>
-        </div>
-        <div class="project-action-buttons">
-          <a class="btn" href="project.html?id=${project.id}">View details</a>
-          <a class="btn-outline" href="project.html?id=${project.id}#respond">Respond</a>
+      ` : '<div class="notice">View details to see full support options and project status.</div>'}
+      <div class="project-actions">
+        <a class="btn" href="project.html?id=${project.id}">View details</a>
+        <a class="btn-outline" href="project.html?id=${project.id}#respond">Respond</a>
+        <div class="project-action-stats">
+          <span class="badge">💬 ${getReplyCount(project)} replies</span>
+          <span class="badge">🙏 ${getPrayerCount(project)} prayers</span>
         </div>
       </div>
     </article>
@@ -283,10 +261,9 @@ async function loadProjects() {
 
   try {
     const { items } = await api(`/projects?${params.toString()}`);
-    const visibleItems = (items || []).filter(isProjectPubliclyVisible);
-    if ($('#projectCount')) $('#projectCount').textContent = `${visibleItems.length} active projects`;
-    grid.innerHTML = visibleItems.length
-      ? visibleItems.map(projectCard).join('')
+    if ($('#projectCount')) $('#projectCount').textContent = `${items.length} active projects`;
+    grid.innerHTML = items.length
+      ? items.map(projectCard).join('')
       : '<div class="card panel"><p>No projects found with these filters.</p></div>';
   } catch (error) {
     const candidates = API_CANDIDATES.map(safeHtml).join('<br>');
@@ -302,9 +279,8 @@ async function loadAllProjectsForSubmitPage() {
 
   try {
     const { items } = await api('/projects');
-    const visibleItems = (items || []).filter(isProjectPubliclyVisible);
-    wrap.innerHTML = visibleItems.length
-      ? visibleItems.map(project => `
+    wrap.innerHTML = items.length
+      ? items.map(project => `
           <div class="item">
             <strong>${safeHtml(project.title)}</strong>
             <div class="muted" style="margin-top:6px;">
