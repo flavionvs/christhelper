@@ -62,6 +62,30 @@ button, input, select, textarea {
   font-size: 1.2rem;
 }
 
+.brand--stack {
+  gap: 10px;
+}
+
+.brand-text-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.05;
+}
+
+.brand-text-main {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.brand-text-sub {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
 .brand-mark {
   width: 40px;
   height: 40px;
@@ -197,8 +221,9 @@ button, input, select, textarea {
 }
 
 .hero-grid-home {
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 520px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 460px);
   align-items: center;
+  gap: 28px;
 }
 
 .card {
@@ -213,7 +238,7 @@ button, input, select, textarea {
 }
 
 .hero-copy-home {
-  padding: 36px;
+  padding: 40px;
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -229,6 +254,9 @@ button, input, select, textarea {
 .hero-visual {
   position: relative;
   min-height: 100%;
+  width: 100%;
+  max-width: 460px;
+  justify-self: end;
 }
 
 .hero-visual-frame {
@@ -237,14 +265,14 @@ button, input, select, textarea {
   border-radius: calc(var(--radius) + 8px);
   border: 1px solid rgba(255,255,255,0.08);
   box-shadow: 0 20px 50px rgba(8, 18, 31, 0.28);
-  min-height: 500px;
+  min-height: 420px;
   background: #071523;
 }
 
 .hero-visual-frame img {
   width: 100%;
   height: 100%;
-  min-height: 500px;
+  min-height: 420px;
   object-fit: cover;
   display: block;
 }
@@ -824,9 +852,14 @@ label.field:has(> input[type="radio"]) > span {
     justify-content: flex-start;
     font-size: 0.95rem;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  }
+
+  .brand-text-main {
+    font-size: 0.98rem;
+  }
+
+  .brand-text-sub {
+    font-size: 0.56rem;
   }
 
   .nav-toggle {
@@ -1055,9 +1088,14 @@ label.field:has(> input[type="radio"]) > span {
     padding: 24px;
   }
 
+  .hero-visual {
+    max-width: 100%;
+    justify-self: stretch;
+  }
+
   .hero-visual-frame,
   .hero-visual-frame img {
-    min-height: 320px;
+    min-height: 300px;
   }
 
   .project-action-stats {
