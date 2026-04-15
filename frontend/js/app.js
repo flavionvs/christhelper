@@ -1,5 +1,5 @@
 const DEFAULT_API_BASE = 'https://api.christhelper.com';
-const GA_MEASUREMENT_ID = 'G-0J8FH3FVJE';
+const GA_MEASUREMENT_ID = 'G-VEBD7Q9H0S';
 const GOOGLE_TAG_ID = '';
 const GA_ALLOWED_EVENTS = new Set([
   'page_view',
