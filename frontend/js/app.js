@@ -1859,7 +1859,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setAuthUi();
   initButtons();
   initMobileMenu();
-  initHomeVerseCarousel();
+  initHeroVerseCarousel();
   handleAuthForms();
   handleSubmitProject();
   handlePlatformDonation();
@@ -1885,7 +1885,8 @@ window.deleteUserAccount = deleteUserAccount;
 
 
 
-function initHomeVerseCarousel() {
+// ===== HERO VERSE CAROUSEL =====
+function initHeroVerseCarousel() {
   const carousel = document.querySelector('[data-verse-carousel]');
   if (!carousel) return;
 
@@ -1893,60 +1894,77 @@ function initHomeVerseCarousel() {
   const dots = Array.from(carousel.querySelectorAll('[data-verse-dot]'));
   const prev = carousel.querySelector('[data-verse-prev]');
   const next = carousel.querySelector('[data-verse-next]');
-
   if (!slides.length) return;
 
-  let currentIndex = slides.findIndex((slide) => slide.classList.contains('is-active'));
+  let currentIndex = Math.max(0, slides.findIndex((slide) => slide.classList.contains('is-active')));
   if (currentIndex < 0) currentIndex = 0;
-  let timer = null;
+  let autoplay = null;
+  let touchStartX = 0;
+  let touchDeltaX = 0;
 
   function render(index) {
     currentIndex = (index + slides.length) % slides.length;
-    slides.forEach((slide, slideIndex) => {
-      slide.classList.toggle('is-active', slideIndex === currentIndex);
-    });
-    dots.forEach((dot, dotIndex) => {
-      dot.classList.toggle('is-active', dotIndex === currentIndex);
+    slides.forEach((slide, i) => slide.classList.toggle('is-active', i === currentIndex));
+    dots.forEach((dot, i) => {
+      const isActive = i === currentIndex;
+      dot.classList.toggle('is-active', isActive);
+      dot.setAttribute('aria-current', isActive ? 'true' : 'false');
     });
   }
 
-  function startTimer() {
-    stopTimer();
-    timer = window.setInterval(() => render(currentIndex + 1), 5000);
-  }
-
-  function stopTimer() {
-    if (timer) {
-      window.clearInterval(timer);
-      timer = null;
+  function stopAutoplay() {
+    if (autoplay) {
+      window.clearInterval(autoplay);
+      autoplay = null;
     }
+  }
+
+  function startAutoplay() {
+    stopAutoplay();
+    autoplay = window.setInterval(() => render(currentIndex + 1), 4500);
   }
 
   prev?.addEventListener('click', () => {
     render(currentIndex - 1);
-    startTimer();
+    startAutoplay();
   });
 
   next?.addEventListener('click', () => {
     render(currentIndex + 1);
-    startTimer();
+    startAutoplay();
   });
 
-  dots.forEach((dot, dotIndex) => {
+  dots.forEach((dot, index) => {
     dot.addEventListener('click', () => {
-      render(dotIndex);
-      startTimer();
+      render(index);
+      startAutoplay();
     });
   });
 
-  carousel.addEventListener('mouseenter', stopTimer);
-  carousel.addEventListener('mouseleave', startTimer);
-  carousel.addEventListener('focusin', stopTimer);
-  carousel.addEventListener('focusout', startTimer);
+  carousel.addEventListener('touchstart', (event) => {
+    touchStartX = event.changedTouches[0]?.clientX || 0;
+    touchDeltaX = 0;
+  }, { passive: true });
+
+  carousel.addEventListener('touchmove', (event) => {
+    const currentX = event.changedTouches[0]?.clientX || 0;
+    touchDeltaX = currentX - touchStartX;
+  }, { passive: true });
+
+  carousel.addEventListener('touchend', () => {
+    if (Math.abs(touchDeltaX) > 35) {
+      render(currentIndex + (touchDeltaX < 0 ? 1 : -1));
+      startAutoplay();
+    }
+  }, { passive: true });
+
+  carousel.addEventListener('mouseenter', stopAutoplay);
+  carousel.addEventListener('mouseleave', startAutoplay);
 
   render(currentIndex);
-  startTimer();
+  startAutoplay();
 }
+
 
 // ===== MOBILE MENU =====
 function initMobileMenu() {
