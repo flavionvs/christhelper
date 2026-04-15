@@ -1,5 +1,6 @@
 const DEFAULT_API_BASE = 'https://api.christhelper.com';
 const GA_MEASUREMENT_ID = 'G-VEBD7Q9H0S';
+const GOOGLE_TAG_ID = 'GT-WFMZSLB3';
 const GA_ALLOWED_EVENTS = new Set([
   'page_view',
   'sign_up',
@@ -41,7 +42,7 @@ function loadGoogleAnalytics() {
 
   const script = document.createElement('script');
   script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA_MEASUREMENT_ID)}`;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GOOGLE_TAG_ID || GA_MEASUREMENT_ID)}`;
   script.onload = () => { gaReady = true; };
   document.head.appendChild(script);
 }
