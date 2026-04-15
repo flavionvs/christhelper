@@ -1859,6 +1859,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setAuthUi();
   initButtons();
   initMobileMenu();
+  initHomeVerseCarousel();
   handleAuthForms();
   handleSubmitProject();
   handlePlatformDonation();
@@ -1882,6 +1883,70 @@ window.promoteUserToAdmin = promoteUserToAdmin;
 window.deleteUserAccount = deleteUserAccount;
 
 
+
+
+function initHomeVerseCarousel() {
+  const carousel = document.querySelector('[data-verse-carousel]');
+  if (!carousel) return;
+
+  const slides = Array.from(carousel.querySelectorAll('[data-verse-slide]'));
+  const dots = Array.from(carousel.querySelectorAll('[data-verse-dot]'));
+  const prev = carousel.querySelector('[data-verse-prev]');
+  const next = carousel.querySelector('[data-verse-next]');
+
+  if (!slides.length) return;
+
+  let currentIndex = slides.findIndex((slide) => slide.classList.contains('is-active'));
+  if (currentIndex < 0) currentIndex = 0;
+  let timer = null;
+
+  function render(index) {
+    currentIndex = (index + slides.length) % slides.length;
+    slides.forEach((slide, slideIndex) => {
+      slide.classList.toggle('is-active', slideIndex === currentIndex);
+    });
+    dots.forEach((dot, dotIndex) => {
+      dot.classList.toggle('is-active', dotIndex === currentIndex);
+    });
+  }
+
+  function startTimer() {
+    stopTimer();
+    timer = window.setInterval(() => render(currentIndex + 1), 5000);
+  }
+
+  function stopTimer() {
+    if (timer) {
+      window.clearInterval(timer);
+      timer = null;
+    }
+  }
+
+  prev?.addEventListener('click', () => {
+    render(currentIndex - 1);
+    startTimer();
+  });
+
+  next?.addEventListener('click', () => {
+    render(currentIndex + 1);
+    startTimer();
+  });
+
+  dots.forEach((dot, dotIndex) => {
+    dot.addEventListener('click', () => {
+      render(dotIndex);
+      startTimer();
+    });
+  });
+
+  carousel.addEventListener('mouseenter', stopTimer);
+  carousel.addEventListener('mouseleave', startTimer);
+  carousel.addEventListener('focusin', stopTimer);
+  carousel.addEventListener('focusout', startTimer);
+
+  render(currentIndex);
+  startTimer();
+}
 
 // ===== MOBILE MENU =====
 function initMobileMenu() {
