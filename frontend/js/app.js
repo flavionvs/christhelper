@@ -1,4 +1,103 @@
 const DEFAULT_API_BASE = 'https://api.christhelper.com';
+const GA_MEASUREMENT_ID = 'G-VEBD7Q9H0S';
+const GA_ALLOWED_EVENTS = new Set([
+  'page_view',
+  'sign_up',
+  'login',
+  'project_list_view',
+  'project_view',
+  'project_created',
+  'project_response_submitted',
+  'prayer_submitted',
+  'reply_submitted',
+  'project_report_submitted',
+  'payment_started',
+  'payment_completed',
+  'platform_support_started',
+  'platform_support_completed',
+  'profile_view',
+  'admin_view',
+  'stripe_onboarding_started',
+  'stripe_dashboard_opened',
+  'project_card_clicked',
+  'hero_verse_changed',
+  'mobile_menu_toggled'
+]);
+const trackedOnceKeys = new Set();
+let gaReady = false;
+
+function loadGoogleAnalytics() {
+  if (!GA_MEASUREMENT_ID) return;
+  if (window.__christhelperGaInit) return;
+  window.__christhelperGaInit = true;
+
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function gtag(){ window.dataLayer.push(arguments); };
+  window.gtag('js', new Date());
+  window.gtag('config', GA_MEASUREMENT_ID, {
+    send_page_view: true,
+    anonymize_ip: true
+  });
+
+  const script = document.createElement('script');
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA_MEASUREMENT_ID)}`;
+  script.onload = () => { gaReady = true; };
+  document.head.appendChild(script);
+}
+
+function trackEvent(name, params = {}) {
+  if (!GA_MEASUREMENT_ID || !GA_ALLOWED_EVENTS.has(name)) return;
+  if (typeof window.gtag !== 'function') return;
+
+  const cleanParams = {};
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    if (Array.isArray(value)) {
+      cleanParams[key] = value.join(',');
+      return;
+    }
+    if (typeof value === 'object') return;
+    cleanParams[key] = value;
+  });
+
+  window.gtag('event', name, cleanParams);
+}
+
+function trackOnce(key, name, params = {}) {
+  if (trackedOnceKeys.has(key)) return;
+  trackedOnceKeys.add(key);
+  trackEvent(name, params);
+}
+
+function trackPageContext() {
+  const pageName = document.body?.dataset?.page || document.title || window.location.pathname;
+  trackOnce(`page:${window.location.pathname}${window.location.search}`, 'page_view', {
+    page_title: document.title,
+    page_path: window.location.pathname,
+    page_location: window.location.href,
+    page_name: pageName
+  });
+
+  if (window.location.pathname.endsWith('/profile.html')) {
+    trackOnce('profile_view', 'profile_view', { page_path: window.location.pathname });
+  }
+
+  if (window.location.pathname.endsWith('/admin.html')) {
+    trackOnce('admin_view', 'admin_view', { page_path: window.location.pathname });
+  }
+
+  if (window.location.pathname.endsWith('/success.html')) {
+    const params = new URLSearchParams(window.location.search);
+    const flowType = params.get('type') || 'project';
+    trackOnce(`payment_success:${flowType}`, flowType === 'platform' ? 'platform_support_completed' : 'payment_completed', {
+      flow_type: flowType,
+      page_path: window.location.pathname
+    });
+  }
+}
+
+loadGoogleAnalytics();
 const SITE_ORIGIN = window.location.origin.replace(/\/+$/, '');
 
 function getFixedApiBase() {
@@ -265,6 +364,24 @@ async function loadProjects() {
     grid.innerHTML = items.length
       ? items.map(projectCard).join('')
       : '<div class="card panel"><p>No projects found with these filters.</p></div>';
+
+    trackOnce(`project_list_view:${window.location.pathname}:${params.toString()}`, 'project_list_view', {
+      page_path: window.location.pathname,
+      project_count: items.length,
+      filter_count: Array.from(params.keys()).length
+    });
+
+    grid.querySelectorAll('a[href*="project.html?id="]').forEach((link) => {
+      link.addEventListener('click', () => {
+        const href = link.getAttribute('href') || '';
+        const projectId = href.split('id=')[1]?.split('#')[0] || '';
+        trackEvent('project_card_clicked', {
+          project_id: projectId,
+          action: href.includes('#respond') ? 'respond' : 'view',
+          page_path: window.location.pathname
+        });
+      });
+    });
   } catch (error) {
     const candidates = API_CANDIDATES.map(safeHtml).join('<br>');
     grid.innerHTML = `<div class="card panel"><p>${safeHtml(error.message)}</p><p class="muted" style="margin-top:10px;">API candidates tried:</p><div class="muted">${candidates}</div></div>`;
@@ -336,6 +453,14 @@ async function loadProjectDetails() {
   try {
     const data = await api(`/projects/${id}`);
     const { project, prayers, replies, updates, stats } = data;
+
+    trackOnce(`project_view:${id}`, 'project_view', {
+      project_id: id,
+      category: project.category || '',
+      country: project.country || '',
+      help_types: Array.isArray(project.help_types) ? project.help_types.join(',') : '',
+      needs_financial_support: Boolean(project.needs_financial_support)
+    });
     const pct = project.funding_goal > 0
       ? Math.min(100, Math.round((project.amount_raised / project.funding_goal) * 100))
       : 0;
@@ -530,6 +655,17 @@ async function loadProjectDetails() {
           })
         });
 
+        trackEvent('project_response_submitted', {
+          project_id: id,
+          kind,
+          reply_type: kind === 'reply' ? String(fd.get('type') || 'general') : '',
+          page_path: window.location.pathname
+        });
+        trackEvent(kind === 'prayer' ? 'prayer_submitted' : 'reply_submitted', {
+          project_id: id,
+          reply_type: kind === 'reply' ? String(fd.get('type') || 'general') : '',
+          page_path: window.location.pathname
+        });
         alert(result?.message || 'Your response has been sent.');
         e.target.reset();
         if (responseKind) responseKind.value = 'prayer';
@@ -545,6 +681,7 @@ async function loadProjectDetails() {
       const fd = new FormData(e.target);
       try {
         await api(`/projects/${id}/report`, { method: 'POST', body: JSON.stringify(Object.fromEntries(fd)) });
+        trackEvent('project_report_submitted', { project_id: id, page_path: window.location.pathname });
         alert('Thank you. The report was submitted.');
         e.target.reset();
       } catch (error) {
@@ -556,6 +693,13 @@ async function loadProjectDetails() {
       e.preventDefault();
       const fd = Object.fromEntries(new FormData(e.target));
       try {
+        trackEvent('payment_started', {
+          project_id: id,
+          currency: 'USD',
+          amount_project: Number(fd.amount_project || 0),
+          amount_platform: Number(fd.amount_platform || 0),
+          page_path: window.location.pathname
+        });
         const data = await api('/payments/project-checkout', {
           method: 'POST',
           body: JSON.stringify({ ...fd, project_id: id })
@@ -582,6 +726,7 @@ function handleAuthForms() {
       const payload = Object.fromEntries(new FormData(registerForm));
       try {
         const data = await api('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
+        trackEvent('sign_up', { method: 'email', page_path: window.location.pathname });
         setStoredAuth(data.token, data.user);
         window.location.href = appPath('profile.html');
       } catch (error) {
@@ -597,6 +742,7 @@ function handleAuthForms() {
       const payload = Object.fromEntries(new FormData(loginForm));
       try {
         const data = await api('/auth/login', { method: 'POST', body: JSON.stringify(payload) });
+        trackEvent('login', { method: 'email', page_path: window.location.pathname });
         setStoredAuth(data.token, data.user);
         window.location.href = appPath('profile.html');
       } catch (error) {
@@ -831,6 +977,14 @@ function handleSubmitProject() {
 
     try {
       await api('/projects', { method: 'POST', body: JSON.stringify(payload) });
+      trackEvent('project_created', {
+        category: payload.category || '',
+        country: payload.country || '',
+        is_online: Boolean(payload.is_online),
+        needs_financial_support: Boolean(payload.needs_financial_support),
+        help_types: Array.isArray(payload.help_types) ? payload.help_types.join(',') : '',
+        page_path: window.location.pathname
+      });
       alert(payload.needs_financial_support
         ? 'Project submitted successfully. Because Stripe is ready, your financial request can move to admin review.'
         : 'Project submitted successfully.');
@@ -853,6 +1007,17 @@ function handlePlatformDonation() {
     e.preventDefault();
     const payload = Object.fromEntries(new FormData(form));
     try {
+      trackEvent('platform_support_started', {
+        currency: 'USD',
+        amount_platform: Number(payload.amount_platform || payload.amount || 0),
+        page_path: window.location.pathname
+      });
+      trackEvent('payment_started', {
+        flow_type: 'platform',
+        currency: 'USD',
+        amount_platform: Number(payload.amount_platform || payload.amount || 0),
+        page_path: window.location.pathname
+      });
       const data = await api('/payments/platform-checkout', { method: 'POST', body: JSON.stringify(payload) });
       if (data.url) {
         window.location.href = data.url;
@@ -1373,6 +1538,7 @@ async function handleProfilePage() {
 
     $('#connectStripeBtn')?.addEventListener('click', async () => {
       try {
+        trackEvent('stripe_onboarding_started', { page_path: window.location.pathname });
         const data = await api('/stripe/connect/onboard', {
           method: 'POST',
           body: JSON.stringify({
@@ -1856,6 +2022,7 @@ function initButtons() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   normalizeBrowserPath();
+  trackPageContext();
   setAuthUi();
   initButtons();
   initMobileMenu();
@@ -1909,6 +2076,11 @@ function initHeroVerseCarousel() {
       const isActive = i === currentIndex;
       dot.classList.toggle('is-active', isActive);
       dot.setAttribute('aria-current', isActive ? 'true' : 'false');
+    });
+
+    trackEvent('hero_verse_changed', {
+      slide_index: currentIndex + 1,
+      page_path: window.location.pathname
     });
   }
 
@@ -1978,6 +2150,7 @@ function initMobileMenu() {
       if (!nav) return;
       const isOpen = nav.classList.toggle('is-open');
       toggle.setAttribute('aria-expanded', String(isOpen));
+      trackEvent('mobile_menu_toggled', { is_open: isOpen, page_path: window.location.pathname });
     });
   });
 
