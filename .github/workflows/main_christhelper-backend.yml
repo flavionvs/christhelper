@@ -25,10 +25,18 @@ jobs:
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
-      - name: npm install, build, and test
+      - name: Configure npm retries and timeouts
         working-directory: backend
         run: |
-          npm install
+          npm config set fetch-retries 5
+          npm config set fetch-retry-mintimeout 20000
+          npm config set fetch-retry-maxtimeout 120000
+          npm config set timeout 120000
+
+      - name: Install, build, and test
+        working-directory: backend
+        run: |
+          npm ci --no-audit --no-fund
           npm run build --if-present
           npm run test --if-present
 
