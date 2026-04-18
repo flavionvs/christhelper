@@ -17,7 +17,7 @@ const CURRENCY = (process.env.STRIPE_CURRENCY || 'nzd').toLowerCase();
 const DB_PATH = path.resolve(process.env.DB_PATH || path.join(__dirname, 'christhelper.db'));
 const LEGACY_DATA_FILE = path.resolve(__dirname, process.env.DATA_FILE || './data.json');
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
-const EMAIL_FROM = String(process.env.EMAIL_FROM || 'ChristHelper <no-reply@christhelper.local>').trim();
+const EMAIL_FROM = String(process.env.EMAIL_FROM || 'ChristHelper <noreply@example.com>').trim();
 const ADMIN_NOTIFICATION_EMAIL = String(process.env.ADMIN_NOTIFICATION_EMAIL || '').trim();
 const SENDGRID_API_KEY = String(process.env.SENDGRID_API_KEY || '').trim();
 
@@ -1097,7 +1097,7 @@ app.post('/auth/register', async (req, res) => {
   res.json({
     requires_verification: true,
     email: normalizedEmail,
-    message: 'Verification code sent. Please check your email sandbox inbox to continue.'
+    message: 'Verification code sent. Please check your email inbox to continue.'
   });
 });
 
