@@ -195,8 +195,8 @@ async function sendProjectCreatorEmail(project, subject, intro, details = []) {
   return sendEmailMessage({
     to,
     subject,
-    html: emailTemplate({ title: subject, intro, details, ctaLabel: project?.id ? 'View project' : '', ctaUrl: project?.id ? formatProjectLink(project.id) : '' }),
-    text: textTemplate(intro, [...details, project?.id ? `View project: ${formatProjectLink(project.id)}` : ''].filter(Boolean))
+    html: emailTemplate({ title: subject, intro, details, ctaLabel: project?.id ? 'View request' : '', ctaUrl: project?.id ? formatProjectLink(project.id) : '' }),
+    text: textTemplate(intro, [...details, project?.id ? `View request: ${formatProjectLink(project.id)}` : ''].filter(Boolean))
   });
 }
 
@@ -204,10 +204,10 @@ async function sendAdminDonationNotification(donation, project = null) {
   if (!ADMIN_NOTIFICATION_EMAIL) return { skipped: true, reason: 'admin_notification_email_missing' };
   const subject = project ? 'New donation received on ChristHelper project' : 'New ChristHelper donation received';
   const details = [
-    `Type: ${project ? 'Project donation' : 'Platform support'}`,
+    `Type: ${project ? 'Request donation' : 'Platform support'}`,
     `Donor: ${donation?.donor_name || 'Anonymous'}`,
     donation?.donor_email ? `Donor email: ${donation.donor_email}` : '',
-    `Project amount: ${Number(donation?.amount_project || 0).toFixed(2)} ${String(donation?.currency || CURRENCY).toUpperCase()}`,
+    `Request amount: ${Number(donation?.amount_project || 0).toFixed(2)} ${String(donation?.currency || CURRENCY).toUpperCase()}`,
     `Platform amount: ${Number(donation?.amount_platform || 0).toFixed(2)} ${String(donation?.currency || CURRENCY).toUpperCase()}`,
     project?.title ? `Project: ${project.title}` : '',
     donation?.donor_message ? `Message: ${donation.donor_message}` : ''
@@ -236,8 +236,8 @@ async function handleProjectResponseNotifications({ kind, project, item, actorUs
   if (kind === 'prayer') {
     await sendProjectCreatorEmail(
       project,
-      'New prayer received for your project',
-      'Someone has just sent a prayer for your project on ChristHelper.',
+      'New prayer received for your request',
+      'Someone has just sent a prayer for your request on ChristHelper.',
       [
         `Project: ${project.title || ''}`,
         `From: ${item.name || 'Anonymous'}`,
@@ -253,10 +253,10 @@ async function handleProjectResponseNotifications({ kind, project, item, actorUs
           title: 'Thank you for praying',
           intro: 'Your prayer was shared successfully on ChristHelper.',
           details: [project.title ? `Project: ${project.title}` : ''].filter(Boolean),
-          ctaLabel: 'View project',
+          ctaLabel: 'View request',
           ctaUrl: formatProjectLink(project.id)
         }),
-        text: textTemplate('Your prayer was shared successfully on ChristHelper.', [project.title ? `Project: ${project.title}` : '', `View project: ${formatProjectLink(project.id)}`].filter(Boolean))
+        text: textTemplate('Your prayer was shared successfully on ChristHelper.', [project.title ? `Project: ${project.title}` : '', `View request: ${formatProjectLink(project.id)}`].filter(Boolean))
       });
     }
     return;
@@ -264,8 +264,8 @@ async function handleProjectResponseNotifications({ kind, project, item, actorUs
 
   await sendProjectCreatorEmail(
     project,
-    'New reply received for your project',
-    'Someone has submitted a new reply for your project on ChristHelper.',
+    'New reply received for your request',
+    'Someone has submitted a new reply for your request on ChristHelper.',
     [
       `Project: ${project.title || ''}`,
       `From: ${item.name || 'Anonymous'}`,
@@ -283,10 +283,10 @@ async function handleProjectResponseNotifications({ kind, project, item, actorUs
         title: 'Thank you for responding',
         intro: 'Your reply was shared successfully on ChristHelper.',
         details: [project.title ? `Project: ${project.title}` : '', item.type ? `Reply type: ${item.type}` : ''].filter(Boolean),
-        ctaLabel: 'View project',
+        ctaLabel: 'View request',
         ctaUrl: formatProjectLink(project.id)
       }),
-      text: textTemplate('Your reply was shared successfully on ChristHelper.', [project.title ? `Project: ${project.title}` : '', `View project: ${formatProjectLink(project.id)}`].filter(Boolean))
+      text: textTemplate('Your reply was shared successfully on ChristHelper.', [project.title ? `Project: ${project.title}` : '', `View request: ${formatProjectLink(project.id)}`].filter(Boolean))
     });
   }
 }
@@ -299,13 +299,13 @@ async function handleDonationNotifications(donation) {
   if (project) {
     await sendProjectCreatorEmail(
       project,
-      'New donation received for your project',
-      'A new donation has been completed for your project on ChristHelper.',
+      'New donation received for your request',
+      'A new donation has been completed for your request on ChristHelper.',
       [
         `Project: ${project.title || ''}`,
         `Donor: ${donation.donor_name || 'Anonymous'}`,
         donation.donor_email ? `Donor email: ${donation.donor_email}` : '',
-        `Project amount: ${Number(donation.amount_project || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`,
+        `Request amount: ${Number(donation.amount_project || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`,
         Number(donation.amount_platform || 0) > 0 ? `Support for ChristHelper: ${Number(donation.amount_platform || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}` : '',
         donation.donor_message ? `Message: ${donation.donor_message}` : ''
       ].filter(Boolean)
@@ -323,19 +323,19 @@ async function handleDonationNotifications(donation) {
           : 'Your support for ChristHelper was completed successfully.',
         details: [
           project?.title ? `Project: ${project.title}` : '',
-          `Project amount: ${Number(donation.amount_project || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`,
+          `Request amount: ${Number(donation.amount_project || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`,
           `Platform amount: ${Number(donation.amount_platform || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`
         ].filter(Boolean),
-        ctaLabel: project ? 'View project' : '',
+        ctaLabel: project ? 'View request' : '',
         ctaUrl: project ? formatProjectLink(project.id) : ''
       }),
       text: textTemplate(
         project ? 'Your donation was completed successfully and recorded on ChristHelper.' : 'Your support for ChristHelper was completed successfully.',
         [
           project?.title ? `Project: ${project.title}` : '',
-          `Project amount: ${Number(donation.amount_project || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`,
+          `Request amount: ${Number(donation.amount_project || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`,
           `Platform amount: ${Number(donation.amount_platform || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`,
-          project ? `View project: ${formatProjectLink(project.id)}` : ''
+          project ? `View request: ${formatProjectLink(project.id)}` : ''
         ].filter(Boolean)
       )
     });
@@ -512,6 +512,10 @@ function normalizeProject(project) {
     project.campaign_expiry_date = '';
   }
 
+  if (!Object.prototype.hasOwnProperty.call(project, 'is_anonymous')) {
+    project.is_anonymous = false;
+  }
+
   if (!Object.prototype.hasOwnProperty.call(project, 'project_links')) {
     project.project_links = [];
   }
@@ -564,8 +568,10 @@ function isProjectPubliclyVisible(project) {
   if (project.approved_for_display === false) return false;
   if (project.publicly_visible === false) return false;
   if (project.is_public === false) return false;
-  if (project.admin_reviewed === false) return false;
-  if (project.needs_financial_support && !project.funding_approved) return false;
+  if (project.needs_financial_support) {
+    if (project.admin_reviewed === false) return false;
+    if (!project.funding_approved) return false;
+  }
 
   return true;
 }
@@ -925,8 +931,8 @@ function getCountsForProject(db, projectId) {
 
 function getOwnedProjectOr403(db, projectId, userId) {
   const project = db.projects.find((item) => item.id === projectId);
-  if (!project) return { error: 'Project not found', status: 404 };
-  if (project.created_by !== userId) return { error: 'You do not have permission to modify this project', status: 403 };
+  if (!project) return { error: 'Request not found', status: 404 };
+  if (project.created_by !== userId) return { error: 'You do not have permission to modify this request', status: 403 };
   return { project };
 }
 
@@ -939,7 +945,7 @@ function normalizeResponseKind(value) {
 
 function createProjectResponse(db, projectId, payload = {}) {
   const project = db.projects.find((item) => item.id === projectId);
-  if (!project) return { error: 'Project not found', status: 404 };
+  if (!project) return { error: 'Request not found', status: 404 };
 
   const kind = normalizeResponseKind(payload.kind || payload.response_kind || payload.category || payload.mode || payload.action || payload.type);
   const name = String(payload.name || 'Anonymous').trim() || 'Anonymous';
@@ -1319,7 +1325,7 @@ app.post('/profile/update', authRequired, (req, res) => {
 
     for (const project of db.projects) {
       if (project.created_by === req.user.id) {
-        if (user.organization_name && !project.organization_name) {
+        if (!project.is_anonymous && user.organization_name && !project.organization_name) {
           project.organization_name = user.organization_name;
         }
       }
@@ -1606,7 +1612,7 @@ app.post('/stripe/connect/disconnect', authRequired, (req, res) => {
 });
 
 app.get(['/projects','/api/projects'], (req, res) => {
-  const { country, continent, helpType, category, q, financialOnly, reviewedOnly, verifiedOnly, urgency } = req.query;
+  const { country, continent, helpType, category, q, financialOnly, reviewedOnly, verifiedOnly } = req.query;
   const db = readDb();
 
   let items = db.projects.filter((project) => isProjectPubliclyVisible(project));
@@ -1614,7 +1620,6 @@ app.get(['/projects','/api/projects'], (req, res) => {
   if (country) items = items.filter((project) => project.country === country);
   if (continent) items = items.filter((project) => project.continent === continent);
   if (category) items = items.filter((project) => project.category === category);
-  if (urgency) items = items.filter((project) => project.urgency === urgency);
   if (financialOnly === '1') items = items.filter((project) => project.needs_financial_support && project.funding_approved);
   if (reviewedOnly === '1') items = items.filter((project) => project.admin_reviewed);
   if (verifiedOnly === '1') items = items.filter((project) => project.verified_ministry);
@@ -1653,7 +1658,7 @@ app.get(['/projects','/api/projects'], (req, res) => {
 app.get(['/projects/:id','/api/projects/:id'], (req, res) => {
   const db = readDb();
   const project = db.projects.find((item) => item.id === req.params.id);
-  if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (!project) return res.status(404).json({ error: 'Request not found' });
 
   const prayers = db.prayers
     .filter((item) => item.project_id === req.params.id)
@@ -1684,14 +1689,15 @@ app.get(['/projects/:id','/api/projects/:id'], (req, res) => {
 
 app.post('/projects', authRequired, (req, res) => {
   const body = req.body || {};
-  const required = ['title', 'summary', 'description', 'country', 'category', 'requester_name', 'contact_email'];
+  const required = ['title', 'summary', 'description', 'country', 'category', 'campaign_expiry_date'];
 
   for (const field of required) {
     if (!body[field]) return res.status(400).json({ error: `${field} is required` });
   }
 
-  const helpTypes = Array.isArray(body.help_types) ? body.help_types : [];
-  const needsFinancialSupport = Boolean(body.needs_financial_support);
+  const helpTypes = Array.isArray(body.help_types) ? body.help_types.map((item) => String(item || '').trim()).filter(Boolean) : [];
+  const needsFinancialSupport = helpTypes.some((item) => item.toLowerCase() === 'financial support');
+  const isAnonymous = !needsFinancialSupport && Boolean(body.is_anonymous);
   const db = readDb();
   const owner = db.users.find((item) => item.id === req.user.id);
 
@@ -1712,9 +1718,28 @@ app.post('/projects', authRequired, (req, res) => {
   let fundingGoalCurrency = String(body.funding_goal_currency || '').trim();
   let campaignExpiryDate = String(body.campaign_expiry_date || '').trim();
 
+  if (!campaignExpiryDate) {
+    return res.status(400).json({ error: 'Campaign expiry date is required for all requests' });
+  }
+
+  const expiry = new Date(`${campaignExpiryDate}T00:00:00`);
+  if (Number.isNaN(expiry.getTime())) {
+    return res.status(400).json({ error: 'Campaign expiry date is invalid' });
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (expiry < today) {
+    return res.status(400).json({ error: 'Campaign expiry date cannot be in the past' });
+  }
+
   if (needsFinancialSupport) {
+    if (body.is_anonymous) {
+      return res.status(400).json({ error: 'Anonymous is not allowed for requests with financial support' });
+    }
+
     if (!owner.stripe_account_id || !owner.stripe_charges_enabled) {
-      return res.status(400).json({ error: 'Connect and finish Stripe onboarding in your profile before submitting a financial project' });
+      return res.status(400).json({ error: 'Connect and finish Stripe onboarding in your profile before submitting a financial request' });
     }
 
     if (owner.allow_financial_support === false) {
@@ -1722,29 +1747,14 @@ app.post('/projects', authRequired, (req, res) => {
     }
 
     if (!(fundingGoal > 0)) {
-      return res.status(400).json({ error: 'Funding goal must be greater than 0 for financial projects' });
+      return res.status(400).json({ error: 'Funding goal must be greater than 0 for financial requests' });
     }
 
     fundingGoalCurrency = 'USD';
 
-    if (!campaignExpiryDate) {
-      return res.status(400).json({ error: 'Campaign expiry date is required for financial projects' });
-    }
-
-    const expiry = new Date(`${campaignExpiryDate}T00:00:00`);
-    if (Number.isNaN(expiry.getTime())) {
-      return res.status(400).json({ error: 'Campaign expiry date is invalid' });
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (expiry < today) {
-      return res.status(400).json({ error: 'Campaign expiry date cannot be in the past' });
-    }
   } else {
     fundingGoal = 0;
     fundingGoalCurrency = '';
-    campaignExpiryDate = '';
   }
 
   const projectId = withDb((state) => {
@@ -1758,24 +1768,25 @@ app.post('/projects', authRequired, (req, res) => {
       city: String(body.city || ''),
       category: String(body.category),
       help_types: helpTypes,
-      requester_name: String(body.requester_name),
-      organization_name: String(body.organization_name || owner.organization_name || ''),
-      church_ministry_linked: String(body.church_ministry_linked || ''),
-      contact_email: String(body.contact_email),
-      urgency: String(body.urgency || 'normal'),
+      requester_name: String(isAnonymous ? 'Anonymous' : (owner.name || owner.organization_name || 'Request owner')),
+      organization_name: String(isAnonymous ? '' : (owner.organization_name || owner.name || '')),
+      church_ministry_linked: '',
+      contact_email: String(owner.email || ''),
+      is_anonymous: isAnonymous,
+      urgency: 'normal',
       is_online: Boolean(body.is_online),
       needs_financial_support: needsFinancialSupport,
       funding_goal: fundingGoal,
       funding_goal_currency: fundingGoalCurrency,
       campaign_expiry_date: campaignExpiryDate,
       project_links: projectLinks,
-      funding_approved: false,
+      funding_approved: needsFinancialSupport ? false : true,
       amount_raised: 0,
-      admin_reviewed: false,
+      admin_reviewed: needsFinancialSupport ? false : true,
       verified_ministry: false,
       status: 'active',
-      timeline: String(body.timeline || ''),
-      who_benefits: String(body.who_benefits || ''),
+      timeline: '',
+      who_benefits: '',
       why_it_matters: String(body.why_it_matters || ''),
       created_by: req.user.id,
       created_at: now(),
@@ -1788,17 +1799,17 @@ app.post('/projects', authRequired, (req, res) => {
     state.updates.push({
       id: createId(),
       project_id: project.id,
-      title: 'Project submitted',
+      title: 'Request submitted',
       content: needsFinancialSupport
-        ? 'This project has been submitted and is waiting for admin review for financial support. Stripe is already connected for this profile.'
-        : 'This project has been submitted successfully.',
+        ? 'This request has been submitted and is waiting for admin review for financial support. Stripe is already connected for this profile.'
+        : 'This request has been submitted successfully and is already visible publicly.',
       created_at: now()
     });
 
     return project.id;
   });
 
-  res.status(201).json({ id: projectId, message: 'Project created successfully' });
+  res.status(201).json({ id: projectId, message: 'Request created successfully' });
 });
 
 app.post('/projects/:id/archive', authRequired, (req, res) => {
@@ -1812,7 +1823,7 @@ app.post('/projects/:id/archive', authRequired, (req, res) => {
   });
 
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
-  res.json({ message: 'Project archived', project: result.project });
+  res.json({ message: 'Request archived', project: result.project });
 });
 
 app.post('/projects/:id/restore', authRequired, (req, res) => {
@@ -1828,7 +1839,7 @@ app.post('/projects/:id/restore', authRequired, (req, res) => {
   });
 
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
-  res.json({ message: 'Project restored', project: result.project });
+  res.json({ message: 'Request restored', project: result.project });
 });
 
 app.post('/projects/:id/exclude', authRequired, (req, res) => {
@@ -1841,7 +1852,7 @@ app.post('/projects/:id/exclude', authRequired, (req, res) => {
   });
 
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
-  res.json({ message: 'Project excluded', project: result.project });
+  res.json({ message: 'Request excluded', project: result.project });
 });
 
 app.post('/projects/:id/include', authRequired, (req, res) => {
@@ -1854,7 +1865,7 @@ app.post('/projects/:id/include', authRequired, (req, res) => {
   });
 
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
-  res.json({ message: 'Project included', project: result.project });
+  res.json({ message: 'Request included', project: result.project });
 });
 
 app.post('/projects/:id/respond', async (req, res) => {
@@ -1969,8 +1980,8 @@ app.post('/admin/projects/:id/review', authRequired, adminRequired, (req, res) =
     return clone(project);
   });
 
-  if (!updated) return res.status(404).json({ error: 'Project not found' });
-  res.json({ message: 'Project updated', project: updated });
+  if (!updated) return res.status(404).json({ error: 'Request not found' });
+  res.json({ message: 'Request updated', project: updated });
 });
 
 app.post('/payments/project-checkout', async (req, res) => {
@@ -1978,11 +1989,11 @@ app.post('/payments/project-checkout', async (req, res) => {
     const { project_id, donor_name, donor_email, donor_message, amount_project, amount_platform } = req.body || {};
     const db = readDb();
     const project = db.projects.find((item) => item.id === project_id);
-    if (!project) return res.status(404).json({ error: 'Project not found' });
+    if (!project) return res.status(404).json({ error: 'Request not found' });
     if (project.status !== 'active' || project.archived || project.excluded) {
-      return res.status(400).json({ error: 'This project is not available for donations' });
+      return res.status(400).json({ error: 'This request is not available for donations' });
     }
-    if (!project.funding_approved) return res.status(400).json({ error: 'Financial support is not enabled for this project yet' });
+    if (!project.funding_approved) return res.status(400).json({ error: 'Financial support is not enabled for this request yet' });
 
     if (project.campaign_expiry_date) {
       const expiry = new Date(`${project.campaign_expiry_date}T23:59:59`);
@@ -1993,7 +2004,7 @@ app.post('/payments/project-checkout', async (req, res) => {
 
     const owner = db.users.find((item) => item.id === project.created_by);
     if (!owner?.stripe_account_id || !owner?.stripe_charges_enabled) {
-      return res.status(400).json({ error: 'The project owner has not finished Stripe onboarding yet' });
+      return res.status(400).json({ error: 'The request owner has not finished Stripe onboarding yet' });
     }
 
     const projectAmount = Number(amount_project || 0);

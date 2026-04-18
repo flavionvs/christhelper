@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChristHelper | Submit project</title>
+  <title>ChristHelper | Submit request</title>
   <link rel="stylesheet" href="css/styles.css">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-VEBD7Q9H0S"></script>
@@ -41,18 +41,17 @@
   <main class="page-wrap">
     <div class="container">
       <section class="card page-card">
-        <div class="eyebrow">Submit a project</div>
-        <h1 style="font-size:2.3rem;">Share a Christian need or ministry project</h1>
+        <div class="eyebrow">Submit a request</div>
+        <h1 style="font-size:2.3rem;">Share a Christian need or ministry request</h1>
         <p>
-          Projects can ask for prayer, guidance, volunteers, resources, mentorship, services, and financial support.
-          If a project needs financial support, Stripe must already be connected in your profile before submission. Financial payments are processed in USD and Stripe transaction fees apply per payment, so the amount paid and the net amount received may be different.
+          Requests can ask for prayer, guidance, volunteers, resources, mentorship, services, financial support, and more. If financial support is selected, Stripe must already be connected in your profile before submission. Financial payments are processed in USD and Stripe transaction fees apply per payment, so the amount paid and the net amount received may be different.
         </p>
 
         <form id="submitProjectForm" class="form-grid two">
 
           <label>
-            <span data-info="Write a clear and short title so people quickly understand the project.">Project title</span>
-            <input name="title" placeholder="Project title" required>
+            <span data-info="Write a clear and short title so people quickly understand the request.">Request title</span>
+            <input name="title" placeholder="Request title" required>
           </label>
 
           <label>
@@ -61,18 +60,18 @@
           </label>
 
           <label style="grid-column:1/-1;">
-            <span data-info="Describe the project in more detail, what is happening, and what support is needed.">Full description</span>
+            <span data-info="Describe the request in more detail, what is happening, and what support is needed.">Full description</span>
             <textarea name="description" placeholder="Full description" required></textarea>
           </label>
 
           <label style="grid-column:1/-1;">
-            <span data-info="Explain why this project matters and why people should care.">Why it matters</span>
+            <span data-info="Explain why this request matters and why people should care.">Why it matters</span>
             <textarea name="why_it_matters" placeholder="Why it matters"></textarea>
           </label>
 
           <!-- ✅ FIXED COUNTRY -->
           <label>
-            <span data-info="Select the country where the project is based.">Country</span>
+            <span data-info="Select the country where the request is based.">Country</span>
             <select id="projectCountry" name="country" required>
               <option value="">-- Select country --</option>
             </select>
@@ -89,7 +88,7 @@
           </label>
 
           <label>
-            <span data-info="Choose the category that best matches your project.">Category</span>
+            <span data-info="Choose the category that best matches your request.">Category</span>
             <select name="category" required>
               <option value="">Choose category</option>
               <option>Mission trip</option>
@@ -106,12 +105,8 @@
               <option>Christian media</option>
               <option>Christian technology</option>
               <option>Counselling and guidance</option>
+              <option>Other</option>
             </select>
-          </label>
-
-          <label>
-            <span data-info="Name of the main person responsible for this project.">Requester name</span>
-            <input name="requester_name" placeholder="Requester name" required>
           </label>
 
           <label>
@@ -119,39 +114,8 @@
             <input name="organization_name" placeholder="Organization or ministry name">
           </label>
 
-          <label>
-            <span data-info="Add the church or ministry connected to this project.">Church or ministry linked</span>
-            <input name="church_ministry_linked" placeholder="Church or ministry linked">
-          </label>
-
-          <label>
-            <span data-info="This email is used for project contact and follow-up.">Contact email</span>
-            <input name="contact_email" type="email" placeholder="Contact email" required>
-          </label>
-
-          <label>
-            <span data-info="Add the expected timing, season, or target month for the project.">Timeline</span>
-            <input name="timeline" placeholder="Timeline">
-          </label>
-
-          <label>
-            <span data-info="Explain who will receive the benefit from this project.">Who will benefit</span>
-            <input name="who_benefits" placeholder="Who will benefit">
-          </label>
-
-          <label>
-            <span data-info="Choose how urgent this need is.">Urgency</span>
-            <select name="urgency">
-              <option value="normal">Urgency: Normal</option>
-              <option value="low">Low</option>
-              <option value="high">High</option>
-            </select>
-          </label>
-
-          <!-- REST OF YOUR FILE UNCHANGED -->
-
           <div class="item" style="grid-column:1/-1;">
-            <strong data-info="Select all types of support needed for this project.">Help types needed</strong>
+            <strong data-info="Select all types of support needed for this request.">Help types needed</strong>
             <div class="checkbox-row" style="margin-top:10px;">
               <label><input type="checkbox" name="help_types" value="Financial support"> Financial support</label>
               <label><input type="checkbox" name="help_types" value="Prayer"> Prayer</label>
@@ -160,14 +124,19 @@
               <label><input type="checkbox" name="help_types" value="Mentorship"> Mentorship</label>
               <label><input type="checkbox" name="help_types" value="Services"> Services</label>
               <label><input type="checkbox" name="help_types" value="Resources"> Resources</label>
+              <label><input type="checkbox" name="help_types" value="Other"> Other</label>
             </div>
           </div>
 
           <div class="item" style="grid-column:1/-1;">
-            <strong data-info="Choose the project settings below.">Settings</strong>
+            <strong data-info="Choose any extra settings for this request.">Settings</strong>
             <div class="checkbox-row" style="margin-top:10px;">
-              <label><input id="needsFinancialSupport" type="checkbox" name="needs_financial_support"> This project needs financial support</label>
               <label><input type="checkbox" name="is_online"> This is online / remote</label>
+              <label>
+                <input type="checkbox" name="is_anonymous" id="submitAnonymousOption">
+                <span id="submitAnonymousLabel">Anonymous</span>
+                <span class="info-help" id="submitAnonymousInfo" title="Available only for non-financial requests. When enabled, your identity will not be shown publicly." aria-label="Available only for non-financial requests. When enabled, your identity will not be shown publicly." style="margin-left:6px;cursor:help;color:var(--primary);font-weight:700;">ⓘ</span>
+              </label>
             </div>
           </div>
 
@@ -177,7 +146,7 @@
             <input id="fundingGoal" name="funding_goal" type="number">
           </label>
 
-          <label id="campaignExpiryWrap" class="hide">
+          <label id="campaignExpiryWrap">
             <span>Campaign expiry date</span>
             <input id="campaignExpiryDate" name="campaign_expiry_date" type="date">
           </label>
@@ -185,19 +154,19 @@
           <input id="fundingGoalCurrency" name="funding_goal_currency" type="hidden">
 
           <label style="grid-column:1/-1;">
-            <span>Project links</span>
+            <span>Important links</span>
             <textarea name="project_links"></textarea>
           </label>
 
           <div style="grid-column:1/-1;">
-            <button class="btn" type="submit">Submit project</button>
+            <button class="btn" type="submit">Submit request</button>
           </div>
 
         </form>
       </section>
 
       <section class="card page-card" style="margin-top:24px;">
-        <h2>All projects</h2>
+        <h2>All requests</h2>
         <div id="allProjectsList" class="list"></div>
       </section>
     </div>

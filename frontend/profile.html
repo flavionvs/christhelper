@@ -28,8 +28,8 @@
       </button>
       <nav class="nav-links" id="navMenu">
         <a href="index.html">Home</a>
-        <a href="explore-projects.html">Explore Projects</a>
-        <a href="submit.html">Submit Project</a>
+        <a href="explore-projects.html">Explore Requests</a>
+        <a href="submit.html">Submit Request</a>
         <a href="help-christhelper.html">Help ChristHelper</a>
       </nav>
 
@@ -38,6 +38,7 @@
         <a href="register.html" class="btn" data-guest>Register</a>
         <a href="profile.html" class="btn-outline hide" data-auth>Profile</a>
         <span class="badge hide" data-auth data-stripe-state>Stripe</span>
+        <a href="admin.html" class="btn-outline hide" data-admin>Admin</a>
         <button class="btn-outline hide" data-auth data-logout>Logout</button>
       </div>
     </div>
@@ -50,7 +51,7 @@
           <span class="eyebrow">My account</span>
           <h1>Profile</h1>
           <p>
-            Manage your account details, Stripe connection, and project preferences.
+            Manage your account details, Stripe connection, and request preferences.
           </p>
         </div>
       </section>
@@ -124,19 +125,19 @@
 
         <section class="card profile-card">
           <div class="section-heading">
-            <h2>Project settings</h2>
+            <h2>Request settings</h2>
             <p>Control what appears publicly on your profile and projects.</p>
           </div>
 
           <div class="form-grid">
             <label class="checkbox-field">
               <input type="checkbox" id="showEmailPublicly">
-              <span>Show my email publicly on projects</span>
+              <span>Show my email publicly on requests</span>
             </label>
 
             <label class="checkbox-field">
               <input type="checkbox" id="allowFinancialSupport">
-              <span>Allow financial support on my approved projects</span>
+              <span>Allow financial support on my approved requests</span>
             </label>
 
             <label class="checkbox-field">
@@ -151,12 +152,12 @@
 
             <label class="checkbox-field">
               <input type="checkbox" id="hideArchivedProjects">
-              <span>Hide archived projects from my public profile</span>
+              <span>Hide archived requests from my public profile</span>
             </label>
 
             <label class="checkbox-field">
               <input type="checkbox" id="excludeClosedProjects">
-              <span>Exclude completed / closed projects from public listings</span>
+              <span>Exclude completed / closed requests from public listings</span>
             </label>
           </div>
 
@@ -167,8 +168,8 @@
 
         <section class="card profile-card">
           <div class="section-heading">
-            <h2>My projects</h2>
-            <p>Quick access to active, draft, archived, and excluded projects.</p>
+            <h2>My requests</h2>
+            <p>Quick access to active, draft, archived, and excluded requests.</p>
           </div>
 
           <div class="project-tabs">
@@ -180,7 +181,7 @@
           </div>
 
           <div id="profileProjectsList" class="stack-list">
-            <p class="muted">Your projects will load here.</p>
+            <p class="muted">Your requests will load here.</p>
           </div>
         </section>
 
