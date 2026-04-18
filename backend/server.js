@@ -8,7 +8,6 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
-const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -20,11 +19,7 @@ const LEGACY_DATA_FILE = path.resolve(__dirname, process.env.DATA_FILE || './dat
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const EMAIL_FROM = String(process.env.EMAIL_FROM || 'ChristHelper <no-reply@christhelper.local>').trim();
 const ADMIN_NOTIFICATION_EMAIL = String(process.env.ADMIN_NOTIFICATION_EMAIL || '').trim();
-const SENDGRID_HOST = String(process.env.SENDGRID_HOST || 'smtp.sendgrid.net').trim();
-const SENDGRID_PORT = Number(process.env.SENDGRID_PORT || 587);
-const SENDGRID_USER = String(process.env.SENDGRID_USER || 'apikey').trim();
 const SENDGRID_API_KEY = String(process.env.SENDGRID_API_KEY || '').trim();
-const SENDGRID_SECURE = String(process.env.SENDGRID_SECURE || '').trim() === 'true';
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 const sqlite = new DatabaseSync(DB_PATH);
@@ -93,38 +88,65 @@ function isExpired(isoValue) {
   return Number.isNaN(date.getTime()) || date.getTime() < Date.now();
 }
 
-function getMailTransporter() {
-  if (!SENDGRID_API_KEY) return null;
-  return nodemailer.createTransport({
-    host: SENDGRID_HOST,
-    port: SENDGRID_PORT,
-    secure: SENDGRID_SECURE,
-    auth: {
-      user: SENDGRID_USER || 'apikey',
-      pass: SENDGRID_API_KEY
-    }
-  });
+function parseEmailAddress(input) {
+  const value = String(input || '').trim();
+  if (!value) return null;
+
+  const angleMatch = value.match(/^(.*)<([^>]+)>$/);
+  if (angleMatch) {
+    const name = angleMatch[1].trim().replace(/^"|"$/g, '');
+    const email = angleMatch[2].trim();
+    if (!email) return null;
+    return name ? { email, name } : { email };
+  }
+
+  return { email: value };
 }
 
 async function sendEmailMessage({ to, subject, html, text }) {
-  const recipient = String(to || '').trim();
-  if (!recipient) return { skipped: true, reason: 'missing_recipient' };
+  const recipient = parseEmailAddress(to);
+  if (!recipient?.email) return { skipped: true, reason: 'missing_recipient' };
 
-  const transporter = getMailTransporter();
-  if (!transporter) {
-    console.log('Email skipped: SendGrid credentials not configured', { to: recipient, subject });
+  if (!SENDGRID_API_KEY) {
+    console.log('Email skipped: SendGrid API key not configured', { to: recipient.email, subject });
     return { skipped: true, reason: 'sendgrid_not_configured' };
   }
 
+  const sender = parseEmailAddress(EMAIL_FROM);
+  if (!sender?.email) {
+    console.error('Email skipped: EMAIL_FROM is invalid');
+    return { ok: false, error: 'EMAIL_FROM is invalid' };
+  }
+
+  const safeSubject = String(subject || '').trim();
+  const safeText = String(text || '').trim();
+  const safeHtml = String(html || '').trim() || `<p>${safeText.replace(/</g, '&lt;')}</p>`;
+
   try {
-    const info = await transporter.sendMail({
-      from: EMAIL_FROM,
-      to: recipient,
-      subject: String(subject || '').trim(),
-      text: text || '',
-      html: html || `<p>${String(text || '').replace(/</g, '&lt;')}</p>`
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [recipient] }],
+        from: sender,
+        subject: safeSubject,
+        content: [
+          { type: 'text/plain', value: safeText || safeSubject || 'ChristHelper notification' },
+          { type: 'text/html', value: safeHtml }
+        ]
+      })
     });
-    return { ok: true, id: info.messageId || '' };
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error('Email send failed:', response.status, errorBody);
+      return { ok: false, error: `SendGrid API error ${response.status}` };
+    }
+
+    return { ok: true, id: response.headers.get('x-message-id') || '' };
   } catch (error) {
     console.error('Email send failed:', error.message);
     return { ok: false, error: error.message || 'Email send failed' };

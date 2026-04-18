@@ -1,7 +1,7 @@
 {
-  "name": "christhelper-backend-node24-safe",
+  "name": "christhelper-backend-sendgrid",
   "version": "1.1.0",
-  "description": "ChristHelper backend API compatible with Node 24 (no native SQLite dependency)",
+  "description": "ChristHelper backend API using SendGrid email via REST API",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
@@ -14,7 +14,6 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.10.1",
     "stripe": "^18.1.1"
   }
 }
