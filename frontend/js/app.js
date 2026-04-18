@@ -724,12 +724,14 @@ function handleAuthForms() {
   if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const payload = Object.fromEntries(new FormData(registerForm));
+      const formData = new FormData(registerForm);
+      const payload = Object.fromEntries(formData);
+      payload.terms_accepted = formData.get('terms_accepted') === 'on';
       try {
         const data = await api('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
         trackEvent('sign_up', { method: 'email', page_path: window.location.pathname });
-        setStoredAuth(data.token, data.user);
-        window.location.href = appPath('profile.html');
+        alert(data.message || 'Verification code sent.');
+        window.location.href = appPath(`verify-email.html?email=${encodeURIComponent(data.email || payload.email || '')}`);
       } catch (error) {
         alert(error.message);
       }
@@ -745,6 +747,91 @@ function handleAuthForms() {
         const data = await api('/auth/login', { method: 'POST', body: JSON.stringify(payload) });
         trackEvent('login', { method: 'email', page_path: window.location.pathname });
         setStoredAuth(data.token, data.user);
+        window.location.href = appPath('profile.html');
+      } catch (error) {
+        const requiresVerification = /verify your email/i.test(error.message || '');
+        if (requiresVerification) {
+          alert(error.message);
+          window.location.href = appPath(`verify-email.html?email=${encodeURIComponent(payload.email || '')}`);
+          return;
+        }
+        alert(error.message);
+      }
+    });
+  }
+
+  const verifyForm = $('#verifyEmailForm');
+  if (verifyForm) {
+    const emailField = verifyForm.querySelector('[name="email"]');
+    const params = new URLSearchParams(window.location.search);
+    if (emailField && !emailField.value) emailField.value = params.get('email') || '';
+
+    verifyForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(verifyForm));
+      try {
+        const data = await api('/auth/verify-email', { method: 'POST', body: JSON.stringify(payload) });
+        setStoredAuth(data.token, data.user);
+        alert(data.message || 'Email verified successfully.');
+        window.location.href = appPath('profile.html');
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    $('#resendVerificationBtn')?.addEventListener('click', async () => {
+      const email = emailField?.value?.trim();
+      if (!email) {
+        alert('Enter your email first.');
+        return;
+      }
+      try {
+        const data = await api('/auth/resend-verification', {
+          method: 'POST',
+          body: JSON.stringify({ email })
+        });
+        alert(data.message || 'Verification code sent.');
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  }
+
+  const forgotForm = $('#forgotPasswordForm');
+  if (forgotForm) {
+    forgotForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(forgotForm));
+      try {
+        const data = await api('/auth/forgot-password', { method: 'POST', body: JSON.stringify(payload) });
+        alert(data.message || 'Reset code sent.');
+        window.location.href = appPath(`reset-password.html?email=${encodeURIComponent(payload.email || '')}`);
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+  }
+
+  const resetForm = $('#resetPasswordForm');
+  if (resetForm) {
+    const emailField = resetForm.querySelector('[name="email"]');
+    const params = new URLSearchParams(window.location.search);
+    if (emailField && !emailField.value) emailField.value = params.get('email') || '';
+
+    resetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(resetForm));
+      if (payload.password !== payload.confirm_password) {
+        alert('Passwords do not match.');
+        return;
+      }
+      try {
+        const data = await api('/auth/reset-password', {
+          method: 'POST',
+          body: JSON.stringify({ email: payload.email, code: payload.code, password: payload.password })
+        });
+        setStoredAuth(data.token, data.user);
+        alert(data.message || 'Password updated successfully.');
         window.location.href = appPath('profile.html');
       } catch (error) {
         alert(error.message);

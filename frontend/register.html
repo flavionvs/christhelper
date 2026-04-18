@@ -11,10 +11,8 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-VEBD7Q9H0S');
 </script>
-
 </head>
 <body>
   <main class="auth-wrap">
@@ -27,10 +25,14 @@
       <form id="registerForm" class="simple-form">
         <input name="name" placeholder="Full name" required>
         <input name="email" type="email" placeholder="Email" required>
-        <input name="password" type="password" placeholder="Password" required>
+        <input name="password" type="password" placeholder="Password" minlength="6" required>
+        <label class="checkbox-field">
+          <input name="terms_accepted" type="checkbox" required>
+          <span>I have read and agree to the <a href="terms.html" style="color:var(--primary);text-decoration:underline;">Terms &amp; Conditions</a>.</span>
+        </label>
         <button class="btn" type="submit">Register</button>
         <a class="btn-outline" href="login.html">Already have an account?</a>
-        <a class="btn-outline" href="profile.html">Profile</a>
+        <a class="btn-outline" href="terms.html">Terms &amp; Conditions</a>
       </form>
     </section>
   </main>

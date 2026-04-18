@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -17,6 +18,13 @@ const CURRENCY = (process.env.STRIPE_CURRENCY || 'nzd').toLowerCase();
 const DB_PATH = path.resolve(process.env.DB_PATH || path.join(__dirname, 'christhelper.db'));
 const LEGACY_DATA_FILE = path.resolve(__dirname, process.env.DATA_FILE || './data.json');
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+const EMAIL_FROM = String(process.env.EMAIL_FROM || 'ChristHelper <no-reply@christhelper.local>').trim();
+const ADMIN_NOTIFICATION_EMAIL = String(process.env.ADMIN_NOTIFICATION_EMAIL || '').trim();
+const SENDGRID_HOST = String(process.env.SENDGRID_HOST || 'smtp.sendgrid.net').trim();
+const SENDGRID_PORT = Number(process.env.SENDGRID_PORT || 587);
+const SENDGRID_USER = String(process.env.SENDGRID_USER || 'apikey').trim();
+const SENDGRID_API_KEY = String(process.env.SENDGRID_API_KEY || '').trim();
+const SENDGRID_SECURE = String(process.env.SENDGRID_SECURE || '').trim() === 'true';
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 const sqlite = new DatabaseSync(DB_PATH);
@@ -68,6 +76,250 @@ function createId() {
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function createNumericCode(length = 6) {
+  const size = Math.max(4, Number(length) || 6);
+  return Array.from({ length: size }, () => Math.floor(Math.random() * 10)).join('');
+}
+
+function addMinutesIso(minutes) {
+  return new Date(Date.now() + Number(minutes || 0) * 60 * 1000).toISOString();
+}
+
+function isExpired(isoValue) {
+  if (!isoValue) return true;
+  const date = new Date(isoValue);
+  return Number.isNaN(date.getTime()) || date.getTime() < Date.now();
+}
+
+function getMailTransporter() {
+  if (!SENDGRID_API_KEY) return null;
+  return nodemailer.createTransport({
+    host: SENDGRID_HOST,
+    port: SENDGRID_PORT,
+    secure: SENDGRID_SECURE,
+    auth: {
+      user: SENDGRID_USER || 'apikey',
+      pass: SENDGRID_API_KEY
+    }
+  });
+}
+
+async function sendEmailMessage({ to, subject, html, text }) {
+  const recipient = String(to || '').trim();
+  if (!recipient) return { skipped: true, reason: 'missing_recipient' };
+
+  const transporter = getMailTransporter();
+  if (!transporter) {
+    console.log('Email skipped: SendGrid credentials not configured', { to: recipient, subject });
+    return { skipped: true, reason: 'sendgrid_not_configured' };
+  }
+
+  try {
+    const info = await transporter.sendMail({
+      from: EMAIL_FROM,
+      to: recipient,
+      subject: String(subject || '').trim(),
+      text: text || '',
+      html: html || `<p>${String(text || '').replace(/</g, '&lt;')}</p>`
+    });
+    return { ok: true, id: info.messageId || '' };
+  } catch (error) {
+    console.error('Email send failed:', error.message);
+    return { ok: false, error: error.message || 'Email send failed' };
+  }
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatProjectLink(projectId) {
+  return `${FRONTEND_URL}/project.html?id=${encodeURIComponent(String(projectId || ''))}`;
+}
+
+function emailTemplate({ title, intro, details = [], ctaLabel = '', ctaUrl = '', footer = 'Thank you for using ChristHelper.' }) {
+  const listHtml = details.length
+    ? `<ul>${details.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
+    : '';
+  const ctaHtml = ctaUrl && ctaLabel
+    ? `<p><a href="${escapeHtml(ctaUrl)}" style="display:inline-block;padding:12px 18px;background:#2a7b5f;color:#ffffff;text-decoration:none;border-radius:10px;">${escapeHtml(ctaLabel)}</a></p>`
+    : '';
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#1f2937;">
+      <div style="font-size:22px;font-weight:700;margin-bottom:12px;">${escapeHtml(title)}</div>
+      <p style="line-height:1.6;">${escapeHtml(intro)}</p>
+      ${listHtml}
+      ${ctaHtml}
+      <p style="line-height:1.6;color:#6b7280;margin-top:20px;">${escapeHtml(footer)}</p>
+    </div>
+  `;
+}
+
+function textTemplate(intro, details = [], footer = 'Thank you for using ChristHelper.') {
+  return [intro, details.length ? '' : null, ...details, '', footer].filter((v) => v !== null).join('\n');
+}
+
+async function sendProjectCreatorEmail(project, subject, intro, details = []) {
+  const db = readDb();
+  const owner = db.users.find((item) => item.id === project?.created_by);
+  const to = owner?.email || project?.contact_email || '';
+  return sendEmailMessage({
+    to,
+    subject,
+    html: emailTemplate({ title: subject, intro, details, ctaLabel: project?.id ? 'View project' : '', ctaUrl: project?.id ? formatProjectLink(project.id) : '' }),
+    text: textTemplate(intro, [...details, project?.id ? `View project: ${formatProjectLink(project.id)}` : ''].filter(Boolean))
+  });
+}
+
+async function sendAdminDonationNotification(donation, project = null) {
+  if (!ADMIN_NOTIFICATION_EMAIL) return { skipped: true, reason: 'admin_notification_email_missing' };
+  const subject = project ? 'New donation received on ChristHelper project' : 'New ChristHelper donation received';
+  const details = [
+    `Type: ${project ? 'Project donation' : 'Platform support'}`,
+    `Donor: ${donation?.donor_name || 'Anonymous'}`,
+    donation?.donor_email ? `Donor email: ${donation.donor_email}` : '',
+    `Project amount: ${Number(donation?.amount_project || 0).toFixed(2)} ${String(donation?.currency || CURRENCY).toUpperCase()}`,
+    `Platform amount: ${Number(donation?.amount_platform || 0).toFixed(2)} ${String(donation?.currency || CURRENCY).toUpperCase()}`,
+    project?.title ? `Project: ${project.title}` : '',
+    donation?.donor_message ? `Message: ${donation.donor_message}` : ''
+  ].filter(Boolean);
+  return sendEmailMessage({
+    to: ADMIN_NOTIFICATION_EMAIL,
+    subject,
+    html: emailTemplate({ title: subject, intro: 'A new donation has been recorded in ChristHelper.', details }),
+    text: textTemplate('A new donation has been recorded in ChristHelper.', details)
+  });
+}
+
+function extractBearerUser(req) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  if (!token) return null;
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (error) {
+    return null;
+  }
+}
+
+async function handleProjectResponseNotifications({ kind, project, item, actorUser }) {
+  if (!project || !item) return;
+  if (kind === 'prayer') {
+    await sendProjectCreatorEmail(
+      project,
+      'New prayer received for your project',
+      'Someone has just sent a prayer for your project on ChristHelper.',
+      [
+        `Project: ${project.title || ''}`,
+        `From: ${item.name || 'Anonymous'}`,
+        item.message ? `Prayer: ${item.message}` : ''
+      ].filter(Boolean)
+    );
+
+    if (actorUser?.email) {
+      await sendEmailMessage({
+        to: actorUser.email,
+        subject: 'Thank you for submitting a prayer',
+        html: emailTemplate({
+          title: 'Thank you for praying',
+          intro: 'Your prayer was shared successfully on ChristHelper.',
+          details: [project.title ? `Project: ${project.title}` : ''].filter(Boolean),
+          ctaLabel: 'View project',
+          ctaUrl: formatProjectLink(project.id)
+        }),
+        text: textTemplate('Your prayer was shared successfully on ChristHelper.', [project.title ? `Project: ${project.title}` : '', `View project: ${formatProjectLink(project.id)}`].filter(Boolean))
+      });
+    }
+    return;
+  }
+
+  await sendProjectCreatorEmail(
+    project,
+    'New reply received for your project',
+    'Someone has submitted a new reply for your project on ChristHelper.',
+    [
+      `Project: ${project.title || ''}`,
+      `From: ${item.name || 'Anonymous'}`,
+      item.type ? `Reply type: ${item.type}` : '',
+      item.message ? `Reply: ${item.message}` : ''
+    ].filter(Boolean)
+  );
+
+  if (item.email || actorUser?.email) {
+    const helperEmail = item.email || actorUser?.email;
+    await sendEmailMessage({
+      to: helperEmail,
+      subject: 'Thank you for your reply',
+      html: emailTemplate({
+        title: 'Thank you for responding',
+        intro: 'Your reply was shared successfully on ChristHelper.',
+        details: [project.title ? `Project: ${project.title}` : '', item.type ? `Reply type: ${item.type}` : ''].filter(Boolean),
+        ctaLabel: 'View project',
+        ctaUrl: formatProjectLink(project.id)
+      }),
+      text: textTemplate('Your reply was shared successfully on ChristHelper.', [project.title ? `Project: ${project.title}` : '', `View project: ${formatProjectLink(project.id)}`].filter(Boolean))
+    });
+  }
+}
+
+async function handleDonationNotifications(donation) {
+  if (!donation || donation.payment_status !== 'paid') return;
+  const db = readDb();
+  const project = donation.project_id ? db.projects.find((item) => item.id === donation.project_id) : null;
+
+  if (project) {
+    await sendProjectCreatorEmail(
+      project,
+      'New donation received for your project',
+      'A new donation has been completed for your project on ChristHelper.',
+      [
+        `Project: ${project.title || ''}`,
+        `Donor: ${donation.donor_name || 'Anonymous'}`,
+        donation.donor_email ? `Donor email: ${donation.donor_email}` : '',
+        `Project amount: ${Number(donation.amount_project || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`,
+        Number(donation.amount_platform || 0) > 0 ? `Support for ChristHelper: ${Number(donation.amount_platform || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}` : '',
+        donation.donor_message ? `Message: ${donation.donor_message}` : ''
+      ].filter(Boolean)
+    );
+  }
+
+  if (donation.donor_email) {
+    await sendEmailMessage({
+      to: donation.donor_email,
+      subject: 'Thank you for your donation',
+      html: emailTemplate({
+        title: 'Thank you for your donation',
+        intro: project
+          ? 'Your donation was completed successfully and recorded on ChristHelper.'
+          : 'Your support for ChristHelper was completed successfully.',
+        details: [
+          project?.title ? `Project: ${project.title}` : '',
+          `Project amount: ${Number(donation.amount_project || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`,
+          `Platform amount: ${Number(donation.amount_platform || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`
+        ].filter(Boolean),
+        ctaLabel: project ? 'View project' : '',
+        ctaUrl: project ? formatProjectLink(project.id) : ''
+      }),
+      text: textTemplate(
+        project ? 'Your donation was completed successfully and recorded on ChristHelper.' : 'Your support for ChristHelper was completed successfully.',
+        [
+          project?.title ? `Project: ${project.title}` : '',
+          `Project amount: ${Number(donation.amount_project || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`,
+          `Platform amount: ${Number(donation.amount_platform || 0).toFixed(2)} ${String(donation.currency || CURRENCY).toUpperCase()}`,
+          project ? `View project: ${formatProjectLink(project.id)}` : ''
+        ].filter(Boolean)
+      )
+    });
+  }
+
+  await sendAdminDonationNotification(donation, project);
 }
 
 function sumStripeBalanceAmounts(entries = [], currency = CURRENCY) {
@@ -211,6 +463,14 @@ function normalizeUser(user) {
   if (!Object.prototype.hasOwnProperty.call(user, 'exclude_closed_projects')) user.exclude_closed_projects = false;
   if (!Object.prototype.hasOwnProperty.call(user, 'is_active')) user.is_active = true;
   if (!Object.prototype.hasOwnProperty.call(user, 'deactivated_at')) user.deactivated_at = null;
+  if (!Object.prototype.hasOwnProperty.call(user, 'email_verified')) user.email_verified = true;
+  if (!Object.prototype.hasOwnProperty.call(user, 'email_verification_code')) user.email_verification_code = '';
+  if (!Object.prototype.hasOwnProperty.call(user, 'email_verification_expires_at')) user.email_verification_expires_at = null;
+  if (!Object.prototype.hasOwnProperty.call(user, 'email_verified_at')) user.email_verified_at = null;
+  if (!Object.prototype.hasOwnProperty.call(user, 'reset_password_code')) user.reset_password_code = '';
+  if (!Object.prototype.hasOwnProperty.call(user, 'reset_password_expires_at')) user.reset_password_expires_at = null;
+  if (!Object.prototype.hasOwnProperty.call(user, 'terms_accepted')) user.terms_accepted = true;
+  if (!Object.prototype.hasOwnProperty.call(user, 'terms_accepted_at')) user.terms_accepted_at = null;
 
   return user;
 }
@@ -590,7 +850,11 @@ function publicUser(user) {
     hide_archived_projects: Boolean(user.hide_archived_projects),
     exclude_closed_projects: Boolean(user.exclude_closed_projects),
     is_active: user.is_active !== false,
-    deactivated_at: user.deactivated_at || null
+    deactivated_at: user.deactivated_at || null,
+    email_verified: Boolean(user.email_verified),
+    email_verified_at: user.email_verified_at || null,
+    terms_accepted: Boolean(user.terms_accepted),
+    terms_accepted_at: user.terms_accepted_at || null
   };
 }
 
@@ -674,6 +938,7 @@ function createProjectResponse(db, projectId, payload = {}) {
       id: createId(),
       project_id: projectId,
       name,
+      email,
       message,
       created_at: now()
     };
@@ -745,17 +1010,23 @@ app.get(['/health','/api/health'], (req, res) => {
     legacy_data_file: LEGACY_DATA_FILE,
     frontend_url: FRONTEND_URL,
     stripe_configured: Boolean(stripe),
-    webhook_secret_configured: Boolean(process.env.STRIPE_WEBHOOK_SECRET)
+    webhook_secret_configured: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
+    sendgrid_configured: Boolean(SENDGRID_API_KEY),
+    admin_notification_email_configured: Boolean(ADMIN_NOTIFICATION_EMAIL)
   });
 });
 
-app.post('/auth/register', (req, res) => {
-  const { name, email, password } = req.body || {};
+app.post('/auth/register', async (req, res) => {
+  const { name, email, password, terms_accepted } = req.body || {};
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email and password are required' });
   }
+  if (!terms_accepted) {
+    return res.status(400).json({ error: 'You must agree to the Terms & Conditions before creating an account' });
+  }
 
   const normalizedEmail = String(email).trim().toLowerCase();
+  const verificationCode = createNumericCode(6);
 
   const createdUser = withDb((db) => {
     if (db.users.find((user) => user.email === normalizedEmail)) {
@@ -768,6 +1039,11 @@ app.post('/auth/register', (req, res) => {
       email: normalizedEmail,
       password_hash: bcrypt.hashSync(String(password), 10),
       role: 'supporter',
+      email_verified: false,
+      email_verification_code: verificationCode,
+      email_verification_expires_at: addMinutesIso(30),
+      terms_accepted: true,
+      terms_accepted_at: now(),
       created_at: now()
     });
 
@@ -779,8 +1055,167 @@ app.post('/auth/register', (req, res) => {
     return res.status(409).json({ error: 'Email already registered' });
   }
 
-  const token = jwt.sign(createdUser, JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token, user: createdUser });
+  await sendEmailMessage({
+    to: normalizedEmail,
+    subject: 'Verify your ChristHelper email',
+    html: emailTemplate({
+      title: 'Verify your email',
+      intro: 'Use the verification code below to activate your ChristHelper account.',
+      details: [`Verification code: ${verificationCode}`, 'This code expires in 30 minutes.'],
+      ctaLabel: 'Open verification page',
+      ctaUrl: `${FRONTEND_URL}/verify-email.html?email=${encodeURIComponent(normalizedEmail)}`
+    }),
+    text: textTemplate('Use the verification code below to activate your ChristHelper account.', [
+      `Verification code: ${verificationCode}`,
+      'This code expires in 30 minutes.',
+      `Open verification page: ${FRONTEND_URL}/verify-email.html?email=${encodeURIComponent(normalizedEmail)}`
+    ])
+  });
+
+  res.json({
+    requires_verification: true,
+    email: normalizedEmail,
+    message: 'Verification code sent. Please check your email sandbox inbox to continue.'
+  });
+});
+
+app.post('/auth/resend-verification', async (req, res) => {
+  const normalizedEmail = String(req.body?.email || '').trim().toLowerCase();
+  if (!normalizedEmail) return res.status(400).json({ error: 'Email is required' });
+
+  let payload = null;
+  withDb((db) => {
+    const user = db.users.find((item) => item.email === normalizedEmail);
+    if (!user) return;
+    if (user.email_verified) {
+      payload = { already_verified: true };
+      return;
+    }
+    user.email_verification_code = createNumericCode(6);
+    user.email_verification_expires_at = addMinutesIso(30);
+    payload = {
+      code: user.email_verification_code,
+      expires_at: user.email_verification_expires_at
+    };
+  });
+
+  if (!payload) return res.json({ message: 'If the account exists, a verification code has been sent.' });
+  if (payload.already_verified) return res.json({ message: 'This account is already verified.' });
+
+  await sendEmailMessage({
+    to: normalizedEmail,
+    subject: 'Your ChristHelper verification code',
+    html: emailTemplate({
+      title: 'Verification code',
+      intro: 'Use the code below to verify your ChristHelper account.',
+      details: [`Verification code: ${payload.code}`, 'This code expires in 30 minutes.'],
+      ctaLabel: 'Open verification page',
+      ctaUrl: `${FRONTEND_URL}/verify-email.html?email=${encodeURIComponent(normalizedEmail)}`
+    }),
+    text: textTemplate('Use the code below to verify your ChristHelper account.', [
+      `Verification code: ${payload.code}`,
+      'This code expires in 30 minutes.',
+      `Open verification page: ${FRONTEND_URL}/verify-email.html?email=${encodeURIComponent(normalizedEmail)}`
+    ])
+  });
+
+  res.json({ message: 'Verification code sent.' });
+});
+
+app.post('/auth/verify-email', (req, res) => {
+  const normalizedEmail = String(req.body?.email || '').trim().toLowerCase();
+  const code = String(req.body?.code || '').trim();
+  if (!normalizedEmail || !code) return res.status(400).json({ error: 'Email and verification code are required' });
+
+  const verifiedUser = withDb((db) => {
+    const user = db.users.find((item) => item.email === normalizedEmail);
+    if (!user) return { error: 'Account not found', status: 404 };
+    if (user.email_verified) return publicUser(user);
+    if (!user.email_verification_code || user.email_verification_code !== code) {
+      return { error: 'Invalid verification code', status: 400 };
+    }
+    if (isExpired(user.email_verification_expires_at)) {
+      return { error: 'Verification code expired. Please request a new code.', status: 400 };
+    }
+
+    user.email_verified = true;
+    user.email_verified_at = now();
+    user.email_verification_code = '';
+    user.email_verification_expires_at = null;
+    return publicUser(user);
+  });
+
+  if (verifiedUser?.error) return res.status(verifiedUser.status || 400).json({ error: verifiedUser.error });
+
+  const token = jwt.sign(verifiedUser, JWT_SECRET, { expiresIn: '7d' });
+  res.json({ token, user: verifiedUser, message: 'Email verified successfully.' });
+});
+
+app.post('/auth/forgot-password', async (req, res) => {
+  const normalizedEmail = String(req.body?.email || '').trim().toLowerCase();
+  if (!normalizedEmail) return res.status(400).json({ error: 'Email is required' });
+
+  let payload = null;
+  withDb((db) => {
+    const user = db.users.find((item) => item.email === normalizedEmail);
+    if (!user) return;
+    user.reset_password_code = createNumericCode(6);
+    user.reset_password_expires_at = addMinutesIso(30);
+    payload = {
+      code: user.reset_password_code,
+      name: user.name || '',
+      verified: Boolean(user.email_verified)
+    };
+  });
+
+  if (payload) {
+    await sendEmailMessage({
+      to: normalizedEmail,
+      subject: 'Reset your ChristHelper password',
+      html: emailTemplate({
+        title: 'Password reset',
+        intro: 'Use the code below to reset your ChristHelper password.',
+        details: [`Reset code: ${payload.code}`, 'This code expires in 30 minutes.'],
+        ctaLabel: 'Open reset page',
+        ctaUrl: `${FRONTEND_URL}/reset-password.html?email=${encodeURIComponent(normalizedEmail)}`
+      }),
+      text: textTemplate('Use the code below to reset your ChristHelper password.', [
+        `Reset code: ${payload.code}`,
+        'This code expires in 30 minutes.',
+        `Open reset page: ${FRONTEND_URL}/reset-password.html?email=${encodeURIComponent(normalizedEmail)}`
+      ])
+    });
+  }
+
+  res.json({ message: 'If the account exists, a password reset code has been sent.' });
+});
+
+app.post('/auth/reset-password', (req, res) => {
+  const normalizedEmail = String(req.body?.email || '').trim().toLowerCase();
+  const code = String(req.body?.code || '').trim();
+  const newPassword = String(req.body?.password || '');
+  if (!normalizedEmail || !code || !newPassword) return res.status(400).json({ error: 'Email, reset code and new password are required' });
+  if (newPassword.length < 6) return res.status(400).json({ error: 'Password must have at least 6 characters' });
+
+  const result = withDb((db) => {
+    const user = db.users.find((item) => item.email === normalizedEmail);
+    if (!user) return { error: 'Account not found', status: 404 };
+    if (!user.reset_password_code || user.reset_password_code !== code) {
+      return { error: 'Invalid reset code', status: 400 };
+    }
+    if (isExpired(user.reset_password_expires_at)) {
+      return { error: 'Reset code expired. Please request a new one.', status: 400 };
+    }
+    user.password_hash = bcrypt.hashSync(newPassword, 10);
+    user.reset_password_code = '';
+    user.reset_password_expires_at = null;
+    return publicUser(user);
+  });
+
+  if (result?.error) return res.status(result.status || 400).json({ error: result.error });
+
+  const token = jwt.sign(result, JWT_SECRET, { expiresIn: '7d' });
+  res.json({ token, user: result, message: 'Password updated successfully.' });
 });
 
 app.post('/auth/login', (req, res) => {
@@ -791,6 +1226,14 @@ app.post('/auth/login', (req, res) => {
 
   if (!user || user.is_active === false || !bcrypt.compareSync(String(password || ''), user.password_hash)) {
     return res.status(401).json({ error: 'Invalid email or password' });
+  }
+
+  if (!user.email_verified) {
+    return res.status(403).json({
+      error: 'Please verify your email before signing in.',
+      requires_verification: true,
+      email: normalizedEmail
+    });
   }
 
   user.last_login_at = now();
@@ -1392,10 +1835,16 @@ app.post('/projects/:id/include', authRequired, (req, res) => {
   res.json({ message: 'Project included', project: result.project });
 });
 
-app.post('/projects/:id/respond', (req, res) => {
+app.post('/projects/:id/respond', async (req, res) => {
+  const actorUser = extractBearerUser(req);
   const result = withDb((db) => createProjectResponse(db, req.params.id, req.body || {}));
 
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
+
+  const db = readDb();
+  const project = db.projects.find((item) => item.id === req.params.id);
+  await handleProjectResponseNotifications({ kind: result.kind, project, item: result.item, actorUser });
+
   res.json({
     message: result.message,
     kind: result.kind,
@@ -1403,19 +1852,27 @@ app.post('/projects/:id/respond', (req, res) => {
   });
 });
 
-app.post('/projects/:id/pray', (req, res) => {
+app.post('/projects/:id/pray', async (req, res) => {
   const body = { ...(req.body || {}), kind: 'prayer' };
+  const actorUser = extractBearerUser(req);
   const result = withDb((db) => createProjectResponse(db, req.params.id, body));
 
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
+  const db = readDb();
+  const project = db.projects.find((item) => item.id === req.params.id);
+  await handleProjectResponseNotifications({ kind: result.kind, project, item: result.item, actorUser });
   res.json({ message: result.message, kind: result.kind, item: result.item });
 });
 
-app.post('/projects/:id/reply', (req, res) => {
+app.post('/projects/:id/reply', async (req, res) => {
   const body = { ...(req.body || {}), kind: 'reply' };
+  const actorUser = extractBearerUser(req);
   const result = withDb((db) => createProjectResponse(db, req.params.id, body));
 
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
+  const db = readDb();
+  const project = db.projects.find((item) => item.id === req.params.id);
+  await handleProjectResponseNotifications({ kind: result.kind, project, item: result.item, actorUser });
   res.json({ message: result.message, kind: result.kind, item: result.item });
 });
 
@@ -1696,6 +2153,9 @@ app.get('/payments/confirm-session', async (req, res) => {
           donation: clone(donation),
           project_id: donation.project_id || null
         };
+        if (applied.changed) {
+          setTimeout(() => { handleDonationNotifications(clone(donation)); }, 0);
+        }
         return;
       }
 
@@ -1748,6 +2208,9 @@ app.post('/webhook', (req, res) => {
       }
 
       const applied = applyPaidDonation(db, donation, session);
+      if (applied.changed) {
+        setTimeout(() => { handleDonationNotifications(clone(donation)); }, 0);
+      }
       console.log('Donation processing result:', {
         donation_id: donation.id,
         changed: applied.changed,
