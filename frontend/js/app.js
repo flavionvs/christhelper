@@ -453,7 +453,7 @@ async function loadProjectDetails() {
 
   try {
     const data = await api(`/projects/${id}`);
-    const { project, prayers, replies, updates, stats } = data;
+    const { project, prayers, replies, updates, stats, response_visibility } = data;
 
     trackOnce(`project_view:${id}`, 'project_view', {
       project_id: id,
@@ -544,17 +544,19 @@ async function loadProjectDetails() {
           <section class="card panel">
             <h2>Community responses</h2>
             <div id="responseList" class="list" style="margin-top:16px;">
-              ${buildCombinedResponses(prayers, replies).length
-                ? buildCombinedResponses(prayers, replies).map(item => `
-                    <div class="item response-item">
-                      <div class="response-item-head">
-                        <strong>${safeHtml(item.name)}</strong>
-                        <span class="badge ${item.kind === 'Prayer' ? 'good' : ''}">${safeHtml(item.typeLabel)}</span>
-                      </div>
-                      <div>${safeHtml(item.message || '')}</div>
-                    </div>
-                  `).join('')
-                : '<p class="muted">No responses yet.</p>'}
+              ${response_visibility?.showing_responses === false
+                ? `<div class="notice">Prayers and replies are private for this request. Only the request creator can view them.</div>`
+                : (buildCombinedResponses(prayers, replies).length
+                    ? buildCombinedResponses(prayers, replies).map(item => `
+                        <div class="item response-item">
+                          <div class="response-item-head">
+                            <strong>${safeHtml(item.name)}</strong>
+                            <span class="badge ${item.kind === 'Prayer' ? 'good' : ''}">${safeHtml(item.typeLabel)}</span>
+                          </div>
+                          <div>${safeHtml(item.message || '')}</div>
+                        </div>
+                      `).join('')
+                    : '<p class="muted">No responses yet.</p>')}
             </div>
           </section>
 
@@ -1039,6 +1041,7 @@ function handleSubmitProject() {
 
     payload.is_online = fd.get('is_online') === 'on';
     payload.is_anonymous = fd.get('is_anonymous') === 'on';
+    payload.responses_public = fd.get('responses_public') !== null;
     payload.help_types = fd.getAll('help_types');
     payload.needs_financial_support = payload.help_types.includes('Financial support');
     payload.project_links = parseProjectLinks(payload.project_links);

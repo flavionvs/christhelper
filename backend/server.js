@@ -516,6 +516,10 @@ function normalizeProject(project) {
     project.is_anonymous = false;
   }
 
+  if (!Object.prototype.hasOwnProperty.call(project, 'responses_public')) {
+    project.responses_public = true;
+  }
+
   if (!Object.prototype.hasOwnProperty.call(project, 'project_links')) {
     project.project_links = [];
   }
@@ -1660,15 +1664,23 @@ app.get(['/projects/:id','/api/projects/:id'], (req, res) => {
   const project = db.projects.find((item) => item.id === req.params.id);
   if (!project) return res.status(404).json({ error: 'Request not found' });
 
-  const prayers = db.prayers
-    .filter((item) => item.project_id === req.params.id)
-    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
-    .slice(0, 20);
+  const actorUser = extractBearerUser(req);
+  const canViewPrivateResponses = Boolean(actorUser && (actorUser.id === project.created_by || actorUser.role === 'admin'));
+  const showResponses = project.responses_public !== false || canViewPrivateResponses;
 
-  const replies = db.replies
-    .filter((item) => item.project_id === req.params.id)
-    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
-    .slice(0, 20);
+  const prayers = showResponses
+    ? db.prayers
+        .filter((item) => item.project_id === req.params.id)
+        .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+        .slice(0, 20)
+    : [];
+
+  const replies = showResponses
+    ? db.replies
+        .filter((item) => item.project_id === req.params.id)
+        .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+        .slice(0, 20)
+    : [];
 
   const updates = db.updates
     .filter((item) => item.project_id === req.params.id)
@@ -1680,6 +1692,11 @@ app.get(['/projects/:id','/api/projects/:id'], (req, res) => {
     prayers: clone(prayers),
     replies: clone(replies),
     updates: clone(updates),
+    response_visibility: {
+      responses_public: project.responses_public !== false,
+      can_view_private_responses: canViewPrivateResponses,
+      showing_responses: showResponses
+    },
     stats: {
       prayer_count: db.prayers.filter((item) => item.project_id === req.params.id).length,
       reply_count: db.replies.filter((item) => item.project_id === req.params.id).length
@@ -1698,6 +1715,7 @@ app.post('/projects', authRequired, (req, res) => {
   const helpTypes = Array.isArray(body.help_types) ? body.help_types.map((item) => String(item || '').trim()).filter(Boolean) : [];
   const needsFinancialSupport = helpTypes.some((item) => item.toLowerCase() === 'financial support');
   const isAnonymous = !needsFinancialSupport && Boolean(body.is_anonymous);
+  const responsesPublic = body.responses_public !== false;
   const db = readDb();
   const owner = db.users.find((item) => item.id === req.user.id);
 
@@ -1773,6 +1791,7 @@ app.post('/projects', authRequired, (req, res) => {
       church_ministry_linked: '',
       contact_email: String(owner.email || ''),
       is_anonymous: isAnonymous,
+      responses_public: responsesPublic,
       urgency: 'normal',
       is_online: Boolean(body.is_online),
       needs_financial_support: needsFinancialSupport,

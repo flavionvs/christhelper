@@ -995,6 +995,15 @@ label.field:has(> input[type="radio"]) > span {
     grid-column: 3;
     justify-content: flex-end;
     gap: 6px;
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .nav-user-greeting {
+    flex: 0 0 100%;
+    text-align: right;
+    font-size: 0.78rem;
+    line-height: 1.2;
   }
 
   .nav-actions .btn,
