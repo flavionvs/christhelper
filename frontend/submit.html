@@ -52,22 +52,22 @@
 
           <label>
             <span data-info="Write a clear and short title so people quickly understand the request.">Request title</span>
-            <input name="title" placeholder="Request title" required>
+            <input name="title" placeholder="Example: Prayer support for youth outreach in Auckland" required>
           </label>
 
           <label>
             <span data-info="Write a short summary in one sentence about what the project needs.">Short summary</span>
-            <input name="summary" placeholder="Short summary" required>
+            <input name="summary" placeholder="Example: We are asking for prayer and volunteers for a local outreach event." required>
           </label>
 
           <label style="grid-column:1/-1;">
             <span data-info="Describe the request in more detail, what is happening, and what support is needed.">Full description</span>
-            <textarea name="description" placeholder="Full description" required></textarea>
+            <textarea name="description" placeholder="Example: Our church is preparing a weekend outreach and needs prayer, a few volunteers, and help sharing the event with the community." required></textarea>
           </label>
 
           <label style="grid-column:1/-1;">
             <span data-info="Explain why this request matters and why people should care.">Why it matters</span>
-            <textarea name="why_it_matters" placeholder="Why it matters"></textarea>
+            <textarea name="why_it_matters" placeholder="Example: This outreach is a chance to support families, share the gospel, and welcome people who may be visiting a church for the first time."></textarea>
           </label>
 
           <!-- ✅ FIXED COUNTRY -->
@@ -80,12 +80,12 @@
 
           <label>
             <span data-info="This is filled automatically from the country.">Continent</span>
-            <input id="projectContinent" name="continent" placeholder="Continent" required readonly>
+            <input id="projectContinent" name="continent" placeholder="Filled automatically after selecting a country" required readonly>
           </label>
 
           <label>
             <span data-info="Add the city, town, region, or write online if remote.">City or online</span>
-            <input name="city" placeholder="City or online">
+            <input name="city" placeholder="Example: Auckland or Online">
           </label>
 
           <label>
@@ -112,7 +112,7 @@
 
           <label>
             <span data-info="Add your church, ministry, or organisation name if relevant.">Organization or ministry name</span>
-            <input name="organization_name" placeholder="Organization or ministry name">
+            <input name="organization_name" placeholder="Example: Grace Community Church">
           </label>
 
           <div class="item" style="grid-column:1/-1;">
@@ -145,7 +145,7 @@
           <label id="financialGoalWrap" class="hide">
             <span>Funding goal in USD</span>
             <small class="muted">Payments are processed in USD. Stripe transaction fees apply per payment, so the amount paid and the net amount received may be different.</small>
-            <input id="fundingGoal" name="funding_goal" type="number">
+            <input id="fundingGoal" name="funding_goal" type="number" placeholder="Example: 1500">
           </label>
 
           <label id="campaignExpiryWrap">
@@ -157,7 +157,7 @@
 
           <label style="grid-column:1/-1;">
             <span>Important links</span>
-            <textarea name="project_links"></textarea>
+            <textarea name="project_links" placeholder="Example: https://yourchurch.org/outreach&#10;https://instagram.com/yourministry"></textarea>
           </label>
 
           <div style="grid-column:1/-1;">

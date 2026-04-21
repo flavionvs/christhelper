@@ -470,6 +470,15 @@ p {
   color: var(--text);
 }
 
+.search-row input::placeholder,
+.filter-grid input::placeholder,
+.form-grid input::placeholder,
+.form-grid textarea::placeholder,
+.simple-form input::placeholder,
+.simple-form textarea::placeholder {
+  color: #8a9a92;
+}
+
 .form-grid input:focus,
 .form-grid select:focus,
 .form-grid textarea:focus,
@@ -965,9 +974,9 @@ label.field:has(> input[type="radio"]) > span {
 @media (max-width: 720px) {
   .nav {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 8px;
+    gap: 8px 10px;
     padding: 8px 0;
   }
 
@@ -976,6 +985,7 @@ label.field:has(> input[type="radio"]) > span {
     justify-content: flex-start;
     font-size: 0.95rem;
     min-width: 0;
+    max-width: 100%;
   }
 
   .brand-text-main {
@@ -989,25 +999,39 @@ label.field:has(> input[type="radio"]) > span {
   .nav-toggle {
     display: inline-flex;
     grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    justify-self: end;
   }
 
   .nav-actions {
-    grid-column: 3;
-    justify-content: flex-end;
-    gap: 6px;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
+    gap: 8px;
     flex-wrap: wrap;
     max-width: 100%;
+    width: 100%;
+  }
+
+  .nav-actions [data-auth],
+  .nav-actions [data-guest],
+  .nav-actions [data-stripe-state] {
+    flex: 0 0 auto;
   }
 
   .nav-user-greeting {
+    order: 99;
     flex: 0 0 100%;
-    text-align: right;
-    font-size: 0.78rem;
-    line-height: 1.2;
+    text-align: left;
+    font-size: 0.8rem;
+    line-height: 1.25;
+    margin-top: 2px;
   }
 
   .nav-actions .btn,
-  .nav-actions .btn-outline {
+  .nav-actions .btn-outline,
+  .nav-actions .badge {
     padding: 7px 10px;
     font-size: 0.75rem;
   }
@@ -1015,11 +1039,12 @@ label.field:has(> input[type="radio"]) > span {
   .nav-links {
     display: none;
     grid-column: 1 / -1;
+    grid-row: 3;
     flex-direction: column;
     align-items: stretch;
     width: 100%;
     gap: 6px;
-    margin-top: 6px;
+    margin-top: 2px;
   }
 
   .nav-links.is-open {
@@ -1109,6 +1134,16 @@ label.field:has(> input[type="radio"]) > span {
 }
 
 @media (max-width: 480px) {
+  .nav-actions {
+    justify-content: flex-start;
+  }
+
+  .nav-actions .btn,
+  .nav-actions .btn-outline,
+  .nav-actions .badge {
+    min-height: 36px;
+  }
+
   .hero-visual-frame {
     min-height: 280px;
   }
