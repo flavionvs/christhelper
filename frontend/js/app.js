@@ -2122,6 +2122,29 @@ function initAdminUserFilters() {
   });
 }
 
+function initFilterPanels() {
+  document.querySelectorAll('.filter-panel').forEach((panel) => {
+    const toggle = panel.querySelector('[data-filter-toggle]');
+    const content = panel.querySelector('[data-filter-content]');
+    if (!toggle || !content) return;
+
+    toggle.addEventListener('click', () => {
+      const isOpen = panel.classList.toggle('is-open');
+      toggle.setAttribute('aria-expanded', String(isOpen));
+      trackEvent('request_filters_toggled', { is_open: isOpen, page_path: window.location.pathname });
+    });
+
+    panel.querySelectorAll('[data-load-projects]').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (window.innerWidth <= 720) {
+          panel.classList.remove('is-open');
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+  });
+}
+
 function initButtons() {
   document.querySelectorAll('[data-logout]').forEach(el => el.addEventListener('click', logout));
   document.querySelectorAll('[data-load-projects]').forEach(el => el.addEventListener('click', loadProjects));
@@ -2133,6 +2156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setAuthUi();
   initButtons();
   initMobileMenu();
+  initFilterPanels();
   initHeroVerseCarousel();
   handleAuthForms();
   handleSubmitProject();

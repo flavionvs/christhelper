@@ -604,6 +604,27 @@ input[type="radio"] {
   gap: 12px;
 }
 
+.filter-panel {
+  display: block;
+}
+
+.mobile-filter-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.filter-toggle-icon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.filter-content {
+  display: block;
+}
+
 .projects-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1125,6 +1146,28 @@ label.field:has(> input[type="radio"]) > span {
 
   .hero-verse-dots {
     gap: 8px;
+  }
+
+
+  .filter-panel {
+    padding: 14px;
+  }
+
+  .mobile-filter-toggle {
+    display: inline-flex;
+  }
+
+  .filter-content {
+    display: none;
+    margin-top: 14px;
+  }
+
+  .filter-panel.is-open .filter-content {
+    display: block;
+  }
+
+  .filter-panel.is-open .filter-toggle-icon {
+    transform: rotate(90deg);
   }
 
   .checkbox-row {

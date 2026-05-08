@@ -54,8 +54,13 @@
           <button class="btn-outline" data-load-projects>Refresh</button>
         </div>
 
-        <div class="card section-card">
-          <div class="filter-grid">
+        <div class="card section-card filter-panel">
+          <button class="btn-outline mobile-filter-toggle" type="button" data-filter-toggle aria-expanded="false">
+            <span class="filter-toggle-icon" aria-hidden="true">☰</span>
+            <span>Filters</span>
+          </button>
+          <div class="filter-content" data-filter-content>
+            <div class="filter-grid">
             <input id="q" placeholder="Search by request, country, ministry, keyword">
             <input id="country" placeholder="Country">
             <select id="continent">
@@ -101,12 +106,13 @@
               <option>normal</option>
               <option>high</option>
             </select>
-            <button class="btn" data-load-projects>Apply filters</button>
-          </div>
-          <div class="checkbox-row">
+              <button class="btn" data-load-projects>Apply filters</button>
+            </div>
+            <div class="checkbox-row">
             <label><input type="checkbox" id="financialOnly"> Financial support open</label>
             <label><input type="checkbox" id="reviewedOnly"> Admin reviewed</label>
-            <label><input type="checkbox" id="verifiedOnly"> Verified church/ministry</label>
+              <label><input type="checkbox" id="verifiedOnly"> Verified church/ministry</label>
+            </div>
           </div>
         </div>
 
