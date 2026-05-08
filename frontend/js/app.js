@@ -2123,25 +2123,54 @@ function initAdminUserFilters() {
 }
 
 function initFilterPanels() {
+  const mobileFilterQuery = window.matchMedia('(max-width: 900px)');
+
   document.querySelectorAll('.filter-panel').forEach((panel) => {
     const toggle = panel.querySelector('[data-filter-toggle]');
     const content = panel.querySelector('[data-filter-content]');
     if (!toggle || !content) return;
 
+    const syncFilterState = () => {
+      const isMobile = mobileFilterQuery.matches;
+      const isOpen = panel.classList.contains('is-open');
+
+      if (isMobile) {
+        content.hidden = !isOpen;
+        toggle.setAttribute('aria-expanded', String(isOpen));
+      } else {
+        content.hidden = false;
+        panel.classList.remove('is-open');
+        toggle.setAttribute('aria-expanded', 'true');
+      }
+    };
+
+    panel.classList.remove('is-open');
+    syncFilterState();
+
     toggle.addEventListener('click', () => {
+      if (!mobileFilterQuery.matches) return;
+
       const isOpen = panel.classList.toggle('is-open');
+      content.hidden = !isOpen;
       toggle.setAttribute('aria-expanded', String(isOpen));
       trackEvent('request_filters_toggled', { is_open: isOpen, page_path: window.location.pathname });
     });
 
     panel.querySelectorAll('[data-load-projects]').forEach((button) => {
       button.addEventListener('click', () => {
-        if (window.innerWidth <= 720) {
+        if (mobileFilterQuery.matches) {
           panel.classList.remove('is-open');
+          content.hidden = true;
           toggle.setAttribute('aria-expanded', 'false');
         }
       });
     });
+
+    if (typeof mobileFilterQuery.addEventListener === 'function') {
+      mobileFilterQuery.addEventListener('change', syncFilterState);
+    } else if (typeof mobileFilterQuery.addListener === 'function') {
+      mobileFilterQuery.addListener(syncFilterState);
+    }
   });
 }
 

@@ -992,7 +992,7 @@ label.field:has(> input[type="radio"]) > span {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .nav {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -1158,12 +1158,12 @@ label.field:has(> input[type="radio"]) > span {
   }
 
   .filter-content {
-    display: none;
+    display: none !important;
     margin-top: 14px;
   }
 
   .filter-panel.is-open .filter-content {
-    display: block;
+    display: block !important;
   }
 
   .filter-panel.is-open .filter-toggle-icon {
