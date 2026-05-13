@@ -46,12 +46,13 @@ button, input, select, textarea {
   border-bottom: 1px solid var(--border);
 }
 
-.nav {
-  display: flex;
+ .nav {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 14px 0;
+  gap: 12px;
+  padding: 12px 0;
+  position: relative;
 }
 
 .brand {
@@ -60,6 +61,7 @@ button, input, select, textarea {
   gap: 12px;
   font-weight: 700;
   font-size: 1.2rem;
+  min-width: 0;
 }
 
 .brand--stack {
@@ -95,12 +97,11 @@ button, input, select, textarea {
   background: linear-gradient(135deg, var(--primary), #5aa97e);
   color: white;
   font-size: 1.2rem;
+  flex: 0 0 auto;
 }
 
-
-
 .nav-toggle {
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 42px;
@@ -133,21 +134,35 @@ button, input, select, textarea {
 }
 
 .nav-links {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(280px, calc(100vw - 32px));
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  flex-direction: column;
+  gap: 6px;
+  z-index: 80;
+}
+
+.nav-links.is-open {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
 }
 
 .nav-links a {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 8px 14px;
-  border-radius: 999px;
+  justify-content: flex-start;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
   color: var(--muted);
   font-size: 0.96rem;
-  font-weight: 600;
+  font-weight: 700;
   background: transparent;
   border: 1px solid transparent;
   transition: 0.2s ease;
@@ -170,6 +185,13 @@ button, input, select, textarea {
   display: flex;
   gap: 10px;
   align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.nav-user-greeting {
+  white-space: nowrap;
+  font-size: 0.92rem;
 }
 
 .btn, .btn-outline {
@@ -994,19 +1016,15 @@ label.field:has(> input[type="radio"]) > span {
 
 @media (max-width: 900px) {
   .nav {
-    display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
     gap: 8px 10px;
     padding: 8px 0;
   }
 
   .brand {
     grid-column: 1;
-    justify-content: flex-start;
+    grid-row: 1;
     font-size: 0.95rem;
-    min-width: 0;
-    max-width: 100%;
   }
 
   .brand-text-main {
@@ -1018,68 +1036,41 @@ label.field:has(> input[type="radio"]) > span {
   }
 
   .nav-toggle {
-    display: inline-flex;
     grid-column: 2;
     grid-row: 1;
-    align-self: center;
     justify-self: end;
   }
 
   .nav-actions {
     grid-column: 1 / -1;
     grid-row: 2;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
-    max-width: 100%;
     width: 100%;
-  }
-
-  .nav-actions [data-auth],
-  .nav-actions [data-guest],
-  .nav-actions [data-stripe-state] {
-    flex: 0 0 auto;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .nav-user-greeting {
-    order: 99;
-    flex: 0 0 100%;
-    text-align: left;
-    font-size: 0.8rem;
+    flex: 1 1 100%;
+    font-size: 0.82rem;
     line-height: 1.25;
-    margin-top: 2px;
   }
 
   .nav-actions .btn,
-  .nav-actions .btn-outline,
-  .nav-actions .badge {
+  .nav-actions .btn-outline {
     padding: 7px 10px;
     font-size: 0.75rem;
   }
 
   .nav-links {
-    display: none;
-    grid-column: 1 / -1;
-    grid-row: 3;
-    flex-direction: column;
-    align-items: stretch;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
     width: 100%;
-    gap: 6px;
-    margin-top: 2px;
-  }
-
-  .nav-links.is-open {
-    display: flex;
   }
 
   .nav-links a {
-    width: 100%;
-    justify-content: flex-start;
-    padding: 10px 12px;
     font-size: 0.84rem;
-    border-radius: 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
   }
 
   .hero-grid, .split-grid, .footer-grid, .projects-grid, .filter-grid, .kpi-row, .stats-grid, .search-row, .form-grid.two, .form-grid.three {

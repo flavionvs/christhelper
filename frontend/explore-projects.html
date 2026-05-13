@@ -19,27 +19,36 @@
 <body>
   <header class="header">
     <div class="container nav">
-      <a href="index.html" class="brand"><span class="brand-mark">✝</span> ChristHelper</a>
-            <button id="navToggle" class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navMenu">
+      <a href="index.html" class="brand brand--stack">
+        <span class="brand-mark">✝</span>
+        <span class="brand-text-wrap">
+          <span class="brand-text-main">ChristHelper</span>
+          <span class="brand-text-sub">Christian Support Platform</span>
+        </span>
+      </a>
+
+      <div class="nav-actions">
+        <span data-auth class="hide muted nav-user-greeting">Hi, <strong id="navUserName"></strong></span>
+        <a href="login.html" class="btn-outline" data-guest>Login</a>
+        <button class="btn-outline hide" data-auth data-logout>Logout</button>
+        <a href="submit.html" class="btn">Submit Request</a>
+      </div>
+
+      <button id="navToggle" class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navMenu">
         <span></span>
         <span></span>
         <span></span>
       </button>
+
       <nav class="nav-links" id="navMenu">
         <a href="index.html">Home</a>
         <a href="explore-projects.html">Explore Requests</a>
         <a href="submit.html">Submit Request</a>
         <a href="help-christhelper.html">Help ChristHelper</a>
-        <a href="admin.html" data-admin class="hide">Admin</a>
+        <a href="profile.html" class="hide" data-auth>Profile</a>
+        <a href="admin.html" class="hide" data-admin>Admin Page</a>
+        <a href="register.html" data-guest>Create account</a>
       </nav>
-      <div class="nav-actions">
-        <a href="profile.html" class="btn-outline hide" data-auth>Profile</a>
-        <span class="badge hide" data-auth data-stripe-state>Stripe</span>
-        <span data-auth class="hide muted nav-user-greeting">Hi, <strong id="navUserName"></strong></span>
-        <a href="login.html" class="btn-outline" data-guest>Sign in</a>
-        <a href="register.html" class="btn" data-guest>Register</a>
-        <button class="btn-outline hide" data-auth data-logout>Logout</button>
-      </div>
     </div>
   </header>
 

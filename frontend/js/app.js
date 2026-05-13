@@ -1542,6 +1542,11 @@ async function handleProfilePage() {
         <h1 style="font-size:2.3rem;">Welcome, ${safeHtml(mergedUser?.name || '')}</h1>
         <p>Manage your account details, Stripe connection, and project preferences.</p>
 
+        <div class="notice" style="margin:16px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <span>To receive financial support or payments through the platform, you must connect your Stripe account.</span>
+          <button class="btn" id="connectStripeNoticeBtn" type="button">Connect with Stripe</button>
+        </div>
+
         <div class="split-grid" style="align-items:start;">
           <div class="stack">
             <section class="card panel">
@@ -1735,6 +1740,8 @@ async function handleProfilePage() {
         alert(error.message || 'Preferences endpoint is not ready yet.');
       }
     });
+
+    $('#connectStripeNoticeBtn')?.addEventListener('click', () => $('#connectStripeBtn')?.click());
 
     $('#connectStripeBtn')?.addEventListener('click', async () => {
       try {
