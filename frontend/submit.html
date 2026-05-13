@@ -118,13 +118,13 @@
           <div class="item" style="grid-column:1/-1;">
             <strong data-info="Select all types of support needed for this request.">Help types needed</strong>
             <div class="checkbox-row" style="margin-top:10px;">
-              <label><input type="checkbox" name="help_types" value="Financial support"> Financial support</label>
               <label><input type="checkbox" name="help_types" value="Prayer"> Prayer</label>
               <label><input type="checkbox" name="help_types" value="Guidance"> Guidance</label>
               <label><input type="checkbox" name="help_types" value="Volunteer"> Volunteer</label>
               <label><input type="checkbox" name="help_types" value="Mentorship"> Mentorship</label>
               <label><input type="checkbox" name="help_types" value="Services"> Services</label>
               <label><input type="checkbox" name="help_types" value="Resources"> Resources</label>
+              <label><input type="checkbox" name="help_types" value="Financial support"> Financial support</label>
               <label><input type="checkbox" name="help_types" value="Other"> Other</label>
             </div>
           </div>
@@ -173,6 +173,20 @@
       </section>
     </div>
   </main>
+
+
+  <div class="auth-submit-modal hide" id="submitAuthModal" role="dialog" aria-modal="true" aria-labelledby="submitAuthModalTitle">
+    <div class="auth-submit-modal__backdrop" data-submit-auth-close></div>
+    <div class="card auth-submit-modal__card">
+      <h2 id="submitAuthModalTitle">Create an account or log in</h2>
+      <p class="muted">Your request details are saved in this browser. Sign up or log in to finish submitting it.</p>
+      <div class="auth-submit-modal__actions">
+        <a class="btn" id="submitAuthSignup" href="register.html?next=submit">Sign Up</a>
+        <a class="btn-outline" id="submitAuthLogin" href="login.html?next=submit">Log In</a>
+      </div>
+      <button class="btn-outline" type="button" data-submit-auth-close>Continue editing</button>
+    </div>
+  </div>
 
   <script src="js/app.js"></script>
 </body>

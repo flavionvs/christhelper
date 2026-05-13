@@ -1415,3 +1415,57 @@ label.field:has(> input[type="radio"]) > span {
     margin-left: 0;
   }
 }
+
+.hero-actions {
+  margin-top: 22px;
+}
+
+.hero-submit-btn {
+  background: #138a3d;
+  border-color: #138a3d;
+}
+
+.hero-submit-btn:hover {
+  background: #0f7834;
+  border-color: #0f7834;
+}
+
+.auth-submit-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.auth-submit-modal.hide {
+  display: none;
+}
+
+.auth-submit-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(14, 30, 24, 0.56);
+}
+
+.auth-submit-modal__card {
+  position: relative;
+  width: min(100%, 440px);
+  display: grid;
+  gap: 14px;
+  padding: 28px;
+  z-index: 1;
+}
+
+.auth-submit-modal__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.auth-submit-modal__actions .btn,
+.auth-submit-modal__actions .btn-outline {
+  flex: 1 1 140px;
+  justify-content: center;
+}

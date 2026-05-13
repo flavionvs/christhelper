@@ -729,7 +729,7 @@ function handleAuthForms() {
         const data = await api('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
         trackEvent('sign_up', { method: 'email', page_path: window.location.pathname });
         alert(data.message || 'Verification code sent.');
-        window.location.href = appPath(`verify-email.html?email=${encodeURIComponent(data.email || payload.email || '')}`);
+        window.location.href = appPath(`verify-email.html?email=${encodeURIComponent(data.email || payload.email || '')}${new URLSearchParams(window.location.search).get('next') === 'submit' ? '&next=submit' : ''}`);
       } catch (error) {
         alert(error.message);
       }
@@ -745,7 +745,7 @@ function handleAuthForms() {
         const data = await api('/auth/login', { method: 'POST', body: JSON.stringify(payload) });
         trackEvent('login', { method: 'email', page_path: window.location.pathname });
         setStoredAuth(data.token, data.user);
-        window.location.href = appPath('profile.html');
+        window.location.href = appPath(new URLSearchParams(window.location.search).get('next') === 'submit' && getPendingSubmitRequest() ? 'submit.html?resume=1' : 'profile.html');
       } catch (error) {
         const requiresVerification = /verify your email/i.test(error.message || '');
         if (requiresVerification) {
@@ -771,7 +771,7 @@ function handleAuthForms() {
         const data = await api('/auth/verify-email', { method: 'POST', body: JSON.stringify(payload) });
         setStoredAuth(data.token, data.user);
         alert(data.message || 'Email verified successfully.');
-        window.location.href = appPath('profile.html');
+        window.location.href = appPath(new URLSearchParams(window.location.search).get('next') === 'submit' && getPendingSubmitRequest() ? 'submit.html?resume=1' : 'profile.html');
       } catch (error) {
         alert(error.message);
       }
@@ -1015,6 +1015,147 @@ function setSubmitMinDate() {
   expiryInput.min = `${yyyy}-${mm}-${dd}`;
 }
 
+
+const PENDING_SUBMIT_REQUEST_KEY = 'christhelper.pendingSubmitRequest';
+
+function getSubmitRequestPayload(form) {
+  const fd = new FormData(form);
+  const payload = Object.fromEntries(fd);
+
+  payload.is_online = fd.get('is_online') === 'on';
+  payload.is_anonymous = fd.get('is_anonymous') === 'on';
+  payload.responses_public = fd.get('responses_public') !== null;
+  payload.help_types = fd.getAll('help_types');
+  payload.needs_financial_support = payload.help_types.includes('Financial support');
+  payload.project_links = parseProjectLinks(payload.project_links);
+  payload.continent = payload.continent || detectContinentFromCountry(payload.country);
+
+  if (payload.needs_financial_support) {
+    payload.funding_goal_currency = 'USD';
+    payload.is_anonymous = false;
+  } else {
+    payload.funding_goal = payload.funding_goal || 0;
+    payload.funding_goal_currency = '';
+  }
+
+  return payload;
+}
+
+function savePendingSubmitRequest(payload) {
+  localStorage.setItem(PENDING_SUBMIT_REQUEST_KEY, JSON.stringify({
+    payload,
+    saved_at: new Date().toISOString()
+  }));
+}
+
+function getPendingSubmitRequest() {
+  try {
+    return JSON.parse(localStorage.getItem(PENDING_SUBMIT_REQUEST_KEY) || 'null');
+  } catch (error) {
+    return null;
+  }
+}
+
+function clearPendingSubmitRequest() {
+  localStorage.removeItem(PENDING_SUBMIT_REQUEST_KEY);
+}
+
+function showSubmitAuthModal(payload) {
+  savePendingSubmitRequest(payload);
+  const modal = $('#submitAuthModal');
+  if (!modal) {
+    alert('Please sign up or log in to submit your request. Your request details were saved in this browser.');
+    window.location.href = appPath('login.html?next=submit');
+    return;
+  }
+
+  modal.classList.remove('hide');
+  const signup = $('#submitAuthSignup');
+  const login = $('#submitAuthLogin');
+  if (signup) signup.href = appPath('register.html?next=submit');
+  if (login) login.href = appPath('login.html?next=submit');
+}
+
+function initSubmitAuthModal() {
+  const modal = $('#submitAuthModal');
+  if (!modal) return;
+  modal.querySelectorAll('[data-submit-auth-close]').forEach((el) => {
+    el.addEventListener('click', () => modal.classList.add('hide'));
+  });
+}
+
+function validateSubmitPayloadBeforePost(payload) {
+  if (payload.needs_financial_support) {
+    if (!currentUser?.stripe_account_id) {
+      alert('Please connect Stripe in your profile before submitting a request that needs financial support.');
+      window.location.href = appPath('profile.html');
+      return false;
+    }
+
+    if (!currentUser?.stripe_charges_enabled) {
+      alert('Your Stripe account is connected, but setup is not finished yet. Please finish Stripe onboarding in your profile before submitting a financial request.');
+      window.location.href = appPath('profile.html');
+      return false;
+    }
+
+    if (!payload.funding_goal || Number(payload.funding_goal) <= 0) {
+      alert('Please enter a funding goal in USD.');
+      return false;
+    }
+  }
+
+  if (!payload.campaign_expiry_date) {
+    alert('Please set a campaign expiry date.');
+    return false;
+  }
+
+  return true;
+}
+
+async function submitRequestPayload(payload, form = null) {
+  if (!validateSubmitPayloadBeforePost(payload)) return;
+
+  const data = await api('/projects', { method: 'POST', body: JSON.stringify(payload) });
+  trackEvent('project_created', {
+    category: payload.category || '',
+    country: payload.country || '',
+    is_online: Boolean(payload.is_online),
+    needs_financial_support: Boolean(payload.needs_financial_support),
+    help_types: Array.isArray(payload.help_types) ? payload.help_types.join(',') : '',
+    page_path: window.location.pathname
+  });
+
+  clearPendingSubmitRequest();
+  alert(payload.needs_financial_support
+    ? 'Request submitted successfully. Because Stripe is ready, your financial request can move to admin review.'
+    : 'Request submitted successfully.');
+
+  if (form) {
+    form.reset();
+    buildCountryDropdown();
+    fillContinentFromCountry();
+    toggleFinancialFields();
+  }
+
+  const projectId = data?.id || data?.project?.id;
+  window.location.href = appPath(projectId ? `project.html?id=${encodeURIComponent(projectId)}` : 'profile.html');
+}
+
+async function resumePendingSubmitRequestIfNeeded() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('resume') !== '1') return;
+  if (!token) return;
+
+  const pending = getPendingSubmitRequest();
+  if (!pending?.payload) return;
+
+  try {
+    await submitRequestPayload(pending.payload);
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
 function handleSubmitProject() {
   const form = $('#submitProjectForm');
   if (!form) return;
@@ -1034,73 +1175,26 @@ function handleSubmitProject() {
     el.addEventListener('change', toggleFinancialFields);
   });
 
+  initSubmitAuthModal();
+  resumePendingSubmitRequestIfNeeded();
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const fd = new FormData(form);
-    const payload = Object.fromEntries(fd);
+    const payload = getSubmitRequestPayload(form);
 
-    payload.is_online = fd.get('is_online') === 'on';
-    payload.is_anonymous = fd.get('is_anonymous') === 'on';
-    payload.responses_public = fd.get('responses_public') !== null;
-    payload.help_types = fd.getAll('help_types');
-    payload.needs_financial_support = payload.help_types.includes('Financial support');
-    payload.project_links = parseProjectLinks(payload.project_links);
-    payload.continent = payload.continent || detectContinentFromCountry(payload.country);
-
-    if (payload.needs_financial_support) {
-      payload.funding_goal_currency = 'USD';
-
-      if (!currentUser?.stripe_account_id) {
-        alert('Please connect Stripe in your profile before submitting a request that needs financial support.');
-        window.location.href = appPath('profile.html');
-        return;
-      }
-
-      if (!currentUser?.stripe_charges_enabled) {
-        alert('Your Stripe account is connected, but setup is not finished yet. Please finish Stripe onboarding in your profile before submitting a financial request.');
-        window.location.href = appPath('profile.html');
-        return;
-      }
-
-      if (!payload.funding_goal || Number(payload.funding_goal) <= 0) {
-        alert('Please enter a funding goal in USD.');
-        return;
-      }
-
-    } else {
-      payload.funding_goal = payload.funding_goal || 0;
-      payload.funding_goal_currency = '';
-    }
-
-    if (payload.needs_financial_support) {
-      payload.is_anonymous = false;
-    }
-
-    if (!payload.campaign_expiry_date) {
-      alert('Please set a campaign expiry date.');
+    if (!token) {
+      showSubmitAuthModal(payload);
       return;
     }
 
     try {
-      await api('/projects', { method: 'POST', body: JSON.stringify(payload) });
-      trackEvent('project_created', {
-        category: payload.category || '',
-        country: payload.country || '',
-        is_online: Boolean(payload.is_online),
-        needs_financial_support: Boolean(payload.needs_financial_support),
-        help_types: Array.isArray(payload.help_types) ? payload.help_types.join(',') : '',
-        page_path: window.location.pathname
-      });
-      alert(payload.needs_financial_support
-        ? 'Request submitted successfully. Because Stripe is ready, your financial request can move to admin review.'
-        : 'Request submitted successfully.');
-      form.reset();
-      buildCountryDropdown();
-      fillContinentFromCountry();
-      toggleFinancialFields();
-      window.location.href = appPath('profile.html');
+      await submitRequestPayload(payload, form);
     } catch (error) {
-      alert(error.message.includes('Missing token') ? 'Please login first to submit a request.' : error.message);
+      if (error.message.includes('Missing token')) {
+        showSubmitAuthModal(payload);
+        return;
+      }
+      alert(error.message);
     }
   });
 }
