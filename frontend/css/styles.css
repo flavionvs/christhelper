@@ -2030,3 +2030,81 @@ input:focus, select:focus, textarea:focus { border-color: #0b73ff !important; bo
   color: #203146;
   text-shadow: none;
 }
+
+/* Mobile hero separation: keep the intro card and verse card as two clear sections */
+@media (max-width: 760px) {
+  .hero-home {
+    padding-top: 24px;
+    padding-bottom: 30px;
+  }
+
+  .hero-home .container {
+    width: min(var(--container), calc(100% - 32px));
+  }
+
+  .hero-grid-home {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 22px;
+    align-items: stretch;
+  }
+
+  .hero-copy-home,
+  .hero-visual {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    justify-self: stretch;
+  }
+
+  .hero-copy-home {
+    margin: 0;
+    min-height: auto;
+    padding: 28px 22px;
+    border-radius: 28px;
+    border: 1px solid rgba(255,255,255,0.16);
+    box-shadow: 0 18px 48px rgba(3, 8, 19, 0.30);
+  }
+
+  .hero-visual {
+    margin-top: 0;
+    display: block;
+  }
+
+  .hero-visual-frame {
+    min-height: 320px;
+    border-radius: 28px;
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 18px 48px rgba(3, 8, 19, 0.30);
+  }
+
+  .hero-visual-frame img {
+    min-height: 320px;
+  }
+
+  .hero + .section {
+    margin-top: 4px;
+    padding-top: 28px;
+    border-top: 1px solid rgba(255,255,255,0.10);
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-grid-home {
+    gap: 20px;
+  }
+
+  .hero-copy-home {
+    padding: 24px 18px;
+    border-radius: 24px;
+  }
+
+  .hero-visual-frame {
+    min-height: 300px;
+    border-radius: 24px;
+  }
+
+  .hero-visual-frame img {
+    min-height: 300px;
+  }
+}
