@@ -2108,3 +2108,212 @@ input:focus, select:focus, textarea:focus { border-color: #0b73ff !important; bo
     min-height: 300px;
   }
 }
+
+
+/* Pray & Support CTA and cross-background title readability */
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.hero-pray-support-btn {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.78);
+  color: #102033;
+  box-shadow: 0 14px 34px rgba(3, 8, 19, 0.20);
+}
+
+.hero-pray-support-btn:hover {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #07111f;
+  transform: translateY(-1px);
+}
+
+.section-head h2.home-requests-title {
+  color: #203146;
+  text-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .section-head h2.home-requests-title {
+    color: #f4f7fb;
+    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.58);
+  }
+
+  .hero-actions {
+    gap: 10px;
+  }
+
+  .hero-actions .btn,
+  .hero-actions .btn-outline {
+    flex: 1 1 150px;
+  }
+}
+
+
+/* Header Pray & Support CTA and improved mobile All Requests contrast */
+.header-pray-support-btn {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.72);
+  color: #102033;
+  box-shadow: 0 12px 28px rgba(3, 8, 19, 0.18);
+}
+
+.header-pray-support-btn:hover {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #07111f;
+}
+
+@media (max-width: 760px) {
+  .section-head h2.home-requests-title {
+    color: #f8d98a;
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.72);
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-actions .header-pray-support-btn,
+  .nav-actions .btn {
+    flex: 1 1 calc(50% - 8px);
+  }
+}
+
+/* Header button order/compact mobile sizing + one-line mobile requests title */
+@media (max-width: 900px) {
+  .nav-actions {
+    flex-wrap: nowrap;
+    gap: 5px;
+    justify-content: flex-start;
+    overflow: visible;
+  }
+
+  .nav-user-greeting:not(.hide) {
+    flex: 0 1 auto;
+    max-width: 82px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .nav-actions .btn,
+  .nav-actions .btn-outline {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 32px;
+    padding: 6px 7px;
+    font-size: 0.68rem;
+    line-height: 1.05;
+    white-space: nowrap;
+    letter-spacing: -0.02em;
+  }
+
+  .nav-actions .header-pray-support-btn {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-actions {
+    gap: 4px;
+  }
+
+  .nav-actions .header-pray-support-btn,
+  .nav-actions .btn,
+  .nav-actions .btn-outline {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 6px 5px;
+    font-size: 0.62rem;
+  }
+
+  .section-head h2.home-requests-title {
+    color: #ffffff;
+    font-size: clamp(0.74rem, 3.1vw, 0.92rem);
+    line-height: 1.1;
+    letter-spacing: -0.045em;
+    white-space: nowrap;
+    text-shadow: 0 3px 18px rgba(0, 0, 0, 0.86);
+  }
+}
+
+@media (max-width: 380px) {
+  .nav-actions .btn,
+  .nav-actions .btn-outline {
+    font-size: 0.56rem;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .section-head h2.home-requests-title {
+    font-size: 0.68rem;
+  }
+}
+
+/* Landing requests header alignment + blue title readability */
+#projects .section-head {
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+#projects .section-head > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#projects .section-head [data-load-projects] {
+  flex: 0 0 auto;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.section-head h2.home-requests-title {
+  color: #1d4ed8 !important;
+  text-shadow: none !important;
+  max-width: 100%;
+  overflow-wrap: normal;
+}
+
+@media (max-width: 760px) {
+  #projects .section-head {
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-head h2.home-requests-title {
+    color: #1d4ed8 !important;
+    font-size: clamp(0.84rem, 3.3vw, 1.05rem);
+    line-height: 1.16;
+    letter-spacing: -0.035em;
+    white-space: normal;
+  }
+
+  #projects .section-head [data-load-projects] {
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 420px) {
+  #projects .section-head {
+    gap: 8px;
+  }
+
+  .section-head h2.home-requests-title {
+    font-size: clamp(0.78rem, 3.1vw, 0.9rem);
+    letter-spacing: -0.04em;
+  }
+
+  #projectCount {
+    font-size: 0.78rem;
+  }
+
+  #projects .section-head [data-load-projects] {
+    padding: 7px 9px;
+    font-size: 0.72rem;
+  }
+}
