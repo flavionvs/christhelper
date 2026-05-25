@@ -21,6 +21,7 @@ const GA_ALLOWED_EVENTS = new Set([
   'stripe_onboarding_started',
   'stripe_dashboard_opened',
   'project_card_clicked',
+  'project_shared',
   'hero_verse_changed',
   'mobile_menu_toggled'
 ]);
@@ -294,6 +295,108 @@ function getPrayerCount(project) {
   return 0;
 }
 
+
+function getProjectShareUrl(projectId) {
+  const id = encodeURIComponent(String(projectId || '').trim());
+  return new URL(`/project.html?id=${id}`, window.location.origin).href;
+}
+
+function getShareIcon() {
+  return `
+    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+      <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11A2.99 2.99 0 1 0 15 5c0 .24.04.47.09.7L8.04 9.81A3 3 0 1 0 8.04 14.2l7.12 4.18c-.05.2-.08.41-.08.62a2.92 2.92 0 1 0 2.92-2.92Z" fill="currentColor"/>
+    </svg>
+  `;
+}
+
+function shareButton(project, extraClass = '') {
+  const id = project?.id || '';
+  const title = project?.title || 'ChristHelper request';
+  return `
+    <button
+      type="button"
+      class="share-project-btn ${extraClass}"
+      data-project-id="${safeHtml(id)}"
+      data-project-title="${safeHtml(title)}"
+      data-project-url="${safeHtml(getProjectShareUrl(id))}"
+      aria-label="Share this request"
+      title="Share this request"
+    >
+      ${getShareIcon()}
+      <span class="share-project-label">Share</span>
+    </button>
+  `;
+}
+
+async function copyTextFallback(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  textarea.remove();
+}
+
+function showShareFeedback(button, message) {
+  const label = button?.querySelector('.share-project-label');
+  if (!label) {
+    window.alert(message);
+    return;
+  }
+  const original = label.textContent;
+  label.textContent = message;
+  button.classList.add('is-copied');
+  window.setTimeout(() => {
+    label.textContent = original || 'Share';
+    button.classList.remove('is-copied');
+  }, 1800);
+}
+
+async function handleProjectShare(button) {
+  const url = button.dataset.projectUrl || getProjectShareUrl(button.dataset.projectId);
+  const title = button.dataset.projectTitle || 'ChristHelper request';
+  const text = `Please see this ChristHelper request: ${title}`;
+
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text, url });
+      showShareFeedback(button, 'Shared');
+    } else if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url);
+      showShareFeedback(button, 'Copied');
+    } else {
+      await copyTextFallback(url);
+      showShareFeedback(button, 'Copied');
+    }
+
+    trackEvent('project_shared', {
+      project_id: button.dataset.projectId || '',
+      page_path: window.location.pathname
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') return;
+    try {
+      await copyTextFallback(url);
+      showShareFeedback(button, 'Copied');
+    } catch (_) {
+      window.prompt('Copy this request link:', url);
+    }
+  }
+}
+
+function initProjectShareButtons() {
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest('.share-project-btn');
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    handleProjectShare(button);
+  });
+}
+
 function projectCard(project) {
   const pct = project.funding_goal > 0
     ? Math.min(100, Math.round((project.amount_raised / project.funding_goal) * 100))
@@ -309,6 +412,7 @@ function projectCard(project) {
 
   return `
     <article class="card project-card">
+      ${shareButton(project, 'share-project-btn-card')}
       <div class="project-meta">
         <span class="badge">${safeHtml(project.country)}</span>
         <span class="badge">${safeHtml(project.continent)}</span>
@@ -473,7 +577,8 @@ async function loadProjectDetails() {
     root.innerHTML = `
       <div class="split-grid">
         <div class="stack">
-          <section class="card panel">
+          <section class="card panel project-detail-hero">
+            ${shareButton(project, 'share-project-btn-detail')}
             <div class="project-meta">
               <span class="badge">${safeHtml(project.country)}</span>
               <span class="badge">${safeHtml(project.continent)}</span>
@@ -2285,6 +2390,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   trackPageContext();
   setAuthUi();
   initButtons();
+  initProjectShareButtons();
   initMobileMenu();
   initFilterPanels();
   initHeroVerseCarousel();

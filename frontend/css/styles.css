@@ -2317,3 +2317,87 @@ input:focus, select:focus, textarea:focus { border-color: #0b73ff !important; bo
     font-size: 0.72rem;
   }
 }
+
+/* Request share buttons */
+.share-project-btn {
+  border: 1px solid rgba(11, 115, 255, 0.18);
+  background: rgba(255, 255, 255, 0.92);
+  color: #084d9e;
+  border-radius: 999px;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(7, 22, 41, 0.10);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  z-index: 3;
+}
+
+.share-project-btn:hover,
+.share-project-btn:focus-visible {
+  transform: translateY(-1px);
+  background: #ffffff;
+  box-shadow: 0 14px 32px rgba(7, 22, 41, 0.14);
+  outline: none;
+}
+
+.share-project-btn svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+.share-project-btn.is-copied {
+  background: #e8f7ef;
+  color: #145f37;
+  border-color: rgba(20, 95, 55, 0.2);
+}
+
+.share-project-btn-card {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.project-card .project-meta,
+.project-card .project-title-row {
+  padding-right: 56px;
+}
+
+.project-detail-hero {
+  position: relative;
+}
+
+.share-project-btn-detail {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
+.project-detail-hero .project-meta,
+.project-detail-hero .project-title-row {
+  padding-right: 88px;
+}
+
+@media (max-width: 520px) {
+  .share-project-label {
+    display: none;
+  }
+
+  .share-project-btn {
+    width: 38px;
+    padding: 8px;
+  }
+
+  .project-card .project-meta,
+  .project-card .project-title-row,
+  .project-detail-hero .project-meta,
+  .project-detail-hero .project-title-row {
+    padding-right: 46px;
+  }
+}
