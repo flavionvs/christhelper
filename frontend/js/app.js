@@ -432,7 +432,7 @@ function projectCard(project) {
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
         </div>
-      ` : '<div class="notice">View details to see full support options and request status.</div>'}
+      ` : '<div class="notice">View details to see full support options.</div>'}
       <div class="project-actions">
         <a class="btn" href="project.html?id=${project.id}">View details</a>
         <a class="btn-outline" href="project.html?id=${project.id}#respond">Respond</a>
@@ -575,8 +575,7 @@ async function loadProjectDetails() {
       : formatMoney(project.funding_goal);
 
     root.innerHTML = `
-      <div class="split-grid">
-        <div class="stack">
+      <div class="stack project-page-stack">
           <section class="card panel project-detail-hero">
             ${shareButton(project, 'share-project-btn-detail')}
             <div class="project-meta">
@@ -666,17 +665,6 @@ async function loadProjectDetails() {
           </section>
 
           <section class="card panel">
-            <h2>Request updates</h2>
-            <div class="list">
-              ${updates.length
-                ? updates.map(item => `<div class="item"><strong>${safeHtml(item.title)}</strong>${safeHtml(item.content)}<div class="muted" style="margin-top:8px;">${new Date(item.created_at).toLocaleString()}</div></div>`).join('')
-                : '<p class="muted">No updates yet.</p>'}
-            </div>
-          </section>
-        </div>
-
-        <aside class="stack">
-          <section class="card panel">
             <h2>Support this request</h2>
             <div class="notice">ChristHelper reviews financial requests before enabling payments, but users should still use prayer, wisdom, and personal judgment before giving.</div>
             ${project.needs_financial_support && project.funding_approved ? `
@@ -715,7 +703,16 @@ async function loadProjectDetails() {
               <button class="btn-outline" type="submit">Submit report</button>
             </form>
           </section>
-        </aside>
+
+          <section class="card panel">
+            <h2>Request updates</h2>
+            <div class="list">
+              ${updates.length
+                ? updates.map(item => `<div class="item"><strong>${safeHtml(item.title)}</strong>${safeHtml(item.content)}<div class="muted" style="margin-top:8px;">${new Date(item.created_at).toLocaleString()}</div></div>`).join('')
+                : '<p class="muted">No updates yet.</p>'}
+            </div>
+          </section>
+
       </div>
     `;
     const respondForm = $('#respondForm');
