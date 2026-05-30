@@ -397,6 +397,10 @@ function initProjectShareButtons() {
   });
 }
 
+function getProjectDescriptionText(project) {
+  return project?.description || project?.summary || '';
+}
+
 function projectCard(project) {
   const pct = project.funding_goal > 0
     ? Math.min(100, Math.round((project.amount_raised / project.funding_goal) * 100))
@@ -422,7 +426,7 @@ function projectCard(project) {
         <h3>${safeHtml(project.title)}</h3>
         ${reviewedIcon}
       </div>
-      <p class="project-summary">${safeHtml(project.summary)}</p>
+      <p class="project-summary">${safeHtml(getProjectDescriptionText(project))}</p>
       <p><strong>Organization:</strong> ${safeHtml(project.is_anonymous ? 'Anonymous request' : (project.organization_name || 'Not specified'))}</p>
       ${project.needs_financial_support && project.funding_approved ? `
         <div class="progress-wrap">
@@ -588,7 +592,7 @@ async function loadProjectDetails() {
               <h1 style="font-size:2.3rem;margin:0;">${safeHtml(project.title)}</h1>
               ${(project.admin_reviewed || !project.needs_financial_support) ? '<span class="review-status-icon review-status-icon-lg" title="Visible" aria-label="Visible">✓</span>' : ''}
             </div>
-            <p>${safeHtml(project.summary)}</p>
+            <p>${safeHtml(getProjectDescriptionText(project))}</p>
             <div class="badge-row">
               ${(project.help_types || []).map(h => `<span class="badge">${safeHtml(h)}</span>`).join('')}
               ${project.verified_ministry ? '<span class="badge good">Verified church/ministry</span>' : ''}
@@ -1131,6 +1135,7 @@ function getSubmitRequestPayload(form) {
   payload.needs_financial_support = payload.help_types.includes('Financial support');
   payload.project_links = parseProjectLinks(payload.project_links);
   payload.continent = payload.continent || detectContinentFromCountry(payload.country);
+  payload.summary = payload.description || payload.summary || '';
 
   if (payload.needs_financial_support) {
     payload.funding_goal_currency = 'USD';

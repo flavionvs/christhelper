@@ -1706,7 +1706,7 @@ app.get(['/projects/:id','/api/projects/:id'], (req, res) => {
 
 app.post('/projects', authRequired, (req, res) => {
   const body = req.body || {};
-  const required = ['title', 'summary', 'description', 'country', 'category', 'campaign_expiry_date'];
+  const required = ['title', 'description', 'country', 'category', 'campaign_expiry_date'];
 
   for (const field of required) {
     if (!body[field]) return res.status(400).json({ error: `${field} is required` });
@@ -1779,7 +1779,7 @@ app.post('/projects', authRequired, (req, res) => {
     const project = normalizeProject({
       id: createId(),
       title: String(body.title),
-      summary: String(body.summary),
+      summary: String(body.summary || body.description),
       description: String(body.description),
       country: String(body.country),
       continent,
