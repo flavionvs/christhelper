@@ -296,6 +296,14 @@ function getPrayerCount(project) {
 }
 
 
+function getResponseCount(project) {
+  return getReplyCount(project) + getPrayerCount(project);
+}
+
+function responseCountBadge(project) {
+  return `<span class="badge">🙏 ${getResponseCount(project)} prayers/replies</span>`;
+}
+
 function getProjectShareUrl(projectId) {
   const id = encodeURIComponent(String(projectId || '').trim());
   return new URL(`/project.html?id=${id}`, window.location.origin).href;
@@ -446,8 +454,7 @@ function projectCard(project) {
         <a class="btn" href="project.html?id=${project.id}">View details</a>
         <a class="btn-outline" href="project.html?id=${project.id}#respond">Respond</a>
         <div class="project-action-stats">
-          <span class="badge">💬 ${getReplyCount(project)} replies</span>
-          <span class="badge">🙏 ${getPrayerCount(project)} prayers</span>
+          ${responseCountBadge(project)}
         </div>
       </div>
     </article>
@@ -534,8 +541,7 @@ async function loadAllProjectsForSubmitPage() {
               ${safeHtml(project.country || '')}${project.continent ? ` · ${safeHtml(project.continent)}` : ''}${project.category ? ` · ${safeHtml(project.category)}` : ''}
             </div>
             <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-              <span class="badge">💬 ${getReplyCount(project)} replies</span>
-              <span class="badge">🙏 ${getPrayerCount(project)} prayers</span>
+              ${responseCountBadge(project)}
               <a class="btn-outline" href="project.html?id=${project.id}">Open</a>
             </div>
           </div>
@@ -622,8 +628,7 @@ async function loadProjectDetails() {
               ${project.needs_financial_support && !project.owner_can_receive_payments ? '<span class="badge warn">Stripe setup pending</span>' : ''}
             </div>
             <div class="stats-row">
-              <div class="stat"><strong>${stats.prayer_count}</strong><span class="muted">Prayer supporters</span></div>
-              <div class="stat"><strong>${stats.reply_count}</strong><span class="muted">Replies and offers</span></div>
+              <div class="stat"><strong>${Number(stats.prayer_count || 0) + Number(stats.reply_count || 0)}</strong><span class="muted">Prayers/replies</span></div>
             </div>
           </section>
 
@@ -649,12 +654,18 @@ async function loadProjectDetails() {
 
           <section class="card panel" id="respond">
             <h2>Respond</h2>
-            <p>Send one message and choose whether it is a prayer or a reply.</p>
+            <p>Choose Prayer or Reply, then send your message.</p>
             <form id="respondForm" class="simple-form">
-              <select name="kind" id="responseKind" required>
-                <option value="prayer">Prayer</option>
-                <option value="reply">Reply</option>
-              </select>
+              <div class="response-kind-toggle" role="radiogroup" aria-label="Response type">
+                <label class="response-kind-option">
+                  <input type="radio" name="kind" id="responseKindPrayer" value="prayer" checked>
+                  <span>🙏 Prayer</span>
+                </label>
+                <label class="response-kind-option">
+                  <input type="radio" name="kind" id="responseKindReply" value="reply">
+                  <span>💬 Reply</span>
+                </label>
+              </div>
               <select name="type" id="responseSupportType" class="hide">
                 <option value="">Select reply type</option>
                 <option>Guidance</option>
@@ -741,13 +752,13 @@ async function loadProjectDetails() {
       </div>
     `;
     const respondForm = $('#respondForm');
-    const responseKind = $('#responseKind');
+    const responseKindOptions = document.querySelectorAll('input[name="kind"]');
     const responseSupportType = $('#responseSupportType');
     const responseEmail = $('#responseEmail');
     const responseMessage = $('#responseMessage');
 
     function syncRespondForm() {
-      const selected = responseKind?.value || 'prayer';
+      const selected = document.querySelector('input[name="kind"]:checked')?.value || 'prayer';
       const isReply = selected === 'reply';
       responseSupportType?.classList.toggle('hide', !isReply);
       responseEmail?.classList.toggle('hide', !isReply);
@@ -761,7 +772,7 @@ async function loadProjectDetails() {
       }
     }
 
-    responseKind?.addEventListener('change', syncRespondForm);
+    responseKindOptions.forEach(option => option.addEventListener('change', syncRespondForm));
     syncRespondForm();
 
     respondForm?.addEventListener('submit', async (e) => {
@@ -794,7 +805,8 @@ async function loadProjectDetails() {
         });
         alert(result?.message || 'Your response has been sent.');
         e.target.reset();
-        if (responseKind) responseKind.value = 'prayer';
+        const prayerOption = $('#responseKindPrayer');
+        if (prayerOption) prayerOption.checked = true;
         syncRespondForm();
         location.reload();
       } catch (error) {
@@ -1573,8 +1585,7 @@ function renderProfileProjectList(projects, filter = 'all') {
               ${project.owner_can_receive_payments
                 ? '<span class="badge good">Stripe ready</span>'
                 : '<span class="badge warn">Stripe pending</span>'}
-              <span class="badge">💬 ${getReplyCount(project)} replies</span>
-              <span class="badge">🙏 ${getPrayerCount(project)} prayers</span>
+              ${responseCountBadge(project)}
             </div>
 
             <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">

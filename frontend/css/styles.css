@@ -2422,3 +2422,59 @@ input:focus, select:focus, textarea:focus { border-color: #0b73ff !important; bo
     padding-right: 46px;
   }
 }
+
+.response-kind-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.response-kind-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.response-kind-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.response-kind-option span {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: white;
+  color: var(--text);
+  font-weight: 800;
+  text-align: center;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.response-kind-option input:checked + span {
+  border-color: var(--primary);
+  background: rgba(46, 125, 87, 0.12);
+  color: var(--primary-dark);
+  box-shadow: 0 0 0 3px rgba(46, 125, 87, 0.12);
+}
+
+.response-kind-option input:focus-visible + span {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .response-kind-toggle {
+    gap: 8px;
+  }
+
+  .response-kind-option span {
+    padding: 12px 10px;
+    font-size: 0.95rem;
+  }
+}
