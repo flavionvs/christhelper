@@ -785,6 +785,27 @@ input[type="radio"] {
   margin: 0;
 }
 
+.project-card .project-summary-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 15;
+  line-clamp: 15;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.project-read-more {
+  color: var(--primary);
+  font-weight: 800;
+  text-decoration: none;
+  align-self: flex-start;
+}
+
+.project-read-more:hover,
+.project-read-more:focus-visible {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
 .split-grid {
   display: grid;
   grid-template-columns: 1.3fr 0.8fr;

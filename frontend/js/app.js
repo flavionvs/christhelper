@@ -401,6 +401,10 @@ function getProjectDescriptionText(project) {
   return project?.description || project?.summary || '';
 }
 
+function projectReadMoreLink(project) {
+  return `<a class="project-read-more" href="project.html?id=${project.id}" hidden>Read More</a>`;
+}
+
 function projectCard(project) {
   const pct = project.funding_goal > 0
     ? Math.min(100, Math.round((project.amount_raised / project.funding_goal) * 100))
@@ -426,7 +430,8 @@ function projectCard(project) {
         <h3>${safeHtml(project.title)}</h3>
         ${reviewedIcon}
       </div>
-      <p class="project-summary">${safeHtml(getProjectDescriptionText(project))}</p>
+      <p class="project-summary project-summary-clamp">${safeHtml(getProjectDescriptionText(project))}</p>
+      ${projectReadMoreLink(project)}
       <p><strong>Organization:</strong> ${safeHtml(project.is_anonymous ? 'Anonymous request' : (project.organization_name || 'Not specified'))}</p>
       ${project.needs_financial_support && project.funding_approved ? `
         <div class="progress-wrap">
@@ -447,6 +452,20 @@ function projectCard(project) {
       </div>
     </article>
   `;
+}
+
+
+function updateProjectReadMoreLinks(scope = document) {
+  scope.querySelectorAll('.project-card').forEach((card) => {
+    const summary = card.querySelector('.project-summary-clamp');
+    const readMore = card.querySelector('.project-read-more');
+    if (!summary || !readMore) return;
+
+    window.requestAnimationFrame(() => {
+      const isClamped = summary.scrollHeight > summary.clientHeight + 2;
+      readMore.hidden = !isClamped;
+    });
+  });
 }
 
 async function loadProjects() {
@@ -473,6 +492,8 @@ async function loadProjects() {
     grid.innerHTML = items.length
       ? items.map(projectCard).join('')
       : '<div class="card panel"><p>No requests found with these filters.</p></div>';
+
+    updateProjectReadMoreLinks(grid);
 
     trackOnce(`project_list_view:${window.location.pathname}:${params.toString()}`, 'project_list_view', {
       page_path: window.location.pathname,
