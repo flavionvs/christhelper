@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChristHelper | Unsubscribe</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container nav">
+      <a href="index.html" class="brand brand--stack">
+        <span class="brand-mark"><img src="assets/christhelper-logo.png" alt="ChristHelper logo"></span>
+        <span class="brand-text-wrap">
+          <span class="brand-text-main">ChristHelper</span>
+          <span class="brand-text-sub">Christian Support Platform</span>
+        </span>
+      </a>
+
+      <div class="nav-actions">
+        <span data-auth class="hide muted nav-user-greeting">Hi, <strong id="navUserName"></strong></span>
+        <a href="login.html" class="btn-outline" data-guest>Login / Signup</a>
+        <button class="btn-outline hide" data-auth data-logout>Logout</button>
+        <a href="submit.html" class="btn">Submit Request</a>
+        <a href="explore-projects.html" class="btn-outline header-pray-support-btn">Pray &amp; Support</a>
+      </div>
+
+      <button id="navToggle" class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navMenu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <nav class="nav-links" id="navMenu">
+        <a href="index.html">Home</a>
+        <a href="explore-projects.html">Explore Requests</a>
+        <a href="submit.html">Submit Request</a>
+        <a href="help-christhelper.html">Help ChristHelper</a>
+        <a href="profile.html" class="hide" data-auth>Profile</a>
+        <a href="admin.html" class="hide" data-admin>Admin Page</a>
+        <a href="register.html" data-guest>Create account</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+    <div class="container" id="unsubscribePage">
+      <section class="card page-card">
+        <h1>Unsubscribe</h1>
+        <p>Loading your email preference...</p>
+      </section>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

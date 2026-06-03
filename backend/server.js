@@ -20,6 +20,10 @@ const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SEC
 const EMAIL_FROM = String(process.env.EMAIL_FROM || 'ChristHelper <noreply@example.com>').trim();
 const ADMIN_NOTIFICATION_EMAIL = String(process.env.ADMIN_NOTIFICATION_EMAIL || '').trim();
 const SENDGRID_API_KEY = String(process.env.SENDGRID_API_KEY || '').trim();
+const ENGAGEMENT_EMAILS_ENABLED = String(process.env.ENGAGEMENT_EMAILS_ENABLED || 'true').toLowerCase() !== 'false';
+const ENGAGEMENT_EMAIL_HOUR = Math.min(23, Math.max(0, Number(process.env.ENGAGEMENT_EMAIL_HOUR || 9)));
+const ENGAGEMENT_EMAIL_LIMIT = Math.min(10, Math.max(1, Number(process.env.ENGAGEMENT_EMAIL_LIMIT || 5)));
+const ENGAGEMENT_EMAIL_DAYS = new Set(String(process.env.ENGAGEMENT_EMAIL_DAYS || '1,4').split(',').map((value) => Number(value.trim())).filter((value) => Number.isInteger(value) && value >= 0 && value <= 6));
 
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 const sqlite = new DatabaseSync(DB_PATH);
@@ -187,6 +191,144 @@ function emailTemplate({ title, intro, details = [], ctaLabel = '', ctaUrl = '',
 function textTemplate(intro, details = [], footer = 'Thank you for using ChristHelper.') {
   return [intro, details.length ? '' : null, ...details, '', footer].filter((v) => v !== null).join('\n');
 }
+
+function isProjectExpiredForEngagement(project) {
+  const expiry = String(project?.campaign_expiry_date || '').trim();
+  if (!expiry) return false;
+  const expiryDate = new Date(`${expiry}T23:59:59`);
+  return !Number.isNaN(expiryDate.getTime()) && expiryDate.getTime() < Date.now();
+}
+
+function getLatestEngagementRequests(db, limit = ENGAGEMENT_EMAIL_LIMIT) {
+  return db.projects
+    .map((project) => normalizeProject(project))
+    .filter((project) => isProjectPubliclyVisible(project))
+    .filter((project) => String(project.status || 'active').toLowerCase() === 'active')
+    .filter((project) => !isProjectExpiredForEngagement(project))
+    .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
+    .slice(0, limit);
+}
+
+function requestSummary(project) {
+  const summary = String(project?.short_summary || project?.summary || project?.description || '').trim();
+  return summary.length > 180 ? `${summary.slice(0, 177).trim()}...` : summary;
+}
+
+function engagementEmailTemplate({ user, requests }) {
+  const exploreUrl = `${FRONTEND_URL}/explore-projects.html`;
+  const homeUrl = `${FRONTEND_URL}/`;
+  const unsubscribeUrl = `${FRONTEND_URL}/unsubscribe.html?token=${encodeURIComponent(user.unsubscribe_token || '')}`;
+  const requestCards = requests.map((project) => {
+    const projectUrl = formatProjectLink(project.id);
+    return `
+      <tr>
+        <td style="padding:18px 0;border-bottom:1px solid #e5e7eb;">
+          <div style="font-size:18px;font-weight:700;color:#102a43;margin-bottom:6px;">${escapeHtml(project.title || 'Prayer request')}</div>
+          <div style="font-size:14px;line-height:1.6;color:#4b5563;margin-bottom:12px;">${escapeHtml(requestSummary(project) || 'This request needs prayer and support from the community.')}</div>
+          <a href="${escapeHtml(projectUrl)}" style="display:inline-block;padding:10px 14px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700;font-size:13px;">🙏 Pray &amp; Support</a>
+        </td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <div style="margin:0;padding:0;background:#eef6ff;font-family:Arial,sans-serif;color:#1f2937;">
+      <div style="max-width:680px;margin:0 auto;padding:28px 14px;">
+        <div style="background:linear-gradient(135deg,#0f4c81,#1e88e5);border-radius:22px 22px 0 0;padding:28px;color:#ffffff;text-align:center;">
+          <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.9;">ChristHelper weekly support</div>
+          <h1 style="margin:8px 0 10px;font-size:28px;line-height:1.2;">Pray for requests that need support</h1>
+          <p style="margin:0;font-size:15px;line-height:1.6;opacity:.95;">A few minutes of prayer or a short reply can encourage someone today.</p>
+        </div>
+        <div style="background:#ffffff;border-radius:0 0 22px 22px;padding:26px;box-shadow:0 16px 45px rgba(15,76,129,.16);">
+          <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">Hi ${escapeHtml(user.name || 'friend')}, here are the latest active requests from ChristHelper.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${requestCards}</table>
+          <div style="text-align:center;margin:26px 0 18px;">
+            <a href="${escapeHtml(exploreUrl)}" style="display:inline-block;padding:13px 18px;background:#16a34a;color:#ffffff;text-decoration:none;border-radius:12px;font-weight:700;">Explore Requests</a>
+          </div>
+          <p style="font-size:13px;line-height:1.6;color:#6b7280;margin:18px 0 0;">Visit <a href="${escapeHtml(homeUrl)}" style="color:#2563eb;">ChristHelper.com</a> to submit a request or support others.</p>
+          <p style="font-size:12px;line-height:1.6;color:#6b7280;margin:16px 0 0;">You are receiving this because your ChristHelper email preferences are enabled. <a href="${escapeHtml(unsubscribeUrl)}" style="color:#6b7280;">Unsubscribe</a> or update preferences in your profile.</p>
+        </div>
+      </div>
+    </div>`;
+}
+
+function engagementEmailText({ user, requests }) {
+  const lines = [
+    `Hi ${user.name || 'friend'},`,
+    '',
+    'Here are the latest active prayer requests from ChristHelper:',
+    ''
+  ];
+  for (const project of requests) {
+    lines.push(project.title || 'Prayer request');
+    lines.push(requestSummary(project) || 'This request needs prayer and support from the community.');
+    lines.push(`Pray & Support: ${formatProjectLink(project.id)}`);
+    lines.push('');
+  }
+  lines.push(`Explore requests: ${FRONTEND_URL}/explore-projects.html`);
+  lines.push(`ChristHelper: ${FRONTEND_URL}/`);
+  lines.push(`Unsubscribe: ${FRONTEND_URL}/unsubscribe.html?token=${encodeURIComponent(user.unsubscribe_token || '')}`);
+  return lines.join('\n');
+}
+
+async function sendEngagementEmails({ force = false } = {}) {
+  if (!ENGAGEMENT_EMAILS_ENABLED && !force) return { skipped: true, reason: 'engagement_emails_disabled' };
+
+  const db = readDb();
+  const requests = getLatestEngagementRequests(db, ENGAGEMENT_EMAIL_LIMIT);
+  if (!requests.length) return { skipped: true, reason: 'no_active_requests' };
+
+  const recipients = db.users
+    .map((user) => normalizeUser(user))
+    .filter((user) => user.is_active !== false)
+    .filter((user) => user.email_verified !== false)
+    .filter((user) => user.receive_engagement_emails !== false)
+    .filter((user) => String(user.email || '').trim());
+
+  let sent = 0;
+  let skipped = 0;
+  const failures = [];
+  for (const user of recipients) {
+    const result = await sendEmailMessage({
+      to: user.email,
+      subject: 'Prayer requests that need support this week',
+      html: engagementEmailTemplate({ user, requests }),
+      text: engagementEmailText({ user, requests })
+    });
+    if (result?.ok) sent += 1;
+    else if (result?.skipped) skipped += 1;
+    else failures.push({ email: user.email, error: result?.error || 'unknown_error' });
+  }
+
+  db.meta = db.meta || {};
+  db.meta.last_engagement_email_sent_at = now();
+  db.meta.last_engagement_email_recipient_count = recipients.length;
+  db.meta.last_engagement_email_sent_count = sent;
+  writeDb(db);
+
+  return { ok: true, recipients: recipients.length, sent, skipped, failed: failures.length, failures };
+}
+
+async function runEngagementEmailScheduler() {
+  if (!ENGAGEMENT_EMAILS_ENABLED) return;
+  const date = new Date();
+  if (!ENGAGEMENT_EMAIL_DAYS.has(date.getDay())) return;
+  if (date.getHours() < ENGAGEMENT_EMAIL_HOUR) return;
+
+  const todayKey = date.toISOString().slice(0, 10);
+  const db = readDb();
+  if (db.meta?.last_engagement_email_date_key === todayKey) return;
+  db.meta = db.meta || {};
+  db.meta.last_engagement_email_date_key = todayKey;
+  writeDb(db);
+
+  try {
+    const result = await sendEngagementEmails();
+    console.log('Engagement email scheduler finished', result);
+  } catch (error) {
+    console.error('Engagement email scheduler failed', error.message);
+  }
+}
+
 
 async function sendProjectCreatorEmail(project, subject, intro, details = []) {
   const db = readDb();
@@ -493,6 +635,10 @@ function normalizeUser(user) {
   if (!Object.prototype.hasOwnProperty.call(user, 'reset_password_expires_at')) user.reset_password_expires_at = null;
   if (!Object.prototype.hasOwnProperty.call(user, 'terms_accepted')) user.terms_accepted = true;
   if (!Object.prototype.hasOwnProperty.call(user, 'terms_accepted_at')) user.terms_accepted_at = null;
+  if (!Object.prototype.hasOwnProperty.call(user, 'receive_engagement_emails')) user.receive_engagement_emails = true;
+  if (!Object.prototype.hasOwnProperty.call(user, 'unsubscribe_token')) user.unsubscribe_token = createId();
+  if (!user.unsubscribe_token) user.unsubscribe_token = createId();
+  if (!Object.prototype.hasOwnProperty.call(user, 'unsubscribed_at')) user.unsubscribed_at = null;
 
   return user;
 }
@@ -886,7 +1032,8 @@ function publicUser(user) {
     email_verified: Boolean(user.email_verified),
     email_verified_at: user.email_verified_at || null,
     terms_accepted: Boolean(user.terms_accepted),
-    terms_accepted_at: user.terms_accepted_at || null
+    terms_accepted_at: user.terms_accepted_at || null,
+    receive_engagement_emails: user.receive_engagement_emails !== false
   };
 }
 
@@ -1349,7 +1496,8 @@ app.post('/profile/preferences', authRequired, (req, res) => {
     allow_prayer_requests,
     allow_replies,
     hide_archived_projects,
-    exclude_closed_projects
+    exclude_closed_projects,
+    receive_engagement_emails
   } = req.body || {};
 
   const updated = withDb((db) => {
@@ -1362,6 +1510,10 @@ app.post('/profile/preferences', authRequired, (req, res) => {
     if (allow_replies !== undefined) user.allow_replies = Boolean(allow_replies);
     if (hide_archived_projects !== undefined) user.hide_archived_projects = Boolean(hide_archived_projects);
     if (exclude_closed_projects !== undefined) user.exclude_closed_projects = Boolean(exclude_closed_projects);
+    if (receive_engagement_emails !== undefined) {
+      user.receive_engagement_emails = Boolean(receive_engagement_emails);
+      user.unsubscribed_at = user.receive_engagement_emails ? null : now();
+    }
 
     return publicUser(user);
   });
@@ -1945,6 +2097,51 @@ app.post('/projects/:id/report', (req, res) => {
   res.json({ message: 'Report submitted successfully' });
 });
 
+
+app.post('/email/unsubscribe', (req, res) => {
+  const tokenValue = String(req.body?.token || req.query?.token || '').trim();
+  if (!tokenValue) return res.status(400).json({ error: 'Unsubscribe token is required' });
+
+  const updated = withDb((db) => {
+    const user = db.users.find((item) => String(item.unsubscribe_token || '') === tokenValue);
+    if (!user) return null;
+    user.receive_engagement_emails = false;
+    user.unsubscribed_at = now();
+    return publicUser(user);
+  });
+
+  if (!updated) return res.status(404).json({ error: 'Unsubscribe link is invalid or expired' });
+  res.json({ message: 'You have been unsubscribed from weekly prayer request emails.', user: updated });
+});
+
+app.get('/email/unsubscribe', (req, res) => {
+  const tokenValue = String(req.query?.token || '').trim();
+  if (!tokenValue) {
+    return res.status(400).send('<h1>ChristHelper</h1><p>Unsubscribe token is required.</p>');
+  }
+
+  const updated = withDb((db) => {
+    const user = db.users.find((item) => String(item.unsubscribe_token || '') === tokenValue);
+    if (!user) return null;
+    user.receive_engagement_emails = false;
+    user.unsubscribed_at = now();
+    return publicUser(user);
+  });
+
+  if (!updated) return res.status(404).send('<h1>ChristHelper</h1><p>This unsubscribe link is invalid or expired.</p>');
+  res.send('<h1>ChristHelper</h1><p>You have been unsubscribed from weekly prayer request emails.</p><p>You can enable them again from your Profile preferences.</p>');
+});
+
+app.post('/admin/engagement-email/send-now', authRequired, adminRequired, async (req, res) => {
+  try {
+    const result = await sendEngagementEmails({ force: true });
+    res.json(result);
+  } catch (error) {
+    console.error('Manual engagement email failed', error.message);
+    res.status(500).json({ error: error.message || 'Unable to send engagement email' });
+  }
+});
+
 app.get('/admin/projects', authRequired, adminRequired, (req, res) => {
   const db = readDb();
   const items = [...db.projects].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
@@ -2375,6 +2572,8 @@ app.get('/admin/donations', authRequired, adminRequired, (req, res) => {
 });
 
 readDb();
+runEngagementEmailScheduler();
+setInterval(runEngagementEmailScheduler, 60 * 60 * 1000);
 
 app.listen(PORT, () => {
   console.log(`ChristHelper backend running on http://localhost:${PORT}`);

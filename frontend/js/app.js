@@ -1548,7 +1548,8 @@ function normalizeProfilePreferences(user) {
     allow_prayer_requests: user?.allow_prayer_requests !== false,
     allow_replies: user?.allow_replies !== false,
     hide_archived_projects: Boolean(user?.hide_archived_projects),
-    exclude_closed_projects: Boolean(user?.exclude_closed_projects)
+    exclude_closed_projects: Boolean(user?.exclude_closed_projects),
+    receive_engagement_emails: user?.receive_engagement_emails !== false
   };
 }
 
@@ -1776,6 +1777,11 @@ async function handleProfilePage() {
                   <input type="checkbox" id="excludeClosedProjects" ${prefs.exclude_closed_projects ? 'checked' : ''}>
                   <span>Exclude completed / closed projects from public listings</span>
                 </label>
+
+                <label class="checkbox-field">
+                  <input type="checkbox" id="receiveEngagementEmails" ${prefs.receive_engagement_emails ? 'checked' : ''}>
+                  <span>Receive twice-weekly prayer request emails</span>
+                </label>
               </div>
 
               <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
@@ -1861,7 +1867,8 @@ async function handleProfilePage() {
         allow_prayer_requests: $('#allowPrayerRequests')?.checked || false,
         allow_replies: $('#allowReplies')?.checked || false,
         hide_archived_projects: $('#hideArchivedProjects')?.checked || false,
-        exclude_closed_projects: $('#excludeClosedProjects')?.checked || false
+        exclude_closed_projects: $('#excludeClosedProjects')?.checked || false,
+        receive_engagement_emails: $('#receiveEngagementEmails')?.checked !== false
       };
 
       try {
@@ -2435,6 +2442,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadProjects();
   loadProjectDetails();
   handleProfilePage();
+  handleUnsubscribePage();
   initAdminFilters();
   initAdminUserFilters();
   loadAdmin();
@@ -2572,3 +2580,26 @@ function initMobileMenu() {
     }
   });
 }
+
+async function handleUnsubscribePage() {
+  const root = $('#unsubscribePage');
+  if (!root) return;
+  const params = new URLSearchParams(window.location.search);
+  const unsubscribeToken = params.get('token') || '';
+  if (!unsubscribeToken) {
+    root.innerHTML = '<section class="card page-card"><h1>Unsubscribe</h1><p>This unsubscribe link is missing a token.</p><p><a class="btn" href="/profile.html">Open profile preferences</a></p></section>';
+    return;
+  }
+
+  root.innerHTML = '<section class="card page-card"><h1>Unsubscribe</h1><p>Updating your email preference...</p></section>';
+  try {
+    await api('/email/unsubscribe', {
+      method: 'POST',
+      body: JSON.stringify({ token: unsubscribeToken })
+    });
+    root.innerHTML = '<section class="card page-card"><h1>You are unsubscribed</h1><p>You will no longer receive twice-weekly prayer request emails.</p><p>You can turn them back on anytime from your Profile preferences.</p><p><a class="btn" href="/profile.html">Open profile</a> <a class="btn-outline" href="/explore-projects.html">Explore Requests</a></p></section>';
+  } catch (error) {
+    root.innerHTML = `<section class="card page-card"><h1>Unsubscribe</h1><p>${safeHtml(error.message || 'Unable to update your preference.')}</p><p><a class="btn" href="/profile.html">Open profile preferences</a></p></section>`;
+  }
+}
+
