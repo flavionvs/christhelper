@@ -70,74 +70,41 @@
       <div id="profilePage">
         <section class="card profile-card">
           <div class="section-heading">
-            <h2>Account overview</h2>
-            <p>Your information, payout setup, Stripe earnings, and dashboard access will appear here.</p>
+            <h2>Personal Details</h2>
+            <p>Manage your main profile information.</p>
           </div>
 
-          <div class="profile-grid">
-            <div class="profile-block">
-              <h3>Personal details</h3>
-              <div class="form-grid">
-                <label class="field">
-                  <span>Name</span>
-                  <input type="text" id="profileName" placeholder="Your full name">
-                </label>
+          <div class="form-grid">
+            <label class="field">
+              <span>Name</span>
+              <input type="text" id="profileName" placeholder="Your full name">
+            </label>
 
-                <label class="field">
-                  <span>Email</span>
-                  <input type="email" id="profileEmail" placeholder="you@example.com">
-                </label>
+            <label class="field">
+              <span>Email</span>
+              <input type="email" id="profileEmail" placeholder="you@example.com">
+            </label>
 
-                <label class="field">
-                  <span>Country</span>
-                  <input type="text" id="profileCountry" placeholder="New Zealand">
-                </label>
+            <label class="field">
+              <span>Country</span>
+              <input type="text" id="profileCountry" placeholder="New Zealand">
+            </label>
 
-                <label class="field">
-                  <span>Church / Organisation</span>
-                  <input type="text" id="profileOrganisation" placeholder="Optional">
-                </label>
-              </div>
+            <label class="field">
+              <span>Church / Organisation</span>
+              <input type="text" id="profileOrganisation" placeholder="Optional">
+            </label>
+          </div>
 
-              <div class="inline-actions">
-                <button class="btn" id="saveProfileBtn" type="button">Save profile</button>
-              </div>
-            </div>
-
-            <div class="profile-block">
-              <h3>Stripe connection</h3>
-              <p class="muted">
-                Connect Stripe to receive financial support directly to your payout account.
-              </p>
-
-              <div class="status-list">
-                <div class="status-row">
-                  <span>Status</span>
-                  <strong id="stripeStatusText">Not connected</strong>
-                </div>
-                <div class="status-row">
-                  <span>Payouts enabled</span>
-                  <strong id="stripePayoutsText">No</strong>
-                </div>
-                <div class="status-row">
-                  <span>Charges enabled</span>
-                  <strong id="stripeChargesText">No</strong>
-                </div>
-              </div>
-
-              <div class="inline-actions">
-                <button class="btn" id="connectStripeBtn" type="button">Connect Stripe</button>
-                <button class="btn-outline" id="refreshStripeBtn" type="button">Refresh status</button>
-                <button class="btn-outline danger" id="disconnectStripeBtn" type="button">Disconnect account</button>
-              </div>
-            </div>
+          <div class="inline-actions">
+            <button class="btn" id="saveProfileBtn" type="button">Save profile</button>
           </div>
         </section>
 
         <section class="card profile-card">
           <div class="section-heading">
-            <h2>Request settings</h2>
-            <p>Control what appears publicly on your profile and projects.</p>
+            <h2>Preferences</h2>
+            <p>Control what appears publicly on your profile and requests.</p>
           </div>
 
           <div class="form-grid">
@@ -184,7 +151,55 @@
 
         <section class="card profile-card">
           <div class="section-heading">
-            <h2>My requests</h2>
+            <h2>Account Options</h2>
+            <p>Manage account access and data options.</p>
+          </div>
+
+          <div class="inline-actions">
+            <button class="btn-outline" id="changePasswordBtn" type="button">Change password</button>
+            <button class="btn-outline" id="downloadDataBtn" type="button">Download my data</button>
+            <button class="btn-outline danger" id="deactivateAccountBtn" type="button">Deactivate account</button>
+          </div>
+        </section>
+
+        <section class="card profile-card">
+          <div class="section-heading">
+            <h2>Stripe Payouts</h2>
+            <p>Connect Stripe to receive financial support directly to your payout account.</p>
+          </div>
+
+          <div class="status-list">
+            <div class="status-row">
+              <span>Status</span>
+              <strong id="stripeStatusText">Not connected</strong>
+            </div>
+            <div class="status-row">
+              <span>Payouts enabled</span>
+              <strong id="stripePayoutsText">No</strong>
+            </div>
+            <div class="status-row">
+              <span>Charges enabled</span>
+              <strong id="stripeChargesText">No</strong>
+            </div>
+          </div>
+
+          <div class="inline-actions">
+            <button class="btn" id="connectStripeBtn" type="button">Connect Stripe</button>
+            <button class="btn-outline" id="refreshStripeBtn" type="button">Refresh status</button>
+            <button class="btn-outline danger" id="disconnectStripeBtn" type="button">Disconnect account</button>
+          </div>
+        </section>
+
+        <section class="card profile-card">
+          <div class="section-heading">
+            <h2>Stripe Earnings</h2>
+            <p>Your Stripe balance, transactions, and payouts will appear here after connecting Stripe.</p>
+          </div>
+        </section>
+
+        <section class="card profile-card">
+          <div class="section-heading">
+            <h2>My Requests</h2>
             <p>Quick access to active, draft, archived, and excluded requests.</p>
           </div>
 
@@ -198,19 +213,6 @@
 
           <div id="profileProjectsList" class="stack-list">
             <p class="muted">Your requests will load here.</p>
-          </div>
-        </section>
-
-        <section class="card profile-card">
-          <div class="section-heading">
-            <h2>Account actions</h2>
-            <p>Manage visibility and account access.</p>
-          </div>
-
-          <div class="inline-actions">
-            <button class="btn-outline" id="changePasswordBtn" type="button">Change password</button>
-            <button class="btn-outline" id="downloadDataBtn" type="button">Download my data</button>
-            <button class="btn-outline danger" id="deactivateAccountBtn" type="button">Deactivate account</button>
           </div>
         </section>
       </div>

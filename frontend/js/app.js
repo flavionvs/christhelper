@@ -1385,7 +1385,7 @@ function renderStripeSummarySection(summary, options = {}) {
   if (!stripeConnected) {
     return `
       <section class="card panel">
-        <h2>Stripe earnings</h2>
+        <h2>Stripe Earnings</h2>
         <p class="muted">Connect Stripe first to view your balance, recent transactions, and payouts.</p>
       </section>
     `;
@@ -1394,7 +1394,7 @@ function renderStripeSummarySection(summary, options = {}) {
   if (!summary) {
     return `
       <section class="card panel">
-        <h2>Stripe earnings</h2>
+        <h2>Stripe Earnings</h2>
         <p class="muted">${stripeReady ? 'Loading Stripe balance and recent activity...' : 'Finish Stripe onboarding to unlock your Stripe earnings view.'}</p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
           <button class="btn" id="openStripeDashboardBtn" type="button">Open Stripe dashboard</button>
@@ -1414,7 +1414,7 @@ function renderStripeSummarySection(summary, options = {}) {
 
   return `
     <section class="card panel">
-      <h2>Stripe earnings</h2>
+      <h2>Stripe Earnings</h2>
       <p class="muted">This section shows your Stripe connected account balance plus recent donation records from ChristHelper.</p>
 
       <div class="stats-grid stripe-summary-grid">
@@ -1687,10 +1687,9 @@ async function handleProfilePage() {
           <button class="btn" id="connectStripeNoticeBtn" type="button">Connect with Stripe</button>
         </div>
 
-        <div class="split-grid" style="align-items:start;">
-          <div class="stack">
+        <div class="stack profile-sequential-stack">
             <section class="card panel">
-              <h2>Personal details</h2>
+              <h2>Personal Details</h2>
               <div class="form-grid">
                 <label class="field">
                   <span>Name</span>
@@ -1716,32 +1715,6 @@ async function handleProfilePage() {
               <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
                 <button class="btn" id="saveProfileBtn" type="button">Save profile</button>
                 ${mergedUser?.role === 'admin' ? '<a class="btn-outline" href="/admin.html">Open admin page</a>' : ''}
-              </div>
-            </section>
-
-            <section class="card panel">
-              <h2>Stripe payouts</h2>
-              <p>${stripeReady
-                ? 'Stripe connected and ready to receive financial support.'
-                : stripeConnected
-                  ? 'Stripe account connected, but onboarding is not finished yet.'
-                  : 'Stripe is not connected yet.'}</p>
-
-              <div class="list">
-                <div class="item"><strong>Account email</strong>${safeHtml(mergedUser?.email || '')}</div>
-                <div class="item"><strong>Stripe account</strong>${stripeConnected ? safeHtml(mergedUser?.stripe_account_id) : 'Not connected'}</div>
-                <div class="item"><strong>Charges enabled</strong>${stripeReady ? 'Yes' : 'No'}</div>
-                <div class="item"><strong>Payouts enabled</strong>${mergedUser?.stripe_payouts_enabled ? 'Yes' : 'No'}</div>
-              </div>
-
-              <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
-                <button class="btn" id="connectStripeBtn" type="button">${stripeConnected ? 'Continue Stripe setup' : 'Connect with Stripe'}</button>
-                <button class="btn-outline" id="refreshStripeBtn" type="button">Refresh status</button>
-                <button class="btn-outline" id="disconnectStripeBtn" type="button">Disconnect Stripe</button>
-              </div>
-
-              <div class="notice" style="margin-top:16px;">
-                For financial requests, the flow is: create request → admin approves financial support → your Stripe account is ready → donations open.
               </div>
             </section>
 
@@ -1788,12 +1761,45 @@ async function handleProfilePage() {
                 <button class="btn" id="savePreferencesBtn" type="button">Save preferences</button>
               </div>
             </section>
-          </div>
 
-          <div class="stack">
+            <section class="card panel">
+              <h2>Account Options</h2>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <button class="btn-outline" id="downloadDataBtn" type="button">Download my data</button>
+                <button class="btn-outline" id="changePasswordBtn" type="button">Change password</button>
+                <button class="btn-outline" id="deactivateAccountBtn" type="button">Deactivate account</button>
+              </div>
+            </section>
+
+            <section class="card panel">
+              <h2>Stripe Payouts</h2>
+              <p>${stripeReady
+                ? 'Stripe connected and ready to receive financial support.'
+                : stripeConnected
+                  ? 'Stripe account connected, but onboarding is not finished yet.'
+                  : 'Stripe is not connected yet.'}</p>
+
+              <div class="list">
+                <div class="item"><strong>Account email</strong>${safeHtml(mergedUser?.email || '')}</div>
+                <div class="item"><strong>Stripe account</strong>${stripeConnected ? safeHtml(mergedUser?.stripe_account_id) : 'Not connected'}</div>
+                <div class="item"><strong>Charges enabled</strong>${stripeReady ? 'Yes' : 'No'}</div>
+                <div class="item"><strong>Payouts enabled</strong>${mergedUser?.stripe_payouts_enabled ? 'Yes' : 'No'}</div>
+              </div>
+
+              <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
+                <button class="btn" id="connectStripeBtn" type="button">${stripeConnected ? 'Continue Stripe setup' : 'Connect with Stripe'}</button>
+                <button class="btn-outline" id="refreshStripeBtn" type="button">Refresh status</button>
+                <button class="btn-outline" id="disconnectStripeBtn" type="button">Disconnect Stripe</button>
+              </div>
+
+              <div class="notice" style="margin-top:16px;">
+                For financial requests, the flow is: create request → admin approves financial support → your Stripe account is ready → donations open.
+              </div>
+            </section>
+
             ${renderStripeSummarySection(stripeSummary, { stripeConnected, stripeReady })}
             <section class="card panel">
-              <h2>My requests</h2>
+              <h2>My Requests</h2>
               <p class="muted">Requests you submitted on ChristHelper.</p>
 
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px;">
@@ -1810,16 +1816,6 @@ async function handleProfilePage() {
                 <a class="btn" href="/submit.html">Submit new request</a>
               </div>
             </section>
-
-            <section class="card panel">
-              <h2>Account actions</h2>
-              <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                <button class="btn-outline" id="downloadDataBtn" type="button">Download my data</button>
-                <button class="btn-outline" id="changePasswordBtn" type="button">Change password</button>
-                <button class="btn-outline" id="deactivateAccountBtn" type="button">Deactivate account</button>
-              </div>
-            </section>
-          </div>
         </div>
       </section>
     `;
