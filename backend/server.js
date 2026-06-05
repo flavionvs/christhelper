@@ -233,10 +233,10 @@ function engagementEmailTemplate({ user, requests }) {
   return `
     <div style="margin:0;padding:0;background:#eef6ff;font-family:Arial,sans-serif;color:#1f2937;">
       <div style="max-width:680px;margin:0 auto;padding:28px 14px;">
-        <div style="background:linear-gradient(135deg,#0f4c81,#1e88e5);border-radius:22px 22px 0 0;padding:28px;color:#ffffff;text-align:center;">
-          <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.9;">ChristHelper weekly support</div>
-          <h1 style="margin:8px 0 10px;font-size:28px;line-height:1.2;">Pray for requests that need support</h1>
-          <p style="margin:0;font-size:15px;line-height:1.6;opacity:.95;">A few minutes of prayer or a short reply can encourage someone today.</p>
+        <div bgcolor="#07111f" style="background-color:#07111f;background-image:linear-gradient(135deg,#07111f 0%,#0b2f55 55%,#0f5d38 100%);border-radius:22px 22px 0 0;padding:30px 28px;color:#ffffff;text-align:center;border-bottom:4px solid #f4c05a;">
+          <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#dbeafe;font-weight:700;">ChristHelper weekly support</div>
+          <h1 style="margin:8px 0 10px;font-size:28px;line-height:1.2;color:#ffffff;text-shadow:0 2px 10px rgba(0,0,0,.35);">Pray for requests that need support</h1>
+          <p style="margin:0;font-size:15px;line-height:1.6;color:#e8f1ff;">A few minutes of prayer or a short reply can encourage someone today.</p>
         </div>
         <div style="background:#ffffff;border-radius:0 0 22px 22px;padding:26px;box-shadow:0 16px 45px rgba(15,76,129,.16);">
           <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">Hi ${escapeHtml(user.name || 'friend')}, here are the latest active requests from ChristHelper.</p>
