@@ -1087,6 +1087,31 @@ function getOwnedProjectOr403(db, projectId, userId) {
   return { project };
 }
 
+
+function canManageProjectResponses(db, projectId, user) {
+  const project = db.projects.find((item) => item.id === projectId);
+  if (!project) return { error: 'Request not found', status: 404 };
+  const isOwner = Boolean(user && project.created_by === user.id);
+  const isAdmin = Boolean(user && user.role === 'admin');
+  if (!isOwner && !isAdmin) {
+    return { error: 'You do not have permission to delete responses for this request', status: 403 };
+  }
+  return { project };
+}
+
+function deleteProjectResponse(db, projectId, responseId, kind, user) {
+  const lookup = canManageProjectResponses(db, projectId, user);
+  if (lookup.error) return lookup;
+
+  const collectionName = kind === 'prayer' ? 'prayers' : 'replies';
+  const list = db[collectionName] || [];
+  const index = list.findIndex((item) => item.id === responseId && item.project_id === projectId);
+  if (index === -1) return { error: 'Response not found', status: 404 };
+
+  const [deleted] = list.splice(index, 1);
+  return { item: clone(deleted) };
+}
+
 function normalizeResponseKind(value) {
   const normalized = String(value || '').trim().toLowerCase();
   if (normalized === 'prayer' || normalized === 'pray') return 'prayer';
@@ -2037,6 +2062,19 @@ app.post('/projects/:id/include', authRequired, (req, res) => {
 
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
   res.json({ message: 'Request included', project: result.project });
+});
+
+
+app.delete('/projects/:id/prayers/:responseId', authRequired, (req, res) => {
+  const result = withDb((db) => deleteProjectResponse(db, req.params.id, req.params.responseId, 'prayer', req.user));
+  if (result?.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json({ message: 'Prayer deleted', item: result.item });
+});
+
+app.delete('/projects/:id/replies/:responseId', authRequired, (req, res) => {
+  const result = withDb((db) => deleteProjectResponse(db, req.params.id, req.params.responseId, 'reply', req.user));
+  if (result?.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json({ message: 'Reply deleted', item: result.item });
 });
 
 app.post('/projects/:id/respond', async (req, res) => {

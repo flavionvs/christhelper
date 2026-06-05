@@ -554,6 +554,8 @@ async function loadAllProjectsForSubmitPage() {
 
 function buildCombinedResponses(prayers = [], replies = []) {
   const prayerItems = prayers.map(item => ({
+    id: item.id,
+    deleteKind: 'prayers',
     kind: 'Prayer',
     name: item.name || 'Anonymous',
     message: item.message || '',
@@ -562,6 +564,8 @@ function buildCombinedResponses(prayers = [], replies = []) {
   }));
 
   const replyItems = replies.map(item => ({
+    id: item.id,
+    deleteKind: 'replies',
     kind: 'Reply',
     name: item.name || 'Anonymous',
     message: item.message || '',
@@ -601,6 +605,7 @@ async function loadProjectDetails() {
       ? Math.min(100, Math.round((project.amount_raised / project.funding_goal) * 100))
       : 0;
     const donationAvailable = project.needs_financial_support && project.funding_approved && project.owner_can_receive_payments;
+    const canManageResponses = Boolean(currentUser && (currentUser.id === project.created_by || currentUser.role === 'admin'));
     const goalText = project.funding_goal_currency === 'USD'
       ? formatUsd(project.funding_goal)
       : formatMoney(project.funding_goal);
@@ -691,7 +696,10 @@ async function loadProjectDetails() {
                         <div class="item response-item">
                           <div class="response-item-head">
                             <strong>${safeHtml(item.name)}</strong>
-                            <span class="badge ${item.kind === 'Prayer' ? 'good' : ''}">${safeHtml(item.typeLabel)}</span>
+                            <div class="response-item-actions">
+                              <span class="badge ${item.kind === 'Prayer' ? 'good' : ''}">${safeHtml(item.typeLabel)}</span>
+                              ${canManageResponses ? `<button class="icon-btn danger response-delete-btn" type="button" data-response-kind="${safeHtml(item.deleteKind)}" data-response-id="${safeHtml(item.id || '')}" aria-label="Delete ${safeHtml(item.kind)}" title="Delete ${safeHtml(item.kind)}">🗑️</button>` : ''}
+                            </div>
                           </div>
                           <div>${safeHtml(item.message || '')}</div>
                         </div>
@@ -812,6 +820,26 @@ async function loadProjectDetails() {
       } catch (error) {
         alert(error.message);
       }
+    });
+
+    $all('.response-delete-btn').forEach(button => {
+      button.addEventListener('click', async () => {
+        const responseId = button.dataset.responseId;
+        const responseKind = button.dataset.responseKind;
+        if (!responseId || !responseKind) return;
+        if (!confirm('Delete this prayer/reply?')) return;
+
+        try {
+          await api(`/projects/${id}/${responseKind}/${responseId}`, { method: 'DELETE' });
+          button.closest('.response-item')?.remove();
+          if (!$all('.response-item').length) {
+            const responseList = $('#responseList');
+            if (responseList) responseList.innerHTML = '<p class="muted">No responses yet.</p>';
+          }
+        } catch (error) {
+          alert(error.message);
+        }
+      });
     });
 
     $('#reportForm')?.addEventListener('submit', async (e) => {
