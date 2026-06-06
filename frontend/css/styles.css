@@ -2509,3 +2509,53 @@ input:focus, select:focus, textarea:focus { border-color: #0b73ff !important; bo
     font-size: 0.95rem;
   }
 }
+
+/* Inline response form on request cards */
+.project-card-response {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.project-card-response-head,
+.project-card-response-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.project-card-response-head {
+  margin-bottom: 12px;
+}
+
+.btn-link {
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+}
+
+.project-card-response-form {
+  gap: 10px;
+}
+
+.project-card-response-form button[disabled],
+#respondForm button[disabled] {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .project-card-response-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .project-card-response-actions .btn {
+    width: 100%;
+  }
+}

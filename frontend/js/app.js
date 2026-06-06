@@ -413,6 +413,49 @@ function projectReadMoreLink(project) {
   return `<a class="project-read-more" href="project.html?id=${project.id}" hidden>Read More</a>`;
 }
 
+function projectCardResponseForm(project) {
+  const id = safeHtml(project.id);
+  const defaultName = currentUser?.name ? safeHtml(currentUser.name) : '';
+  const defaultEmail = currentUser?.email ? safeHtml(currentUser.email) : '';
+
+  return `
+    <div class="project-card-response" data-card-response-panel hidden>
+      <div class="project-card-response-head">
+        <strong>Respond with prayer or encouragement</strong>
+        <button type="button" class="btn-link response-close-btn" data-card-response-close>Close</button>
+      </div>
+      <form class="simple-form project-card-response-form" data-card-response-form data-project-id="${id}">
+        <div class="response-kind-toggle">
+          <label class="response-kind-option">
+            <input type="radio" name="kind" value="prayer" checked>
+            <span>🙏 Prayer</span>
+          </label>
+          <label class="response-kind-option">
+            <input type="radio" name="kind" value="reply">
+            <span>💬 Reply</span>
+          </label>
+        </div>
+        <select name="type" data-card-reply-type class="hide">
+          <option value="">Select reply type</option>
+          <option value="guidance">Guidance</option>
+          <option value="volunteer">Volunteer</option>
+          <option value="resources">Resources</option>
+          <option value="services">Services</option>
+          <option value="mentorship">Mentorship</option>
+          <option value="general">General encouragement</option>
+        </select>
+        <input name="name" placeholder="Your name or Anonymous" value="${defaultName}">
+        <input name="email" type="email" placeholder="Email optional for prayer" value="${defaultEmail}" data-card-email>
+        <textarea name="message" rows="4" required placeholder="Write your prayer or encouragement"></textarea>
+        <div class="project-card-response-actions">
+          <button type="submit" class="btn" data-submit-label>Send response</button>
+          <span class="muted" data-card-response-status></span>
+        </div>
+      </form>
+    </div>
+  `;
+}
+
 function projectCard(project) {
   const pct = project.funding_goal > 0
     ? Math.min(100, Math.round((project.amount_raised / project.funding_goal) * 100))
@@ -452,11 +495,12 @@ function projectCard(project) {
       ` : '<div class="notice">View details to see full support options.</div>'}
       <div class="project-actions">
         <a class="btn" href="project.html?id=${project.id}">View details</a>
-        <a class="btn-outline" href="project.html?id=${project.id}#respond">Respond</a>
+        <button class="btn-outline" type="button" data-card-respond-toggle>Respond</button>
         <div class="project-action-stats">
           ${responseCountBadge(project)}
         </div>
       </div>
+      ${projectCardResponseForm(project)}
     </article>
   `;
 }
@@ -471,6 +515,124 @@ function updateProjectReadMoreLinks(scope = document) {
     window.requestAnimationFrame(() => {
       const isClamped = summary.scrollHeight > summary.clientHeight + 2;
       readMore.hidden = !isClamped;
+    });
+  });
+}
+
+function syncCardResponseForm(form) {
+  if (!form) return;
+  const kind = form.querySelector('input[name="kind"]:checked')?.value || 'prayer';
+  const isReply = kind === 'reply';
+  const replyType = form.querySelector('[data-card-reply-type]');
+  const email = form.querySelector('[data-card-email]');
+  const message = form.querySelector('textarea[name="message"]');
+
+  replyType?.classList.toggle('hide', !isReply);
+  if (replyType) replyType.required = isReply;
+  if (email) email.placeholder = isReply ? 'Email optional, useful if they need to contact you' : 'Email optional for prayer';
+  if (message) {
+    message.placeholder = isReply
+      ? 'Write your reply, offer, guidance, or encouragement'
+      : 'Write your prayer or encouragement';
+  }
+}
+
+function initProjectCardResponses(scope = document) {
+  const root = scope.querySelector ? scope : document;
+
+  root.querySelectorAll('[data-card-response-form]').forEach(syncCardResponseForm);
+
+  root.querySelectorAll('[data-card-respond-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const card = button.closest('.project-card');
+      const panel = card?.querySelector('[data-card-response-panel]');
+      if (!panel) return;
+      const opening = panel.hidden;
+      panel.hidden = !opening;
+      button.textContent = opening ? 'Hide response' : 'Respond';
+      if (opening) {
+        const textarea = panel.querySelector('textarea[name="message"]');
+        window.setTimeout(() => textarea?.focus(), 50);
+      }
+    });
+  });
+
+  root.querySelectorAll('[data-card-response-close]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const card = button.closest('.project-card');
+      const panel = card?.querySelector('[data-card-response-panel]');
+      const toggle = card?.querySelector('[data-card-respond-toggle]');
+      if (panel) panel.hidden = true;
+      if (toggle) toggle.textContent = 'Respond';
+    });
+  });
+
+  root.querySelectorAll('[data-card-response-form] input[name="kind"]').forEach((input) => {
+    input.addEventListener('change', () => syncCardResponseForm(input.closest('[data-card-response-form]')));
+  });
+
+  root.querySelectorAll('[data-card-response-form]').forEach((form) => {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (form.dataset.submitting === '1') return;
+
+      const projectId = form.dataset.projectId;
+      const fd = new FormData(form);
+      const kind = String(fd.get('kind') || 'prayer').toLowerCase();
+      const submitButton = form.querySelector('button[type="submit"]');
+      const status = form.querySelector('[data-card-response-status]');
+      const originalText = submitButton?.textContent || 'Send response';
+
+      form.dataset.submitting = '1';
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Sending...';
+      }
+      if (status) status.textContent = 'Sending your response...';
+
+      try {
+        const result = await api(`/projects/${projectId}/respond`, {
+          method: 'POST',
+          body: JSON.stringify({
+            kind,
+            type: kind === 'reply' ? (fd.get('type') || 'general') : '',
+            name: fd.get('name') || 'Anonymous',
+            email: fd.get('email'),
+            message: fd.get('message')
+          })
+        });
+
+        trackEvent('project_response_submitted', {
+          project_id: projectId,
+          kind,
+          reply_type: kind === 'reply' ? String(fd.get('type') || 'general') : '',
+          page_path: window.location.pathname
+        });
+        trackEvent(kind === 'prayer' ? 'prayer_submitted' : 'reply_submitted', {
+          project_id: projectId,
+          reply_type: kind === 'reply' ? String(fd.get('type') || 'general') : '',
+          page_path: window.location.pathname
+        });
+
+        form.reset();
+        syncCardResponseForm(form);
+        if (status) status.textContent = result?.message || 'Your response has been sent.';
+        const stat = form.closest('.project-card')?.querySelector('.project-action-stats .badge');
+        if (stat) {
+          const match = stat.textContent.match(/(\d+)/);
+          const next = match ? Number(match[1]) + 1 : 1;
+          stat.textContent = `🙏 ${next} prayers/replies`;
+        }
+      } catch (error) {
+        if (status) status.textContent = error.message || 'Could not send response.';
+        else alert(error.message);
+      } finally {
+        form.dataset.submitting = '0';
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = originalText;
+        }
+      }
     });
   });
 }
@@ -501,6 +663,7 @@ async function loadProjects() {
       : '<div class="card panel"><p>No requests found with these filters.</p></div>';
 
     updateProjectReadMoreLinks(grid);
+    initProjectCardResponses(grid);
 
     trackOnce(`project_list_view:${window.location.pathname}:${params.toString()}`, 'project_list_view', {
       page_path: window.location.pathname,
@@ -785,8 +948,17 @@ async function loadProjectDetails() {
 
     respondForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (respondForm.dataset.submitting === '1') return;
       const fd = new FormData(e.target);
       const kind = String(fd.get('kind') || 'prayer').toLowerCase();
+      const submitButton = respondForm.querySelector('button[type="submit"]');
+      const originalSubmitText = submitButton?.textContent || 'Send response';
+
+      respondForm.dataset.submitting = '1';
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Sending...';
+      }
 
       try {
         const result = await api(`/projects/${id}/respond`, {
@@ -819,6 +991,12 @@ async function loadProjectDetails() {
         location.reload();
       } catch (error) {
         alert(error.message);
+      } finally {
+        respondForm.dataset.submitting = '0';
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = originalSubmitText;
+        }
       }
     });
 

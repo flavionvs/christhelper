@@ -1137,7 +1137,29 @@ function createProjectResponse(db, projectId, payload = {}) {
     return { error: 'Message is required', status: 400 };
   }
 
+  const duplicateWindowMs = 30000;
+  const isRecentDuplicate = (item, expectedKind) => {
+    const createdAt = Date.parse(item.created_at || '');
+    return String(item.project_id) === String(projectId)
+      && String(item.name || '').trim() === name
+      && String(item.email || '').trim() === email
+      && String(item.message || '').trim() === message
+      && (Date.now() - createdAt) >= 0
+      && (Date.now() - createdAt) < duplicateWindowMs
+      && (expectedKind !== 'reply' || String(item.type || '').trim() === replyType);
+  };
+
   if (kind === 'prayer') {
+    const existingPrayer = db.prayers.find((item) => isRecentDuplicate(item, 'prayer'));
+    if (existingPrayer) {
+      return {
+        kind,
+        item: clone(existingPrayer),
+        message: 'Prayer support recorded. Thank you.',
+        duplicate: true
+      };
+    }
+
     const prayer = {
       id: createId(),
       project_id: projectId,
@@ -1156,6 +1178,16 @@ function createProjectResponse(db, projectId, payload = {}) {
 
   if (!replyType) {
     return { error: 'Reply type is required', status: 400 };
+  }
+
+  const existingReply = db.replies.find((item) => isRecentDuplicate(item, 'reply'));
+  if (existingReply) {
+    return {
+      kind,
+      item: clone(existingReply),
+      message: 'Your response has been sent.',
+      duplicate: true
+    };
   }
 
   const reply = {
@@ -2085,7 +2117,9 @@ app.post('/projects/:id/respond', async (req, res) => {
 
   const db = readDb();
   const project = db.projects.find((item) => item.id === req.params.id);
-  await handleProjectResponseNotifications({ kind: result.kind, project, item: result.item, actorUser });
+  if (!result.duplicate) {
+    await handleProjectResponseNotifications({ kind: result.kind, project, item: result.item, actorUser });
+  }
 
   res.json({
     message: result.message,
@@ -2102,7 +2136,9 @@ app.post('/projects/:id/pray', async (req, res) => {
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
   const db = readDb();
   const project = db.projects.find((item) => item.id === req.params.id);
-  await handleProjectResponseNotifications({ kind: result.kind, project, item: result.item, actorUser });
+  if (!result.duplicate) {
+    await handleProjectResponseNotifications({ kind: result.kind, project, item: result.item, actorUser });
+  }
   res.json({ message: result.message, kind: result.kind, item: result.item });
 });
 
@@ -2114,7 +2150,9 @@ app.post('/projects/:id/reply', async (req, res) => {
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
   const db = readDb();
   const project = db.projects.find((item) => item.id === req.params.id);
-  await handleProjectResponseNotifications({ kind: result.kind, project, item: result.item, actorUser });
+  if (!result.duplicate) {
+    await handleProjectResponseNotifications({ kind: result.kind, project, item: result.item, actorUser });
+  }
   res.json({ message: result.message, kind: result.kind, item: result.item });
 });
 
