@@ -415,16 +415,13 @@ function projectReadMoreLink(project) {
 
 function projectCardResponseForm(project) {
   const id = safeHtml(project.id);
-  const defaultName = currentUser?.name ? safeHtml(currentUser.name) : '';
-  const defaultEmail = currentUser?.email ? safeHtml(currentUser.email) : '';
-
   return `
     <div class="project-card-response" data-card-response-panel hidden>
       <div class="project-card-response-head">
         <strong>Respond with prayer or encouragement</strong>
         <button type="button" class="btn-link response-close-btn" data-card-response-close>Close</button>
       </div>
-      <form class="simple-form project-card-response-form" data-card-response-form data-project-id="${id}">
+      <form class="simple-form project-card-response-form" data-card-response-form data-project-id="${id}" autocomplete="off">
         <div class="response-kind-toggle">
           <label class="response-kind-option">
             <input type="radio" name="kind" value="prayer" checked>
@@ -444,8 +441,8 @@ function projectCardResponseForm(project) {
           <option value="mentorship">Mentorship</option>
           <option value="general">General encouragement</option>
         </select>
-        <input name="name" placeholder="Your name or Anonymous" value="${defaultName}">
-        <input name="email" type="email" placeholder="Email optional for prayer" value="${defaultEmail}" data-card-email>
+        <input name="name" placeholder="Your name or Anonymous" autocomplete="off">
+        <input name="email" type="email" placeholder="Email optional for prayer" autocomplete="off" data-card-email>
         <textarea name="message" rows="4" required placeholder="Write your prayer or encouragement"></textarea>
         <div class="project-card-response-actions">
           <button type="submit" class="btn" data-submit-label>Send response</button>
