@@ -679,6 +679,10 @@ function normalizeProject(project) {
     project.campaign_expiry_date = '';
   }
 
+  if (!Object.prototype.hasOwnProperty.call(project, 'alternative_payment_info')) {
+    project.alternative_payment_info = '';
+  }
+
   if (!Object.prototype.hasOwnProperty.call(project, 'is_anonymous')) {
     project.is_anonymous = false;
   }
@@ -2008,10 +2012,6 @@ app.post('/projects', authRequired, (req, res) => {
       return res.status(400).json({ error: 'Anonymous is not allowed for requests with financial support' });
     }
 
-    if (!owner.stripe_account_id || !owner.stripe_charges_enabled) {
-      return res.status(400).json({ error: 'Connect and finish Stripe onboarding in your profile before submitting a financial request' });
-    }
-
     if (owner.allow_financial_support === false) {
       return res.status(400).json({ error: 'Your profile does not currently allow financial support' });
     }
@@ -2051,6 +2051,7 @@ app.post('/projects', authRequired, (req, res) => {
       funding_goal_currency: fundingGoalCurrency,
       campaign_expiry_date: campaignExpiryDate,
       project_links: projectLinks,
+      alternative_payment_info: needsFinancialSupport ? String(body.alternative_payment_info || '').trim() : '',
       funding_approved: needsFinancialSupport ? false : true,
       amount_raised: 0,
       admin_reviewed: needsFinancialSupport ? false : true,
@@ -2072,7 +2073,7 @@ app.post('/projects', authRequired, (req, res) => {
       project_id: project.id,
       title: 'Request submitted',
       content: needsFinancialSupport
-        ? 'This request has been submitted and is waiting for admin review for financial support. Stripe is already connected for this profile.'
+        ? 'This request has been submitted and is waiting for admin review for financial support.'
         : 'This request has been submitted successfully and is already visible publicly.',
       created_at: now()
     });

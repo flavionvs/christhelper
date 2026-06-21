@@ -791,7 +791,7 @@ async function loadProjectDetails() {
               ${project.verified_ministry ? '<span class="badge good">Verified church/ministry</span>' : ''}
               ${project.needs_financial_support ? '<span class="badge">Financial support requested</span>' : ''}
               ${project.is_anonymous ? '<span class="badge">Anonymous request</span>' : ''}
-              ${project.needs_financial_support && !project.owner_can_receive_payments ? '<span class="badge warn">Stripe setup pending</span>' : ''}
+              ${project.needs_financial_support && !project.owner_can_receive_payments ? '<span class="badge warn">Stripe not ready</span>' : ''}
             </div>
             <div class="stats-row">
               <div class="stat"><strong>${Number(stats.prayer_count || 0) + Number(stats.reply_count || 0)}</strong><span class="muted">Prayers/replies</span></div>
@@ -881,7 +881,7 @@ async function loadProjectDetails() {
                 <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
               </div>
               ${donationAvailable ? `
-                <div class="notice" style="margin-top:16px;">Payments for financial support are processed in USD. Stripe transaction fees apply per payment, so the amount paid by the supporter and the net amount received by the request owner may be different.</div>
+                <div class="notice" style="margin-top:16px;">Payments for financial support are processed securely through Stripe in USD. Stripe transaction fees apply per payment, so the amount paid by the supporter and the net amount received by the request owner may be different.</div>
                 <form id="projectDonationForm" class="simple-form" style="margin-top:16px;">
                   <input name="donor_name" placeholder="Your name">
                   <input name="donor_email" type="email" placeholder="Your email">
@@ -890,7 +890,13 @@ async function loadProjectDetails() {
                   <input name="amount_platform" type="number" min="0" step="0.01" placeholder="Optional support value (USD)">
                   <button class="btn" type="submit">Continue to secure payment</button>
                 </form>
-              ` : '<p class="muted" style="margin-top:14px;">This request is approved, but the owner still needs to finish Stripe onboarding before donations can be accepted.</p>'}
+              ` : (project.alternative_payment_info ? `
+                <div class="item" style="margin-top:16px;white-space:pre-wrap;">
+                  <strong>Alternative Payment Information</strong>
+                  <div style="margin-top:8px;">${safeHtml(project.alternative_payment_info)}</div>
+                </div>
+                <div class="notice warn" style="margin-top:16px;">This payment method is not processed by ChristHelper. Please use prayer, wisdom, and personal judgment before sending money.</div>
+              ` : '<p class="muted" style="margin-top:14px;">Financial support is approved, but no payment information is available yet.</p>')}
             ` : '<p class="muted">Financial support is not available yet for this request. You can still respond with prayer, guidance, volunteering, and encouragement.</p>'}
           </section>
 
@@ -1377,9 +1383,11 @@ function getSubmitRequestPayload(form) {
   if (payload.needs_financial_support) {
     payload.funding_goal_currency = 'USD';
     payload.is_anonymous = false;
+    payload.alternative_payment_info = String(payload.alternative_payment_info || '').trim();
   } else {
     payload.funding_goal = payload.funding_goal || 0;
     payload.funding_goal_currency = '';
+    payload.alternative_payment_info = '';
   }
 
   return payload;
@@ -1430,18 +1438,6 @@ function initSubmitAuthModal() {
 
 function validateSubmitPayloadBeforePost(payload) {
   if (payload.needs_financial_support) {
-    if (!currentUser?.stripe_account_id) {
-      alert('Please connect Stripe in your profile before submitting a request that needs financial support.');
-      window.location.href = appPath('profile.html');
-      return false;
-    }
-
-    if (!currentUser?.stripe_charges_enabled) {
-      alert('Your Stripe account is connected, but setup is not finished yet. Please finish Stripe onboarding in your profile before submitting a financial request.');
-      window.location.href = appPath('profile.html');
-      return false;
-    }
-
     if (!payload.funding_goal || Number(payload.funding_goal) <= 0) {
       alert('Please enter a funding goal in USD.');
       return false;
@@ -1471,7 +1467,7 @@ async function submitRequestPayload(payload, form = null) {
 
   clearPendingSubmitRequest();
   alert(payload.needs_financial_support
-    ? 'Request submitted successfully. Because Stripe is ready, your financial request can move to admin review.'
+    ? 'Request submitted successfully. Your financial request is waiting for admin review.'
     : 'Request submitted successfully.');
 
   if (form) {
@@ -1887,7 +1883,7 @@ async function handleProfilePage() {
         <p>Manage your account details, Stripe connection, and project preferences.</p>
 
         <div class="notice" style="margin:16px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-          <span>To receive financial support or payments through the platform, you must connect your Stripe account.</span>
+          <span>Stripe allows secure payments through ChristHelper where supported. If Stripe is not available in your country, you can add alternative payment information when submitting a Financial Support request.</span>
           <button class="btn" id="connectStripeNoticeBtn" type="button">Connect with Stripe</button>
         </div>
 
@@ -2299,7 +2295,7 @@ function renderAdminProjects(items) {
   if (countEl) countEl.textContent = `${filtered.length} request${filtered.length === 1 ? '' : 's'}`;
 
   if (!filtered.length) {
-    table.innerHTML = '<tr><td colspan="8">No requests found with these filters.</td></tr>';
+    table.innerHTML = '<tr><td colspan="9">No requests found with these filters.</td></tr>';
     return;
   }
 
@@ -2314,6 +2310,7 @@ function renderAdminProjects(items) {
       <td>${safeHtml(item.organization_name || '-')}</td>
       <td>${getAdminProjectStatusBadge(item)}</td>
       <td>${item.needs_financial_support ? 'Yes' : 'No'}</td>
+      <td>${item.needs_financial_support ? (item.alternative_payment_info ? `<div style="white-space:pre-wrap;max-width:260px;">${safeHtml(item.alternative_payment_info)}</div>` : '<span class="muted">None</span>') : '<span class="muted">—</span>'}</td>
       <td>${getAdminFundingBadge(item)}</td>
       <td>${getAdminReviewedBadge(item)}</td>
       <td>
@@ -2367,7 +2364,7 @@ async function loadAdmin() {
         `).join('')
       : '<tr><td colspan="6">No donations found.</td></tr>';
   } catch (error) {
-    table.innerHTML = `<tr><td colspan="8">${safeHtml(error.message)}. Login as admin first.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="9">${safeHtml(error.message)}. Login as admin first.</td></tr>`;
   }
 }
 

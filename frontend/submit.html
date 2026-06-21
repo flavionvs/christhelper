@@ -153,11 +153,19 @@
             </div>
           </div>
 
-          <label id="financialGoalWrap" class="hide">
-            <span>Funding goal in USD</span>
-            <small class="muted">Payments are processed in USD. Stripe transaction fees apply per payment, so the amount paid and the net amount received may be different.</small>
-            <input id="fundingGoal" name="funding_goal" type="number" placeholder="Example: 1500">
-          </label>
+          <div id="financialGoalWrap" class="hide" style="grid-column:1/-1;display:grid;gap:14px;">
+            <label>
+              <span>Funding goal in USD</span>
+              <small class="muted">Stripe is preferred where supported. If Stripe is not available, you can still submit your Financial Support request for admin review.</small>
+              <input id="fundingGoal" name="funding_goal" type="number" placeholder="Example: 1500">
+            </label>
+
+            <label>
+              <span>Alternative payment information</span>
+              <small class="muted">If Stripe is not available in your country, you can add PayPal, Wise, bank transfer, or another payment website/instruction here. This is not processed by ChristHelper, so supporters should use wisdom before giving.</small>
+              <textarea id="alternativePaymentInfo" name="alternative_payment_info" placeholder="Example: PayPal email, Wise payment link, bank transfer instructions, or other payment website details."></textarea>
+            </label>
+          </div>
 
           <label id="campaignExpiryWrap">
             <span>Campaign expiry date</span>
