@@ -2559,3 +2559,11 @@ input:focus, select:focus, textarea:focus { border-color: #0b73ff !important; bo
     width: 100%;
   }
 }
+
+.narrow {
+  max-width: 860px;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}

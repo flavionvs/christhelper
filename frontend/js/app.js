@@ -12,6 +12,7 @@ const GA_ALLOWED_EVENTS = new Set([
   'prayer_submitted',
   'reply_submitted',
   'project_report_submitted',
+  'feedback_submitted',
   'payment_started',
   'payment_completed',
   'platform_support_started',
@@ -2183,9 +2184,58 @@ async function handleProfilePage() {
 }
 
 
+function handleFeedbackForm() {
+  const form = $('#feedbackForm');
+  if (!form) return;
+
+  const statusEl = $('#feedbackStatus');
+  const submitBtn = $('#feedbackSubmitBtn');
+  const params = new URLSearchParams(window.location.search);
+  const requestIdInput = form.querySelector('[name="request_id"]');
+  if (requestIdInput && params.get('request_id')) requestIdInput.value = params.get('request_id');
+
+  if (currentUser) {
+    const nameInput = form.querySelector('[name="name"]');
+    const emailInput = form.querySelector('[name="email"]');
+    if (nameInput && !nameInput.value) nameInput.value = currentUser.name || '';
+    if (emailInput && !emailInput.value) emailInput.value = currentUser.email || '';
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (submitBtn) submitBtn.disabled = true;
+    if (statusEl) statusEl.textContent = 'Sending...';
+
+    const formData = new FormData(form);
+    const payload = {
+      name: String(formData.get('name') || '').trim(),
+      email: String(formData.get('email') || '').trim(),
+      type: String(formData.get('type') || 'Other').trim(),
+      message: String(formData.get('message') || '').trim(),
+      request_id: String(formData.get('request_id') || '').trim()
+    };
+
+    try {
+      const data = await api('/feedback', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      form.reset();
+      if (statusEl) statusEl.textContent = data.message || 'Thanks! Your feedback has been sent.';
+      trackEvent('feedback_submitted', { feedback_type: payload.type, has_request_id: Boolean(payload.request_id) });
+    } catch (error) {
+      if (statusEl) statusEl.textContent = error.message || 'Unable to send feedback.';
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+}
+
+
 let adminProjectsCache = [];
 let adminDonationsCache = [];
 let adminUsersCache = [];
+let adminFeedbackCache = [];
 
 function getAdminFundingStatus(project) {
   if (!project?.needs_financial_support) return 'Not applied';
@@ -2402,6 +2452,99 @@ function initAdminFilters() {
   ['adminFilterStatus', 'adminFilterFinancial', 'adminFilterFundingStatus', 'adminFilterReviewed'].forEach((id) => {
     document.getElementById(id)?.addEventListener('change', () => renderAdminProjects(adminProjectsCache));
   });
+}
+
+
+function getFeedbackStatusBadge(item) {
+  return String(item?.status || 'New') === 'Reviewed'
+    ? '<span class="badge good">Reviewed</span>'
+    : '<span class="badge warn">New</span>';
+}
+
+function feedbackPreview(message) {
+  const value = String(message || '').trim();
+  return value.length > 120 ? `${value.slice(0, 117).trim()}...` : value;
+}
+
+function renderAdminFeedback(items) {
+  const table = $('#adminFeedbackTable');
+  if (!table) return;
+
+  const list = [...(items || [])].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  if (!list.length) {
+    table.innerHTML = '<tr><td colspan="8">No feedback found.</td></tr>';
+    return;
+  }
+
+  table.innerHTML = list.map((item) => `
+    <tr>
+      <td>${formatIsoDateTime(item.created_at)}</td>
+      <td>${safeHtml(item.name || '—')}</td>
+      <td>${safeHtml(item.email || '—')}</td>
+      <td>${safeHtml(item.type || 'Other')}</td>
+      <td>${safeHtml(feedbackPreview(item.message))}</td>
+      <td>${item.request_id ? `<a href="project.html?id=${encodeURIComponent(item.request_id)}">${safeHtml(item.request_id)}</a>` : '—'}</td>
+      <td>${getFeedbackStatusBadge(item)}</td>
+      <td>
+        <div class="admin-actions-row wrap">
+          <button class="btn-outline btn-xs" onclick="viewFeedbackDetails('${safeHtml(item.id)}')">View</button>
+          <button class="btn-outline btn-xs" onclick="markFeedbackReviewed('${safeHtml(item.id)}')" ${String(item.status || 'New') === 'Reviewed' ? 'disabled' : ''}>Mark as Reviewed</button>
+          <button class="btn-outline btn-xs btn-danger" onclick="deleteFeedbackItem('${safeHtml(item.id)}')">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function loadAdminFeedback() {
+  const table = $('#adminFeedbackTable');
+  if (!table) return;
+
+  try {
+    const { items } = await api('/admin/feedback');
+    adminFeedbackCache = Array.isArray(items) ? items : [];
+    renderAdminFeedback(adminFeedbackCache);
+  } catch (error) {
+    table.innerHTML = `<tr><td colspan="8">${safeHtml(error.message)}. Login as admin first.</td></tr>`;
+  }
+}
+
+function viewFeedbackDetails(id) {
+  const item = adminFeedbackCache.find((feedback) => feedback.id === id);
+  if (!item) return alert('Feedback not found.');
+  alert([
+    `Date Submitted: ${formatIsoDateTime(item.created_at)}`,
+    `Name: ${item.name || '—'}`,
+    `Email: ${item.email || '—'}`,
+    `Type: ${item.type || 'Other'}`,
+    `Request ID: ${item.request_id || '—'}`,
+    `Status: ${item.status || 'New'}`,
+    '',
+    item.message || ''
+  ].join('\n'));
+}
+
+async function markFeedbackReviewed(id) {
+  try {
+    await api(`/admin/feedback/${id}/review`, { method: 'POST', body: JSON.stringify({}) });
+    alert('Feedback marked as reviewed.');
+    await loadAdminFeedback();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function deleteFeedbackItem(id) {
+  const ok = window.confirm('Are you sure you want to delete this feedback?');
+  if (!ok) return;
+
+  try {
+    await api(`/admin/feedback/${id}`, { method: 'DELETE' });
+    alert('Feedback deleted.');
+    await loadAdminFeedback();
+  } catch (error) {
+    alert(error.message);
+  }
 }
 
 
@@ -2642,10 +2785,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadProjectDetails();
   handleProfilePage();
   handleUnsubscribePage();
+  handleFeedbackForm();
   initAdminFilters();
   initAdminUserFilters();
   loadAdmin();
   loadAdminUsers();
+  loadAdminFeedback();
 });
 
 window.approveProject = approveProject;
@@ -2656,6 +2801,9 @@ window.markReviewed = markReviewed;
 window.toggleUserActive = toggleUserActive;
 window.promoteUserToAdmin = promoteUserToAdmin;
 window.deleteUserAccount = deleteUserAccount;
+window.viewFeedbackDetails = viewFeedbackDetails;
+window.markFeedbackReviewed = markFeedbackReviewed;
+window.deleteFeedbackItem = deleteFeedbackItem;
 
 
 

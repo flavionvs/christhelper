@@ -362,6 +362,27 @@ async function sendAdminDonationNotification(donation, project = null) {
   });
 }
 
+
+async function sendAdminFeedbackNotification(feedback) {
+  const recipient = ADMIN_NOTIFICATION_EMAIL || 'flavionevesdasilva@thecodehelper.com';
+  const subject = 'New ChristHelper feedback received';
+  const details = [
+    `Date/Time: ${feedback?.created_at || ''}`,
+    `Name: ${feedback?.name || ''}`,
+    `Email: ${feedback?.email || ''}`,
+    `Feedback Type: ${feedback?.type || ''}`,
+    feedback?.request_id ? `Request ID: ${feedback.request_id}` : '',
+    `Message: ${feedback?.message || ''}`
+  ].filter(Boolean);
+
+  return sendEmailMessage({
+    to: recipient,
+    subject,
+    html: emailTemplate({ title: subject, intro: 'A user submitted feedback on ChristHelper.', details }),
+    text: textTemplate('A user submitted feedback on ChristHelper.', details)
+  });
+}
+
 function extractBearerUser(req) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : '';
@@ -737,6 +758,21 @@ function normalizeDonation(donation) {
   return donation;
 }
 
+function normalizeFeedback(feedback) {
+  if (!feedback || typeof feedback !== 'object') return feedback;
+  if (!Object.prototype.hasOwnProperty.call(feedback, 'id')) feedback.id = createId();
+  if (!Object.prototype.hasOwnProperty.call(feedback, 'name')) feedback.name = '';
+  if (!Object.prototype.hasOwnProperty.call(feedback, 'email')) feedback.email = '';
+  if (!Object.prototype.hasOwnProperty.call(feedback, 'type')) feedback.type = 'Other';
+  if (!Object.prototype.hasOwnProperty.call(feedback, 'message')) feedback.message = '';
+  if (!Object.prototype.hasOwnProperty.call(feedback, 'request_id')) feedback.request_id = '';
+  if (!Object.prototype.hasOwnProperty.call(feedback, 'status')) feedback.status = 'New';
+  if (!Object.prototype.hasOwnProperty.call(feedback, 'created_at')) feedback.created_at = now();
+  if (!Object.prototype.hasOwnProperty.call(feedback, 'reviewed_at')) feedback.reviewed_at = null;
+  return feedback;
+}
+
+
 function syncProjectFundingEligibility(db) {
   const userMap = new Map(db.users.map((user) => [user.id, user]));
   for (const project of db.projects) {
@@ -881,7 +917,8 @@ function createSeedData() {
       { id: createId(), project_id: project2, title: 'Project created', content: 'Thank you for standing with this need. We will post updates as support comes in.', created_at: now() },
       { id: createId(), project_id: project3, title: 'Project created', content: 'Thank you for standing with this need. We will post updates as support comes in.', created_at: now() }
     ],
-    reports: []
+    reports: [],
+    feedback: []
   };
 
   syncProjectFundingEligibility(seeded);
@@ -929,7 +966,7 @@ function readDb() {
   const db = JSON.parse(raw);
   let changed = false;
 
-  for (const key of ['users', 'projects', 'prayers', 'replies', 'donations', 'updates', 'reports']) {
+  for (const key of ['users', 'projects', 'prayers', 'replies', 'donations', 'updates', 'reports', 'feedback']) {
     if (!Array.isArray(db[key])) {
       db[key] = [];
       changed = true;
@@ -960,6 +997,12 @@ function readDb() {
     const before = JSON.stringify(donation);
     normalizeDonation(donation);
     if (before !== JSON.stringify(donation)) changed = true;
+  }
+
+  for (const feedback of db.feedback) {
+    const before = JSON.stringify(feedback);
+    normalizeFeedback(feedback);
+    if (before !== JSON.stringify(feedback)) changed = true;
   }
 
   if (!db.users.find((u) => u.email === 'admin@christhelper.local')) {
@@ -2206,6 +2249,73 @@ app.get('/email/unsubscribe', (req, res) => {
 
   if (!updated) return res.status(404).send('<h1>ChristHelper</h1><p>This unsubscribe link is invalid or expired.</p>');
   res.send('<h1>ChristHelper</h1><p>You have been unsubscribed from weekly prayer request emails.</p><p>You can enable them again from your Profile preferences.</p>');
+});
+
+
+app.post('/feedback', async (req, res) => {
+  const allowedTypes = new Set(['Suggestion', 'Feature Request', 'Bug Report', 'Question', 'Prayer Request Issue', 'Support Enquiry', 'Other']);
+  const body = req.body || {};
+  const name = String(body.name || '').trim();
+  const email = String(body.email || '').trim();
+  const type = allowedTypes.has(String(body.type || '').trim()) ? String(body.type || '').trim() : 'Other';
+  const message = String(body.message || '').trim();
+  const request_id = String(body.request_id || '').trim();
+
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: 'A valid email is required' });
+  if (!message) return res.status(400).json({ error: 'Message is required' });
+
+  const feedback = normalizeFeedback({
+    id: createId(),
+    name,
+    email,
+    type,
+    message,
+    request_id,
+    status: 'New',
+    created_at: now(),
+    reviewed_at: null
+  });
+
+  withDb((db) => {
+    db.feedback.push(feedback);
+    return feedback;
+  });
+
+  await sendAdminFeedbackNotification(feedback);
+  res.status(201).json({ message: 'Thanks! Your feedback has been sent.', item: feedback });
+});
+
+app.get('/admin/feedback', authRequired, adminRequired, (req, res) => {
+  const db = readDb();
+  const items = (db.feedback || [])
+    .map((item) => clone(normalizeFeedback(item)))
+    .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  res.json({ items });
+});
+
+app.post('/admin/feedback/:id/review', authRequired, adminRequired, (req, res) => {
+  const result = withDb((db) => {
+    const item = (db.feedback || []).find((feedback) => feedback.id === req.params.id);
+    if (!item) return { error: 'Feedback not found', status: 404 };
+    item.status = 'Reviewed';
+    item.reviewed_at = now();
+    return { item: clone(normalizeFeedback(item)) };
+  });
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json({ message: 'Feedback marked as reviewed', item: result.item });
+});
+
+app.delete('/admin/feedback/:id', authRequired, adminRequired, (req, res) => {
+  const result = withDb((db) => {
+    const list = db.feedback || [];
+    const index = list.findIndex((feedback) => feedback.id === req.params.id);
+    if (index === -1) return { error: 'Feedback not found', status: 404 };
+    const [deleted] = list.splice(index, 1);
+    return { item: clone(deleted) };
+  });
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  res.json({ message: 'Feedback deleted', item: result.item });
 });
 
 app.post('/admin/engagement-email/send-now', authRequired, adminRequired, async (req, res) => {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Help ChristHelper</title>
+  <title>ChristHelper | Help & Feedback</title>
   <link rel="stylesheet" href="css/styles.css">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-VEBD7Q9H0S"></script>
@@ -14,9 +14,8 @@
 
   gtag('config', 'G-VEBD7Q9H0S');
 </script>
-
 </head>
-<body>
+<body data-page="feedback">
   <header class="header">
     <div class="container nav">
       <a href="index.html" class="brand brand--stack">
@@ -55,35 +54,55 @@
   </header>
 
   <main class="page-wrap">
-    <div class="container split-grid">
+    <div class="container stack narrow">
       <section class="card panel">
-        <div class="eyebrow">Support the platform</div>
-        <h1 style="font-size:2.3rem;">Help ChristHelper</h1>
-        <p>ChristHelper exists to connect Christians with real needs, projects, and ministry opportunities. If you believe in this mission, you can also support ChristHelper directly and help keep the platform running safely and sustainably.</p>
-        <div class="list">
-          <div class="item"><strong>What your support helps cover</strong>Hosting, payment system costs, software development, moderation, scam prevention, support, and future features.</div>
-          <div class="item"><strong>Transparent support model</strong>Support is simple and transparent, with clear payment details shown before checkout.</div>
-          <div class="item"><strong>Mission-first sustainability</strong>Your support helps ChristHelper stay online, improve safety, review financial requests, and connect more Christians around the world with meaningful opportunities to help.</div>
-        </div>
+        <h1 style="font-size:2.2rem;">Help &amp; Feedback</h1>
+        <p>Have a suggestion, question, bug report, feature request, or feedback about ChristHelper? We'd love to hear from you.</p>
       </section>
 
-      <aside class="card panel">
-        <h2>Support ChristHelper</h2>
-        <form id="platformDonationForm" class="simple-form">
-          <input name="donor_name" placeholder="Your name">
-          <input name="donor_email" type="email" placeholder="Your email">
-          <input name="amount_platform" type="number" min="1" step="0.01" placeholder="Donation amount" required>
-          <button class="btn" type="submit">Continue to secure payment</button>
+      <section class="card panel">
+        <form id="feedbackForm" class="form-grid">
+          <label class="field">
+            <span>Name</span>
+            <input type="text" name="name" placeholder="Your name" required>
+          </label>
+
+          <label class="field">
+            <span>Email</span>
+            <input type="email" name="email" placeholder="you@example.com" required>
+          </label>
+
+          <label class="field">
+            <span>Type</span>
+            <select name="type" required>
+              <option value="Suggestion">Suggestion</option>
+              <option value="Feature Request">Feature Request</option>
+              <option value="Bug Report">Bug Report</option>
+              <option value="Question">Question</option>
+              <option value="Prayer Request Issue">Prayer Request Issue</option>
+              <option value="Support Enquiry">Support Enquiry</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Optional Request ID</span>
+            <input type="text" name="request_id" placeholder="Paste request ID if related to a request">
+          </label>
+
+          <label class="field full-width">
+            <span>Message</span>
+            <textarea name="message" rows="7" placeholder="Tell us how we can help or improve ChristHelper" required></textarea>
+          </label>
+
+          <div class="full-width" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+            <button class="btn" type="submit" id="feedbackSubmitBtn">Send Feedback</button>
+            <span id="feedbackStatus" class="muted"></span>
+          </div>
         </form>
-        <div class="badge-row" style="margin-top:16px;">
-          <span class="badge">NZ$5</span>
-          <span class="badge">NZ$10</span>
-          <span class="badge">NZ$20</span>
-          <span class="badge">NZ$50</span>
-          <span class="badge">NZ$100</span>
-          <span class="badge">Custom amount</span>
-        </div>
-      </aside>
+      </section>
+
+      <p class="muted" style="text-align:center;">Built to help Christians pray, support, and encourage people around the world.</p>
     </div>
   </main>
 
