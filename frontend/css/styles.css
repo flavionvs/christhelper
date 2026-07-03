@@ -2680,22 +2680,44 @@ body.modal-open {
 /* Admin desktop table sizing */
 .admin-requests-table,
 .admin-users-table {
-  table-layout: auto;
+  table-layout: fixed;
+  width: 100%;
 }
 
 .admin-requests-table th,
 .admin-requests-table td,
 .admin-users-table th,
 .admin-users-table td {
-  padding-left: 8px;
-  padding-right: 8px;
+  padding-left: 7px;
+  padding-right: 7px;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .admin-requests-table th:nth-child(1),
 .admin-requests-table td:nth-child(1) {
-  width: 56px;
-  max-width: 70px;
-  word-break: break-word;
+  width: 11%;
+  min-width: 96px;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.admin-requests-table th:nth-child(2),
+.admin-requests-table td:nth-child(2) {
+  width: 21%;
+}
+
+.admin-requests-table th:nth-child(3),
+.admin-requests-table td:nth-child(3),
+.admin-request-organization-cell {
+  width: 17%;
+  min-width: 140px;
+  line-height: 1.4;
+}
+
+.admin-requests-table th:nth-child(4),
+.admin-requests-table td:nth-child(4) {
+  width: 11%;
 }
 
 .admin-requests-table th:nth-child(5),
@@ -2704,18 +2726,18 @@ body.modal-open {
 .admin-requests-table td:nth-child(6),
 .admin-requests-table th:nth-child(7),
 .admin-requests-table td:nth-child(7) {
-  width: 92px;
-  white-space: nowrap;
+  width: 9%;
 }
 
 .admin-requests-table th:nth-child(8),
 .admin-requests-table td:nth-child(8) {
-  width: 230px;
+  width: 13%;
+  min-width: 170px;
 }
 
 .admin-users-table th:nth-child(1),
 .admin-users-table td:nth-child(1) {
-  width: 220px;
+  width: 22%;
 }
 
 .admin-users-table th:nth-child(2),
@@ -2726,27 +2748,27 @@ body.modal-open {
 .admin-users-table td:nth-child(4),
 .admin-users-table th:nth-child(6),
 .admin-users-table td:nth-child(6) {
-  width: 78px;
-  white-space: nowrap;
+  width: 9%;
 }
 
 .admin-users-table th:nth-child(5),
 .admin-users-table td:nth-child(5),
 .admin-organization-cell {
-  width: 115px;
-  max-width: 115px;
+  width: 16%;
+  min-width: 130px;
+  line-height: 1.4;
   overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
 .admin-users-table th:nth-child(7),
 .admin-users-table td:nth-child(7) {
-  width: 130px;
+  width: 12%;
 }
 
 .admin-users-table th:nth-child(8),
 .admin-users-table td:nth-child(8) {
-  width: 230px;
+  width: 14%;
+  min-width: 170px;
 }
 
 .admin-users-table .admin-actions,
@@ -2754,7 +2776,24 @@ body.modal-open {
   min-width: 0;
 }
 
+.admin-actions-row {
+  gap: 6px;
+}
+
 .admin-users-table .btn-xs,
 .admin-requests-table .btn-xs {
-  padding: 7px 9px;
+  padding: 6px 8px;
+  font-size: 0.82rem;
+}
+
+.admin-requests-table .admin-reason-input,
+.admin-users-table .admin-reason-input {
+  max-width: 100%;
+}
+
+@media (max-width: 980px) {
+  .admin-requests-table,
+  .admin-users-table {
+    min-width: 920px;
+  }
 }

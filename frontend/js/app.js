@@ -2389,7 +2389,7 @@ function renderAdminProjects(items) {
         ${item.cancellation_reason ? `<div class="muted" style="margin-top:6px;">Cancelled: ${safeHtml(item.cancellation_reason)}</div>` : ''}
         ${item.denied_reason ? `<div class="muted" style="margin-top:6px;">Denied: ${safeHtml(item.denied_reason)}</div>` : ''}
       </td>
-      <td>${safeHtml(item.organization_name || '-')}</td>
+      <td class="admin-request-organization-cell">${safeHtml(item.organization_name || '-')}</td>
       <td>${getAdminProjectStatusBadge(item)}</td>
       <td>${item.needs_financial_support ? 'Yes' : 'No'}</td>
       <td>${getAdminFundingBadge(item)}</td>
