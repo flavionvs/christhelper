@@ -2676,3 +2676,85 @@ input:focus, select:focus, textarea:focus { border-color: #0b73ff !important; bo
 body.modal-open {
   overflow: hidden;
 }
+
+/* Admin desktop table sizing */
+.admin-requests-table,
+.admin-users-table {
+  table-layout: auto;
+}
+
+.admin-requests-table th,
+.admin-requests-table td,
+.admin-users-table th,
+.admin-users-table td {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.admin-requests-table th:nth-child(1),
+.admin-requests-table td:nth-child(1) {
+  width: 56px;
+  max-width: 70px;
+  word-break: break-word;
+}
+
+.admin-requests-table th:nth-child(5),
+.admin-requests-table td:nth-child(5),
+.admin-requests-table th:nth-child(6),
+.admin-requests-table td:nth-child(6),
+.admin-requests-table th:nth-child(7),
+.admin-requests-table td:nth-child(7) {
+  width: 92px;
+  white-space: nowrap;
+}
+
+.admin-requests-table th:nth-child(8),
+.admin-requests-table td:nth-child(8) {
+  width: 230px;
+}
+
+.admin-users-table th:nth-child(1),
+.admin-users-table td:nth-child(1) {
+  width: 220px;
+}
+
+.admin-users-table th:nth-child(2),
+.admin-users-table td:nth-child(2),
+.admin-users-table th:nth-child(3),
+.admin-users-table td:nth-child(3),
+.admin-users-table th:nth-child(4),
+.admin-users-table td:nth-child(4),
+.admin-users-table th:nth-child(6),
+.admin-users-table td:nth-child(6) {
+  width: 78px;
+  white-space: nowrap;
+}
+
+.admin-users-table th:nth-child(5),
+.admin-users-table td:nth-child(5),
+.admin-organization-cell {
+  width: 115px;
+  max-width: 115px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.admin-users-table th:nth-child(7),
+.admin-users-table td:nth-child(7) {
+  width: 130px;
+}
+
+.admin-users-table th:nth-child(8),
+.admin-users-table td:nth-child(8) {
+  width: 230px;
+}
+
+.admin-users-table .admin-actions,
+.admin-requests-table .admin-actions {
+  min-width: 0;
+}
+
+.admin-users-table .btn-xs,
+.admin-requests-table .btn-xs {
+  padding: 7px 9px;
+}

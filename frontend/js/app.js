@@ -2377,7 +2377,7 @@ function renderAdminProjects(items) {
   if (countEl) countEl.textContent = `${filtered.length} request${filtered.length === 1 ? '' : 's'}`;
 
   if (!filtered.length) {
-    table.innerHTML = '<tr><td colspan="9">No requests found with these filters.</td></tr>';
+    table.innerHTML = '<tr><td colspan="8">No requests found with these filters.</td></tr>';
     return;
   }
 
@@ -2392,7 +2392,6 @@ function renderAdminProjects(items) {
       <td>${safeHtml(item.organization_name || '-')}</td>
       <td>${getAdminProjectStatusBadge(item)}</td>
       <td>${item.needs_financial_support ? 'Yes' : 'No'}</td>
-      <td>${item.needs_financial_support ? (item.alternative_payment_info ? `<div style="white-space:pre-wrap;max-width:260px;">${safeHtml(item.alternative_payment_info)}</div>` : '<span class="muted">None</span>') : '<span class="muted">—</span>'}</td>
       <td>${getAdminFundingBadge(item)}</td>
       <td>${getAdminReviewedBadge(item)}</td>
       <td>
@@ -2447,7 +2446,7 @@ async function loadAdmin() {
         `).join('')
       : '<tr><td colspan="6">No donations found.</td></tr>';
   } catch (error) {
-    table.innerHTML = `<tr><td colspan="9">${safeHtml(error.message)}. Login as admin first.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="8">${safeHtml(error.message)}. Login as admin first.</td></tr>`;
   }
 }
 
@@ -2701,7 +2700,7 @@ function renderAdminUsers(items) {
         <td>${getAdminUserRoleBadge(user)}</td>
         <td>${getAdminUserStatusBadge(user)}</td>
         <td>${safeHtml(user.country || '—')}</td>
-        <td>${safeHtml(user.organization_name || '—')}</td>
+        <td class="admin-organization-cell">${safeHtml(user.organization_name || '—')}</td>
         <td>${Number(user.request_count || 0)}</td>
         <td>${formatIsoDateTime(user.created_at)}</td>
         <td>
