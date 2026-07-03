@@ -2286,6 +2286,88 @@ function matchesAdminFilters(project) {
   return true;
 }
 
+function formatAdminYesNo(value) {
+  return value ? 'Yes' : 'No';
+}
+
+function adminDetailItem(label, value, options = {}) {
+  const isFull = options.full ? ' full' : '';
+  const renderedValue = value === undefined || value === null || String(value).trim() === '' ? '—' : value;
+  return `
+    <div class="admin-detail-item${isFull}">
+      <span class="admin-detail-label">${safeHtml(label)}</span>
+      <div class="admin-detail-value">${options.html ? renderedValue : safeHtml(renderedValue)}</div>
+    </div>
+  `;
+}
+
+function getAdminProjectById(id) {
+  return (adminProjectsCache || []).find((project) => String(project.id) === String(id));
+}
+
+function renderAdminProjectDetails(project) {
+  if (!project) return '<p>Request not found.</p>';
+  const fundingGoal = project.funding_goal || project.goal_amount || project.target_amount || project.amount_needed;
+  const createdBy = project.created_by || project.user_id || '';
+  const publicUrl = `${window.location.origin}/project.html?id=${encodeURIComponent(project.id)}`;
+
+  return `
+    <div class="admin-detail-grid">
+      ${adminDetailItem('ID', project.id)}
+      ${adminDetailItem('Created', formatIsoDateTime(project.created_at))}
+      ${adminDetailItem('Title', project.title, { full: true })}
+      ${adminDetailItem('Requester / organization', project.organization_name || project.requester_name || '-')}
+      ${adminDetailItem('Created by user ID', createdBy)}
+      ${adminDetailItem('Country', project.country)}
+      ${adminDetailItem('Continent', project.continent)}
+      ${adminDetailItem('Category', project.category)}
+      ${adminDetailItem('Help type', project.help_type || project.support_type || project.type)}
+      ${adminDetailItem('Status', getAdminProjectStatusBadge(project), { html: true })}
+      ${adminDetailItem('Reviewed', getAdminReviewedBadge(project), { html: true })}
+      ${adminDetailItem('Financial support requested', formatAdminYesNo(project.needs_financial_support))}
+      ${adminDetailItem('Funding status', getAdminFundingBadge(project), { html: true })}
+      ${adminDetailItem('Funding goal', fundingGoal ? formatCurrencyByCode(fundingGoal, project.currency || 'NZD') : '—')}
+      ${adminDetailItem('Currency', project.currency || '—')}
+      ${adminDetailItem('Verified ministry', formatAdminYesNo(project.verified_ministry))}
+      ${adminDetailItem('Campaign expiry date', project.campaign_expiry_date || project.expires_at || '—')}
+      ${adminDetailItem('Prayer/reply count', project.prayer_count ?? project.responses_count ?? project.response_count ?? '—')}
+      ${adminDetailItem('Description', project.description || project.summary || '—', { full: true })}
+      ${adminDetailItem('Alternative payment information', project.alternative_payment_info || '—', { full: true })}
+      ${project.denied_reason ? adminDetailItem('Denied reason', project.denied_reason, { full: true }) : ''}
+      ${project.cancellation_reason ? adminDetailItem('Cancellation reason', project.cancellation_reason, { full: true }) : ''}
+    </div>
+    <div class="admin-detail-actions">
+      <a class="btn-outline btn-xs" href="${safeHtml(publicUrl)}" target="_blank" rel="noopener">Open public page</a>
+      ${project.needs_financial_support ? `<button class="btn-outline btn-xs" type="button" onclick="approveProject('${safeHtml(project.id)}')">Approve financial support</button>` : ''}
+      ${project.needs_financial_support ? `<button class="btn-outline btn-xs btn-danger" type="button" onclick="denyProject('${safeHtml(project.id)}')">Deny financial support</button>` : ''}
+      <button class="btn-outline btn-xs" type="button" onclick="markReviewed('${safeHtml(project.id)}')">Mark reviewed</button>
+      ${project.status === 'cancelled'
+        ? `<button class="btn-outline btn-xs" type="button" onclick="reactivateProject('${safeHtml(project.id)}')">Reactivate</button>`
+        : `<button class="btn-outline btn-xs btn-warn" type="button" onclick="cancelProject('${safeHtml(project.id)}')">Cancel request</button>`}
+    </div>
+  `;
+}
+
+function openAdminProjectDetails(id) {
+  const modal = $('#adminProjectModal');
+  const body = $('#adminProjectModalBody');
+  const title = $('#adminProjectModalTitle');
+  const project = getAdminProjectById(id);
+  if (!modal || !body) return;
+
+  if (title) title.textContent = project?.title || 'Request information';
+  body.innerHTML = renderAdminProjectDetails(project);
+  modal.classList.remove('hide');
+  document.body.classList.add('modal-open');
+}
+
+function closeAdminProjectDetails() {
+  const modal = $('#adminProjectModal');
+  if (!modal) return;
+  modal.classList.add('hide');
+  document.body.classList.remove('modal-open');
+}
+
 function renderAdminProjects(items) {
   const table = $('#adminProjectsTable');
   if (!table) return;
@@ -2323,6 +2405,7 @@ function renderAdminProjects(items) {
             value="${safeHtml(item.status === 'cancelled' ? (item.cancellation_reason || '') : (item.denied_reason || ''))}"
           >
           <div class="admin-actions-row">
+            <button class="btn-outline btn-xs" type="button" onclick="openAdminProjectDetails('${safeHtml(item.id)}')">View</button>
             ${item.needs_financial_support ? `<button class="btn-outline btn-xs" onclick="approveProject('${item.id}')">Approve</button>` : ''}
             ${item.needs_financial_support ? `<button class="btn-outline btn-xs btn-danger" onclick="denyProject('${item.id}')">Deny</button>` : ''}
             <button class="btn-outline btn-xs" onclick="markReviewed('${item.id}')">Review</button>
@@ -2375,6 +2458,7 @@ async function updateAdminProject(id, payload, successMessage) {
       body: JSON.stringify(payload)
     });
     alert(successMessage || 'Request updated.');
+    closeAdminProjectDetails();
     await loadAdmin();
   } catch (error) {
     alert(error.message);
@@ -2448,6 +2532,14 @@ function initAdminFilters() {
 
   ['adminFilterStatus', 'adminFilterFinancial', 'adminFilterFundingStatus', 'adminFilterReviewed'].forEach((id) => {
     document.getElementById(id)?.addEventListener('change', () => renderAdminProjects(adminProjectsCache));
+  });
+
+  $('#adminProjectModalClose')?.addEventListener('click', closeAdminProjectDetails);
+  $('#adminProjectModal')?.addEventListener('click', (event) => {
+    if (event.target?.id === 'adminProjectModal') closeAdminProjectDetails();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeAdminProjectDetails();
   });
 }
 
