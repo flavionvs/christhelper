@@ -2470,7 +2470,7 @@ app.post('/payments/project-checkout', async (req, res) => {
           destination: owner.stripe_account_id
         },
         description: donor_message
-          ? `Support for ${project.title} — ${String(donor_message).trim().slice(0, 180)}`
+          ? `Support for ${project.title} - ${String(donor_message).trim().slice(0, 180)}`
           : `Support for ${project.title}`
       },
       metadata: {

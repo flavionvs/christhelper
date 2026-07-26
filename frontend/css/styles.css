@@ -2880,3 +2880,33 @@ body.modal-open {
     grid-template-columns: 1fr;
   }
 }
+
+
+@media (max-width: 480px) {
+  .prayer-mission-section {
+    padding-top: 24px;
+  }
+
+  .prayer-promise-grid {
+    width: 100%;
+    gap: 14px;
+  }
+
+  .prayer-promise-card {
+    min-width: 0;
+    width: 100%;
+    padding: 18px 16px;
+    overflow: hidden;
+  }
+
+  .prayer-promise-card h3,
+  .prayer-promise-card p,
+  .prayer-promise-card blockquote {
+    overflow-wrap: anywhere;
+  }
+
+  .prayer-promise-card blockquote {
+    margin-top: 14px;
+    padding: 12px 13px;
+  }
+}

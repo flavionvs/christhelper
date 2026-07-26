@@ -190,7 +190,7 @@ function formatCurrencyByCode(value, currency) {
 }
 
 function formatIsoDateTime(value) {
-  if (!value) return '—';
+  if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return safeHtml(String(value));
   return date.toLocaleString();
@@ -490,7 +490,7 @@ function projectCard(project) {
           </div>
           <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
         </div>
-      ` : '<div class="notice">View details to see full support options.</div>'}
+      ` : ''}
       <div class="project-actions">
         <a class="btn" href="project.html?id=${project.id}">View details</a>
         <button class="btn-outline" type="button" data-card-respond-toggle>Respond</button>
@@ -1687,7 +1687,7 @@ function renderStripeSummarySection(summary, options = {}) {
                   <td>${safeHtml(formatIsoDateTime(item.created))}</td>
                   <td>${safeHtml(item.description || item.type || 'Transaction')}</td>
                   <td>${safeHtml(formatCurrencyByCode(item.net || 0, item.currency || currency))}</td>
-                  <td>${safeHtml(item.status || '—')}</td>
+                  <td>${safeHtml(item.status || '-')}</td>
                 </tr>
               `).join('')
               : '<tr><td colspan="4">No Stripe transactions found yet.</td></tr>'}
@@ -1713,7 +1713,7 @@ function renderStripeSummarySection(summary, options = {}) {
                   <td>${safeHtml(formatIsoDateTime(item.created))}</td>
                   <td>${safeHtml(formatIsoDateTime(item.arrival_date))}</td>
                   <td>${safeHtml(formatCurrencyByCode(item.amount || 0, item.currency || currency))}</td>
-                  <td>${safeHtml(item.status || '—')}</td>
+                  <td>${safeHtml(item.status || '-')}</td>
                 </tr>
               `).join('')
               : '<tr><td colspan="4">No payouts found yet.</td></tr>'}
@@ -1739,7 +1739,7 @@ function renderStripeSummarySection(summary, options = {}) {
                   <td>${safeHtml(formatIsoDateTime(item.processed_at || item.created_at))}</td>
                   <td>${safeHtml(item.donor_name || 'Anonymous')}</td>
                   <td>${safeHtml(formatCurrencyByCode(item.amount_project || 0, item.currency || currency))}</td>
-                  <td>${safeHtml(item.stripe_payment_intent_id || '—')}</td>
+                  <td>${safeHtml(item.stripe_payment_intent_id || '-')}</td>
                 </tr>
               `).join('')
               : '<tr><td colspan="4">No paid donations recorded yet.</td></tr>'}
@@ -2314,7 +2314,7 @@ function formatAdminYesNo(value) {
 
 function adminDetailItem(label, value, options = {}) {
   const isFull = options.full ? ' full' : '';
-  const renderedValue = value === undefined || value === null || String(value).trim() === '' ? '—' : value;
+  const renderedValue = value === undefined || value === null || String(value).trim() === '' ? '-' : value;
   return `
     <div class="admin-detail-item${isFull}">
       <span class="admin-detail-label">${safeHtml(label)}</span>
@@ -2348,12 +2348,12 @@ function renderAdminProjectDetails(project) {
       ${adminDetailItem('Reviewed', getAdminReviewedBadge(project), { html: true })}
       ${adminDetailItem('Financial support requested', formatAdminYesNo(project.needs_financial_support))}
       ${adminDetailItem('Funding status', getAdminFundingBadge(project), { html: true })}
-      ${adminDetailItem('Funding goal', fundingGoal ? formatCurrencyByCode(fundingGoal, project.currency || 'NZD') : '—')}
-      ${adminDetailItem('Currency', project.currency || '—')}
+      ${adminDetailItem('Funding goal', fundingGoal ? formatCurrencyByCode(fundingGoal, project.currency || 'NZD') : '-')}
+      ${adminDetailItem('Currency', project.currency || '-')}
       ${adminDetailItem('Verified ministry', formatAdminYesNo(project.verified_ministry))}
-      ${adminDetailItem('Campaign expiry date', project.campaign_expiry_date || project.expires_at || '—')}
-      ${adminDetailItem('Prayer/reply count', project.prayer_count ?? project.responses_count ?? project.response_count ?? '—')}
-      ${adminDetailItem('Description', project.description || project.summary || '—', { full: true })}
+      ${adminDetailItem('Campaign expiry date', project.campaign_expiry_date || project.expires_at || '-')}
+      ${adminDetailItem('Prayer/reply count', project.prayer_count ?? project.responses_count ?? project.response_count ?? '-')}
+      ${adminDetailItem('Description', project.description || project.summary || '-', { full: true })}
       ${project.denied_reason ? adminDetailItem('Denied reason', project.denied_reason, { full: true }) : ''}
       ${project.cancellation_reason ? adminDetailItem('Cancellation reason', project.cancellation_reason, { full: true }) : ''}
     </div>
@@ -2588,11 +2588,11 @@ function renderAdminFeedback(items) {
   table.innerHTML = list.map((item) => `
     <tr>
       <td>${formatIsoDateTime(item.created_at)}</td>
-      <td>${safeHtml(item.name || '—')}</td>
-      <td>${safeHtml(item.email || '—')}</td>
+      <td>${safeHtml(item.name || '-')}</td>
+      <td>${safeHtml(item.email || '-')}</td>
       <td>${safeHtml(item.type || 'Other')}</td>
       <td>${safeHtml(feedbackPreview(item.message))}</td>
-      <td>${item.request_id ? `<a href="project.html?id=${encodeURIComponent(item.request_id)}">${safeHtml(item.request_id)}</a>` : '—'}</td>
+      <td>${item.request_id ? `<a href="project.html?id=${encodeURIComponent(item.request_id)}">${safeHtml(item.request_id)}</a>` : '-'}</td>
       <td>${getFeedbackStatusBadge(item)}</td>
       <td>
         <div class="admin-actions-row wrap">
@@ -2623,10 +2623,10 @@ function viewFeedbackDetails(id) {
   if (!item) return alert('Feedback not found.');
   alert([
     `Date Submitted: ${formatIsoDateTime(item.created_at)}`,
-    `Name: ${item.name || '—'}`,
-    `Email: ${item.email || '—'}`,
+    `Name: ${item.name || '-'}`,
+    `Email: ${item.email || '-'}`,
     `Type: ${item.type || 'Other'}`,
-    `Request ID: ${item.request_id || '—'}`,
+    `Request ID: ${item.request_id || '-'}`,
     `Status: ${item.status || 'New'}`,
     '',
     item.message || ''
@@ -2714,20 +2714,20 @@ function renderAdminUsers(items) {
         <td>
           <div class="admin-user-cell">
             <strong>${safeHtml(user.name || 'Unnamed user')}</strong>
-            <span class="admin-user-meta">${safeHtml(user.email || '—')}</span>
+            <span class="admin-user-meta">${safeHtml(user.email || '-')}</span>
             <span class="admin-user-meta">ID: ${safeHtml(user.id)}</span>
           </div>
         </td>
         <td>${getAdminUserRoleBadge(user)}</td>
         <td>${getAdminUserStatusBadge(user)}</td>
-        <td>${safeHtml(user.country || '—')}</td>
-        <td class="admin-organization-cell">${safeHtml(user.organization_name || '—')}</td>
+        <td>${safeHtml(user.country || '-')}</td>
+        <td class="admin-organization-cell">${safeHtml(user.organization_name || '-')}</td>
         <td>${Number(user.request_count || 0)}</td>
         <td>${formatIsoDateTime(user.created_at)}</td>
         <td>
           <div class="admin-actions">
             <div class="admin-user-meta" style="margin-bottom:8px;">
-              ${user.last_login_at ? `Last login: ${safeHtml(formatIsoDateTime(user.last_login_at))}` : 'Last login: —'}
+              ${user.last_login_at ? `Last login: ${safeHtml(formatIsoDateTime(user.last_login_at))}` : 'Last login: -'}
               ${isSelf ? '<br>Your account' : ''}
             </div>
             <div class="admin-actions-row wrap">
