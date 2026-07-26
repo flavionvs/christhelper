@@ -135,7 +135,7 @@
               <label><input type="checkbox" name="help_types" value="Mentorship"> Mentorship</label>
               <label><input type="checkbox" name="help_types" value="Services"> Services</label>
               <label><input type="checkbox" name="help_types" value="Resources"> Resources</label>
-              <label><input type="checkbox" name="help_types" value="Financial support"> Financial support</label>
+              <label><input type="checkbox" id="financialSupportOption" name="help_types" value="Financial support"> Financial support</label>
               <label><input type="checkbox" name="help_types" value="Other"> Other</label>
             </div>
           </div>
@@ -154,16 +154,14 @@
           </div>
 
           <div id="financialGoalWrap" class="hide" style="grid-column:1/-1;display:grid;gap:14px;">
+            <div id="stripeFinancialNotice" class="notice hide" role="alert">
+              To receive financial support donations, you must connect your Stripe account first. If Stripe is not available in your country, please select a different support type.
+              <div style="margin-top:10px;"><a class="btn-outline" href="profile.html">Connect Stripe in your profile</a></div>
+            </div>
             <label>
               <span>Funding goal in USD</span>
-              <small class="muted">Stripe is preferred where supported. If Stripe is not available, you can still submit your Financial Support request for admin review.</small>
+              <small class="muted">Financial Support requests can only be submitted when Stripe is connected and ready to receive donations.</small>
               <input id="fundingGoal" name="funding_goal" type="number" placeholder="Example: 1500">
-            </label>
-
-            <label>
-              <span>Alternative payment information</span>
-              <small class="muted">If Stripe is not available in your country, you can add PayPal, Wise, bank transfer, or another payment website/instruction here. This is not processed by ChristHelper, so supporters should use wisdom before giving.</small>
-              <textarea id="alternativePaymentInfo" name="alternative_payment_info" placeholder="Example: PayPal email, Wise payment link, bank transfer instructions, or other payment website details."></textarea>
             </label>
           </div>
 
@@ -180,7 +178,8 @@
           </label>
 
           <div style="grid-column:1/-1;">
-            <button class="btn" type="submit">Submit request</button>
+            <button class="btn" id="submitRequestBtn" type="submit">Submit request</button>
+            <p id="submitFinancialError" class="form-error hide" role="alert" style="margin-top:10px;">A connected Stripe account is required for Financial Support. Please connect Stripe or choose another support type before continuing.</p>
           </div>
 
         </form>

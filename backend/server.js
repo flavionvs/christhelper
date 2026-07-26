@@ -2016,6 +2016,10 @@ app.post('/projects', authRequired, (req, res) => {
       return res.status(400).json({ error: 'Your profile does not currently allow financial support' });
     }
 
+    if (!owner.stripe_account_id || !owner.stripe_charges_enabled) {
+      return res.status(400).json({ error: 'A connected Stripe account is required for Financial Support. Please connect Stripe or choose another support type before continuing.' });
+    }
+
     if (!(fundingGoal > 0)) {
       return res.status(400).json({ error: 'Funding goal must be greater than 0 for financial requests' });
     }

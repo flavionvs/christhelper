@@ -890,13 +890,7 @@ async function loadProjectDetails() {
                   <input name="amount_platform" type="number" min="0" step="0.01" placeholder="Optional support value (USD)">
                   <button class="btn" type="submit">Continue to secure payment</button>
                 </form>
-              ` : (project.alternative_payment_info ? `
-                <div class="item" style="margin-top:16px;white-space:pre-wrap;">
-                  <strong>Alternative Payment Information</strong>
-                  <div style="margin-top:8px;">${safeHtml(project.alternative_payment_info)}</div>
-                </div>
-                <div class="notice warn" style="margin-top:16px;">This payment method is not processed by ChristHelper. Please use prayer, wisdom, and personal judgment before sending money.</div>
-              ` : '<p class="muted" style="margin-top:14px;">Financial support is approved, but no payment information is available yet.</p>')}
+              ` : '<p class="muted" style="margin-top:14px;">Financial support is unavailable until the request owner connects and completes Stripe setup.</p>'}
             ` : '<p class="muted">Financial support is not available yet for this request. You can still respond with prayer, guidance, volunteering, and encouragement.</p>'}
           </section>
 
@@ -1286,18 +1280,37 @@ function fillContinentFromCountry() {
   continentEl.value = continent || '';
 }
 
+function isStripeReadyForFinancialSupport() {
+  return Boolean(currentUser?.stripe_account_id && currentUser?.stripe_charges_enabled);
+}
+
 function toggleFinancialFields() {
   const goalWrap = $('#financialGoalWrap');
   const goalInput = $('#fundingGoal') || $('[name="funding_goal"]');
   const currencyInput = $('#fundingGoalCurrency') || $('[name="funding_goal_currency"]');
+  const stripeNotice = $('#stripeFinancialNotice');
+  const submitButton = $('#submitRequestBtn');
+  const submitError = $('#submitFinancialError');
   const helpTypeInputs = Array.from(document.querySelectorAll('input[name="help_types"]'));
   const hasFinancialSupport = helpTypeInputs.some((input) => input.checked && String(input.value || '').toLowerCase() === 'financial support');
+  const stripeReady = isStripeReadyForFinancialSupport();
+  const financialBlocked = hasFinancialSupport && !stripeReady;
 
   if (goalWrap) goalWrap.classList.toggle('hide', !hasFinancialSupport);
+  if (stripeNotice) stripeNotice.classList.toggle('hide', !financialBlocked);
+  if (submitError && !financialBlocked) submitError.classList.add('hide');
+  if (submitButton) {
+    submitButton.dataset.financialBlocked = String(financialBlocked);
+    submitButton.setAttribute('aria-disabled', String(financialBlocked));
+    submitButton.title = financialBlocked
+      ? 'Connect Stripe or choose another support type before continuing.'
+      : '';
+  }
   if (currencyInput) currencyInput.value = hasFinancialSupport ? 'USD' : '';
 
   if (goalInput) {
     goalInput.required = hasFinancialSupport;
+    goalInput.disabled = financialBlocked;
     if (!hasFinancialSupport) goalInput.value = '';
   }
 
@@ -1383,11 +1396,9 @@ function getSubmitRequestPayload(form) {
   if (payload.needs_financial_support) {
     payload.funding_goal_currency = 'USD';
     payload.is_anonymous = false;
-    payload.alternative_payment_info = String(payload.alternative_payment_info || '').trim();
   } else {
     payload.funding_goal = payload.funding_goal || 0;
     payload.funding_goal_currency = '';
-    payload.alternative_payment_info = '';
   }
 
   return payload;
@@ -1438,6 +1449,12 @@ function initSubmitAuthModal() {
 
 function validateSubmitPayloadBeforePost(payload) {
   if (payload.needs_financial_support) {
+    if (!isStripeReadyForFinancialSupport()) {
+      const errorEl = $('#submitFinancialError');
+      if (errorEl) errorEl.classList.remove('hide');
+      alert('A connected Stripe account is required for Financial Support. Please connect Stripe or choose another support type before continuing.');
+      return false;
+    }
     if (!payload.funding_goal || Number(payload.funding_goal) <= 0) {
       alert('Please enter a funding goal in USD.');
       return false;
@@ -1521,6 +1538,11 @@ function handleSubmitProject() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const payload = getSubmitRequestPayload(form);
+
+    if (payload.needs_financial_support && !isStripeReadyForFinancialSupport()) {
+      validateSubmitPayloadBeforePost(payload);
+      return;
+    }
 
     if (!token) {
       showSubmitAuthModal(payload);
@@ -1883,7 +1905,7 @@ async function handleProfilePage() {
         <p>Manage your account details, Stripe connection, and project preferences.</p>
 
         <div class="notice" style="margin:16px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-          <span>Stripe allows secure payments through ChristHelper where supported. If Stripe is not available in your country, you can add alternative payment information when submitting a Financial Support request.</span>
+          <span>To receive Financial Support donations through ChristHelper, connect Stripe and complete the account setup. If Stripe is unavailable in your country, please use a different support type.</span>
           <button class="btn" id="connectStripeNoticeBtn" type="button">Connect with Stripe</button>
         </div>
 
@@ -2332,7 +2354,6 @@ function renderAdminProjectDetails(project) {
       ${adminDetailItem('Campaign expiry date', project.campaign_expiry_date || project.expires_at || '—')}
       ${adminDetailItem('Prayer/reply count', project.prayer_count ?? project.responses_count ?? project.response_count ?? '—')}
       ${adminDetailItem('Description', project.description || project.summary || '—', { full: true })}
-      ${adminDetailItem('Alternative payment information', project.alternative_payment_info || '—', { full: true })}
       ${project.denied_reason ? adminDetailItem('Denied reason', project.denied_reason, { full: true }) : ''}
       ${project.cancellation_reason ? adminDetailItem('Cancellation reason', project.cancellation_reason, { full: true }) : ''}
     </div>
@@ -2869,6 +2890,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   handleSubmitProject();
   handlePlatformDonation();
   await refreshCurrentUser();
+  toggleFinancialFields();
   loadProjects();
   loadProjectDetails();
   handleProfilePage();
