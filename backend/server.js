@@ -1689,6 +1689,21 @@ app.post('/stripe/connect/onboard', authRequired, async (req, res) => {
     const user = db.users.find((item) => item.id === req.user.id);
     if (!user) throw new Error('User not found');
 
+    // If the saved account doesn't exist under the current Stripe key
+    // (e.g. a test-mode acct_ id while running live keys), forget it and create a new one.
+    if (user.stripe_account_id) {
+      try {
+        await stripe.accounts.retrieve(user.stripe_account_id);
+      } catch (err) {
+        if (err && (err.code === 'resource_missing' || err.code === 'account_invalid' || err.statusCode === 404 || err.type === 'StripePermissionError')) {
+          console.warn(`Stale Stripe account ${user.stripe_account_id} for user ${user.id}: ${err.message}. Creating a new one.`);
+          user.stripe_account_id = '';
+        } else {
+          throw err;
+        }
+      }
+    }
+
     if (!user.stripe_account_id) {
       const account = await stripe.accounts.create({
         type: 'express',
@@ -1716,8 +1731,10 @@ app.post('/stripe/connect/onboard', authRequired, async (req, res) => {
 
     res.json({ url: link.url, account_id: accountId });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Unable to start Stripe onboarding' });
+    console.error('Stripe onboarding failed:', error?.type, error?.code, error?.message);
+    res.status(500).json({
+      error: `Unable to start Stripe onboarding${error?.message ? `: ${error.message}` : ''}`
+    });
   }
 });
 
