@@ -124,37 +124,68 @@
     </section>
 
 
-    <section class="section prayer-mission-section">
+    <section class="section promo-video-section" aria-labelledby="promoVideoTitle">
       <div class="container">
-        <div class="section-head prayer-mission-heading">
-          <div>
-            <div class="campaign-kicker">United in prayer</div>
-            <h2>There is hope when believers pray together.</h2>
-            <p>Whatever you are facing, you do not have to carry it alone. Share your request, pray for someone in need, and trust that God hears every sincere prayer.</p>
+        <div class="promo-video-panel">
+          <div class="promo-video-glow promo-video-glow--warm" aria-hidden="true"></div>
+          <div class="promo-video-glow promo-video-glow--cool" aria-hidden="true"></div>
+
+          <div class="promo-video-head">
+            <div class="promo-video-kicker"><span aria-hidden="true">✚</span> See how it works</div>
+            <h2 id="promoVideoTitle">Share your burden.<span>Pray for someone.</span></h2>
+            <p>A place where believers pray for one another &mdash; in one minute.</p>
           </div>
-        </div>
-        <div class="prayer-promise-grid">
-          <article class="card prayer-promise-card">
-            <span class="prayer-promise-icon" aria-hidden="true">🙏</span>
-            <h3>Bring your request to God</h3>
-            <p>Share your burden with faith and invite Christians around the world to stand with you in prayer.</p>
-            <blockquote>“Cast all your anxiety on him because he cares for you.” <strong>- 1 Peter 5:7</strong></blockquote>
-          </article>
-          <article class="card prayer-promise-card">
-            <span class="prayer-promise-icon" aria-hidden="true">✝</span>
-            <h3>Pray with compassion</h3>
-            <p>Your prayer can bring comfort, courage, and renewed hope to someone walking through a difficult season.</p>
-            <blockquote>“Carry each other’s burdens, and in this way you will fulfill the law of Christ.” <strong>- Galatians 6:2</strong></blockquote>
-          </article>
-          <article class="card prayer-promise-card">
-            <span class="prayer-promise-icon" aria-hidden="true">♡</span>
-            <h3>Trust God for the outcome</h3>
-            <p>We pray with expectation while placing every need, healing, and future into God’s faithful hands.</p>
-            <blockquote>“Be joyful in hope, patient in affliction, faithful in prayer.” <strong>- Romans 12:12</strong></blockquote>
-          </article>
+
+          <div class="promo-video-frame">
+            <div class="promo-video-bar" aria-hidden="true">
+              <span class="promo-video-dots"><i></i><i></i><i></i></span>
+              <span>christhelper.com</span>
+            </div>
+            <div class="promo-video-player" data-promo-video>
+              <video id="promoVideo" preload="metadata" playsinline poster="assets/christhelper-promo-poster.jpg">
+                <source src="assets/christhelper-promo.mp4" type="video/mp4">
+                Your browser does not support embedded video.
+              </video>
+              <button class="promo-video-play" type="button" aria-label="Play the ChristHelper video" data-promo-play>
+                <span class="promo-video-play__label"><span class="promo-video-play__icon" aria-hidden="true"></span>Watch the 1-minute video</span>
+              </button>
+            </div>
+          </div>
+
+          <ul class="promo-video-features" aria-label="What you can do on ChristHelper">
+            <li><span aria-hidden="true">✅</span> Share requests</li>
+            <li><span aria-hidden="true">🙏</span> Prayer</li>
+            <li><span aria-hidden="true">💬</span> Encouragement</li>
+            <li><span aria-hidden="true">💛</span> Practical support</li>
+          </ul>
+
+          <div class="promo-video-actions">
+            <a class="btn" href="submit.html">Share a request &rarr;</a>
+            <a class="btn-outline" href="explore-projects.html">Pray for someone</a>
+          </div>
         </div>
       </div>
     </section>
+
+    <script>
+      (function () {
+        var wrap = document.querySelector('[data-promo-video]');
+        if (!wrap) return;
+        var video = wrap.querySelector('video');
+        var play = wrap.querySelector('[data-promo-play]');
+        play.addEventListener('click', function () {
+          video.setAttribute('controls', '');
+          wrap.classList.add('is-playing');
+          var p = video.play();
+          if (p && p.catch) p.catch(function () {});
+        });
+        video.addEventListener('ended', function () {
+          wrap.classList.remove('is-playing');
+          video.removeAttribute('controls');
+          video.load();
+        });
+      })();
+    </script>
 
     <section class="section" id="projects">
       <div class="container">

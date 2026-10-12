@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChristHelper | Submit request</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,400;1,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-VEBD7Q9H0S"></script>
@@ -16,7 +19,7 @@
 </script>
 
 </head>
-<body>
+<body class="submit-page">
   <header class="header">
     <div class="container nav">
       <a href="index.html" class="brand brand--stack">
@@ -55,144 +58,196 @@
     </div>
   </header>
 
-  <main class="page-wrap">
-    <div class="container">
-      <section class="card page-card">
-        <div class="eyebrow">Submit a request</div>
-        <h1 style="font-size:2.3rem;">Share a Christian need or ministry request</h1>
-        <p>
-          Requests can ask for prayer, support, volunteers, services, financial help, and more. For financial support requests, Stripe must be connected in your profile before submission.
-        </p>
+  <main class="submit-modern">
+    <div class="sm-glow sm-glow--warm" aria-hidden="true"></div>
+    <div class="sm-glow sm-glow--cool" aria-hidden="true"></div>
 
-        <form id="submitProjectForm" class="form-grid two">
+    <div class="container sm-layout">
+      <aside class="sm-intro">
+        <div class="sm-kicker"><span aria-hidden="true">✚</span> Share a request</div>
+        <h1>Share your request.<span>Bring it before God.</span></h1>
+        <p class="sm-lead">Healing, family, provision or ministry &mdash; share what&rsquo;s on your heart, with your name or anonymously. Believers around the world will stand with you.</p>
 
-          <label style="grid-column:1/-1;">
-            <span data-info="Write a clear and short title so people quickly understand the request.">Request title</span>
-            <input name="title" placeholder="Example: Prayer support for youth outreach in Auckland" required>
-          </label>
+        <figure class="sm-verse">
+          <blockquote>&ldquo;In every situation, by prayer and petition, with thanksgiving, present your requests to God.&rdquo;</blockquote>
+          <figcaption>Philippians 4:6</figcaption>
+        </figure>
 
+        <ol class="sm-steps" aria-label="Form sections">
+          <li><a href="#step-request" data-step-link="step-request"><span>1</span>Your request</a></li>
+          <li><a href="#step-need" data-step-link="step-need"><span>2</span>Kind of need</a></li>
+          <li><a href="#step-help" data-step-link="step-help"><span>3</span>How to help</a></li>
+          <li><a href="#step-place" data-step-link="step-place"><span>4</span>Location</a></li>
+          <li><a href="#step-options" data-step-link="step-options"><span>5</span>Options</a></li>
+        </ol>
 
-          <label style="grid-column:1/-1;">
-            <span data-info="Describe the request in more detail, what is happening, and what support is needed.">Full description</span>
-            <textarea name="description" placeholder="Example: Our church is preparing a weekend outreach and needs prayer, a few volunteers, and help sharing the event with the community." required></textarea>
-          </label>
+        <p class="sm-note">For financial support requests, Stripe must be connected in your profile before submission.</p>
+      </aside>
 
-          <label style="grid-column:1/-1;">
-            <span data-info="Explain why this request matters and why people should care.">Why it matters</span>
-            <textarea name="why_it_matters" placeholder="Example: This outreach is a chance to support families, share the gospel, and welcome people who may be visiting a church for the first time."></textarea>
-          </label>
+      <section class="sm-card" aria-labelledby="smFormTitle">
+        <div class="sm-card__bar">
+          <span class="sm-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="sm-card__title" id="smFormTitle">Submit a request</span>
+          <span class="sm-pill">Free to share</span>
+        </div>
 
-          <!-- ✅ FIXED COUNTRY -->
-          <label>
-            <span data-info="Select the country where the request is based.">Country</span>
-            <select id="projectCountry" name="country" required>
-              <option value="">-- Select country --</option>
-            </select>
-          </label>
+        <form id="submitProjectForm" class="sm-form">
 
-          <label>
-            <span data-info="This is filled automatically from the country.">Continent</span>
-            <input id="projectContinent" name="continent" placeholder="Filled automatically after selecting a country" required readonly>
-          </label>
+          <fieldset class="sm-section" id="step-request">
+            <legend><span class="sm-num">1</span>Your request</legend>
+            <label class="sm-field">
+              <span class="sm-label">Request title</span>
+              <input name="title" placeholder="Please pray for my family" required>
+              <small>Short and clear, so people quickly understand.</small>
+            </label>
+            <label class="sm-field">
+              <span class="sm-label">Full description</span>
+              <textarea name="description" rows="5" placeholder="What is happening, and what support is needed?" required></textarea>
+            </label>
+            <label class="sm-field">
+              <span class="sm-label">Why it matters <em>optional</em></span>
+              <textarea name="why_it_matters" rows="3" placeholder="Why should believers stand with you in this?"></textarea>
+            </label>
+          </fieldset>
 
-          <label>
-            <span data-info="Add the city, town, region, or write online if remote.">City or online</span>
-            <input name="city" placeholder="Example: Auckland or Online">
-          </label>
-
-          <label>
-            <span data-info="Choose the category that best matches your request.">Category</span>
-            <select name="category" required>
-              <option value="">Choose category</option>
-              <option>Mission trip</option>
-              <option>Evangelism</option>
-              <option>Church planting</option>
-              <option>Worship ministry</option>
-              <option>Youth ministry</option>
-              <option>Family support</option>
-              <option>Emergency need</option>
-              <option>Christian education</option>
-              <option>Bible distribution</option>
-              <option>Outreach event</option>
-              <option>Community service</option>
-              <option>Christian media</option>
-              <option>Christian technology</option>
-              <option>Counselling and guidance</option>
-              <option>Other</option>
-            </select>
-          </label>
-
-          <label>
-            <span data-info="Add your church, ministry, or organisation name if relevant.">Organization or ministry name</span>
-            <input name="organization_name" placeholder="Example: Grace Community Church">
-          </label>
-
-          <div class="item" style="grid-column:1/-1;">
-            <strong data-info="Select all types of support needed for this request.">Help types needed</strong>
-            <div class="checkbox-row" style="margin-top:10px;">
-              <label><input type="checkbox" name="help_types" value="Prayer"> Prayer</label>
-              <label><input type="checkbox" name="help_types" value="Guidance"> Guidance</label>
-              <label><input type="checkbox" name="help_types" value="Volunteer"> Volunteer</label>
-              <label><input type="checkbox" name="help_types" value="Mentorship"> Mentorship</label>
-              <label><input type="checkbox" name="help_types" value="Services"> Services</label>
-              <label><input type="checkbox" name="help_types" value="Resources"> Resources</label>
-              <label><input type="checkbox" id="financialSupportOption" name="help_types" value="Financial support"> Financial support</label>
-              <label><input type="checkbox" name="help_types" value="Other"> Other</label>
+          <fieldset class="sm-section" id="step-need">
+            <legend><span class="sm-num">2</span>What kind of need?</legend>
+            <div class="chip-group" role="radiogroup" aria-label="Category">
+                <label class="chip"><input type="radio" name="category" value="Mission trip" required><span><i aria-hidden="true">🌍</i>Mission trip</span></label>
+                <label class="chip"><input type="radio" name="category" value="Evangelism"><span><i aria-hidden="true">📣</i>Evangelism</span></label>
+                <label class="chip"><input type="radio" name="category" value="Church planting"><span><i aria-hidden="true">⛪</i>Church planting</span></label>
+                <label class="chip"><input type="radio" name="category" value="Worship ministry"><span><i aria-hidden="true">🎶</i>Worship ministry</span></label>
+                <label class="chip"><input type="radio" name="category" value="Youth ministry"><span><i aria-hidden="true">🧑‍🤝‍🧑</i>Youth ministry</span></label>
+                <label class="chip"><input type="radio" name="category" value="Family support"><span><i aria-hidden="true">🏠</i>Family support</span></label>
+                <label class="chip"><input type="radio" name="category" value="Emergency need"><span><i aria-hidden="true">🚨</i>Emergency need</span></label>
+                <label class="chip"><input type="radio" name="category" value="Christian education"><span><i aria-hidden="true">🎓</i>Christian education</span></label>
+                <label class="chip"><input type="radio" name="category" value="Bible distribution"><span><i aria-hidden="true">📖</i>Bible distribution</span></label>
+                <label class="chip"><input type="radio" name="category" value="Outreach event"><span><i aria-hidden="true">🤝</i>Outreach event</span></label>
+                <label class="chip"><input type="radio" name="category" value="Community service"><span><i aria-hidden="true">💛</i>Community service</span></label>
+                <label class="chip"><input type="radio" name="category" value="Christian media"><span><i aria-hidden="true">🎬</i>Christian media</span></label>
+                <label class="chip"><input type="radio" name="category" value="Christian technology"><span><i aria-hidden="true">💻</i>Christian technology</span></label>
+                <label class="chip"><input type="radio" name="category" value="Counselling and guidance"><span><i aria-hidden="true">🧭</i>Counselling and guidance</span></label>
+                <label class="chip"><input type="radio" name="category" value="Other"><span><i aria-hidden="true">✨</i>Other</span></label>
             </div>
-          </div>
+          </fieldset>
 
-          <div class="item" style="grid-column:1/-1;">
-            <strong data-info="Choose any extra settings for this request.">Settings</strong>
-            <div class="checkbox-row" style="margin-top:10px;">
-              <label><input type="checkbox" name="is_online"> This is online / remote</label>
-              <label><input type="checkbox" name="responses_public" checked> Make replies and prayers public</label>
-              <label>
-                <input type="checkbox" name="is_anonymous" id="submitAnonymousOption">
-                <span id="submitAnonymousLabel">Anonymous</span>
-                <span class="info-help" id="submitAnonymousInfo" title="Available only for non-financial requests. When enabled, your identity will not be shown publicly." aria-label="Available only for non-financial requests. When enabled, your identity will not be shown publicly." style="margin-left:6px;cursor:help;color:var(--primary);font-weight:700;">ⓘ</span>
+          <fieldset class="sm-section" id="step-help">
+            <legend><span class="sm-num">3</span>How would you like believers to help?</legend>
+            <div class="help-grid">
+                <label class="help-tile"><input type="checkbox" name="help_types" value="Prayer"><span><i aria-hidden="true">🙏</i><b>Prayer</b><small>Stand with them</small></span></label>
+                <label class="help-tile"><input type="checkbox" name="help_types" value="Guidance"><span><i aria-hidden="true">🧭</i><b>Guidance</b><small>Counsel &amp; advice</small></span></label>
+                <label class="help-tile"><input type="checkbox" name="help_types" value="Volunteer"><span><i aria-hidden="true">🙋</i><b>Volunteer</b><small>Remote or onsite</small></span></label>
+                <label class="help-tile"><input type="checkbox" name="help_types" value="Mentorship"><span><i aria-hidden="true">🤝</i><b>Mentorship</b><small>Walk alongside</small></span></label>
+                <label class="help-tile"><input type="checkbox" name="help_types" value="Services"><span><i aria-hidden="true">🛠️</i><b>Services</b><small>Skills &amp; services</small></span></label>
+                <label class="help-tile"><input type="checkbox" name="help_types" value="Resources"><span><i aria-hidden="true">📚</i><b>Resources</b><small>Bibles, tools, more</small></span></label>
+                <label class="help-tile"><input type="checkbox" id="financialSupportOption" name="help_types" value="Financial support"><span><i aria-hidden="true">💛</i><b>Financial support</b><small>Safe giving</small></span></label>
+                <label class="help-tile"><input type="checkbox" name="help_types" value="Other"><span><i aria-hidden="true">✨</i><b>Other</b><small>Something else</small></span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="sm-section" id="step-place">
+            <legend><span class="sm-num">4</span>Where is this need?</legend>
+            <div class="sm-grid-2">
+              <label class="sm-field">
+                <span class="sm-label">Country</span>
+                <select id="projectCountry" name="country" required>
+                  <option value="">Select country</option>
+                </select>
+              </label>
+              <label class="sm-field">
+                <span class="sm-label">Continent</span>
+                <input id="projectContinent" name="continent" placeholder="Filled automatically" required readonly>
+              </label>
+              <label class="sm-field">
+                <span class="sm-label">City or online</span>
+                <input name="city" placeholder="Auckland or Online">
+              </label>
+              <label class="sm-field">
+                <span class="sm-label">Church or ministry <em>optional</em></span>
+                <input name="organization_name" placeholder="Grace Community Church">
               </label>
             </div>
-          </div>
+          </fieldset>
 
-          <div id="financialGoalWrap" class="hide" style="grid-column:1/-1;display:grid;gap:14px;">
-            <div id="stripeFinancialNotice" class="notice hide" role="alert">
-              To receive financial support donations, you must connect your Stripe account first. If Stripe is not available in your country, please select a different support type.
-              <div style="margin-top:10px;"><a class="btn-outline" href="profile.html">Connect Stripe in your profile</a></div>
+          <fieldset class="sm-section" id="step-options">
+            <legend><span class="sm-num">5</span>Options</legend>
+
+            <div class="toggle-list">
+              <label class="toggle">
+                <span class="toggle__text"><b>Online / remote</b><small>Help can be given from anywhere.</small></span>
+                <input type="checkbox" name="is_online"><span class="toggle__switch" aria-hidden="true"></span>
+              </label>
+              <label class="toggle">
+                <span class="toggle__text"><b>Public replies and prayers</b><small>Others can see who prayed and encouraged.</small></span>
+                <input type="checkbox" name="responses_public" checked><span class="toggle__switch" aria-hidden="true"></span>
+              </label>
+              <label class="toggle">
+                <span class="toggle__text"><b id="submitAnonymousLabel">Anonymous</b>
+                  <small id="submitAnonymousInfo" title="Available only for non-financial requests. When enabled, your identity will not be shown publicly." aria-label="Available only for non-financial requests. When enabled, your identity will not be shown publicly.">Hide your name. Not available for financial requests.</small></span>
+                <input type="checkbox" name="is_anonymous" id="submitAnonymousOption"><span class="toggle__switch" aria-hidden="true"></span>
+              </label>
             </div>
-            <label>
-              <span>Funding goal in USD</span>
-              <small class="muted">Financial Support requests can only be submitted when Stripe is connected and ready to receive donations.</small>
-              <input id="fundingGoal" name="funding_goal" type="number" placeholder="Example: 1500">
+
+            <div id="financialGoalWrap" class="hide sm-financial">
+              <div id="stripeFinancialNotice" class="sm-alert hide" role="alert">
+                <strong>Connect Stripe to receive donations.</strong>
+                <span>If Stripe is not available in your country, please select a different support type.</span>
+                <a class="btn-outline" href="profile.html">Connect Stripe in your profile</a>
+              </div>
+              <label class="sm-field">
+                <span class="sm-label">Funding goal (USD)</span>
+                <div class="sm-prefix"><span>$</span><input id="fundingGoal" name="funding_goal" type="number" min="1" placeholder="1500"></div>
+                <small>Financial support requests can only be submitted when Stripe is connected and ready to receive donations.</small>
+              </label>
+            </div>
+
+            <div class="sm-grid-2">
+              <label class="sm-field" id="campaignExpiryWrap">
+                <span class="sm-label">Campaign expiry date <em>optional</em></span>
+                <input id="campaignExpiryDate" name="campaign_expiry_date" type="date">
+              </label>
+            </div>
+
+            <input id="fundingGoalCurrency" name="funding_goal_currency" type="hidden">
+
+            <label class="sm-field">
+              <span class="sm-label">Important links <em>optional</em></span>
+              <textarea name="project_links" rows="3" placeholder="https://yourchurch.org/outreach&#10;https://instagram.com/yourministry"></textarea>
+              <small>One link per line.</small>
             </label>
+          </fieldset>
+
+          <div class="sm-submit">
+            <p class="sm-safe"><span aria-hidden="true">🔒</span> Every request is reviewed before it&rsquo;s shared.</p>
+            <button class="btn sm-submit__btn" id="submitRequestBtn" type="submit">Submit request <span aria-hidden="true">&rarr;</span></button>
+            <p id="submitFinancialError" class="form-error hide" role="alert">A connected Stripe account is required for Financial Support. Please connect Stripe or choose another support type before continuing.</p>
           </div>
-
-          <label id="campaignExpiryWrap">
-            <span>Campaign expiry date</span>
-            <input id="campaignExpiryDate" name="campaign_expiry_date" type="date">
-          </label>
-
-          <input id="fundingGoalCurrency" name="funding_goal_currency" type="hidden">
-
-          <label style="grid-column:1/-1;">
-            <span>Important links</span>
-            <textarea name="project_links" placeholder="Example: https://yourchurch.org/outreach&#10;https://instagram.com/yourministry"></textarea>
-          </label>
-
-          <div style="grid-column:1/-1;">
-            <button class="btn" id="submitRequestBtn" type="submit">Submit request</button>
-            <p id="submitFinancialError" class="form-error hide" role="alert" style="margin-top:10px;">A connected Stripe account is required for Financial Support. Please connect Stripe or choose another support type before continuing.</p>
-          </div>
-
         </form>
       </section>
-
-      <section class="card page-card" style="margin-top:24px;">
-        <h2>All requests</h2>
-        <div id="allProjectsList" class="list"></div>
-      </section>
     </div>
+
+    <section class="container sm-all">
+      <div class="sm-all__head">
+        <div class="sm-kicker"><span aria-hidden="true">✚</span> Pray for others</div>
+        <h2>Stand with others, <span>worldwide.</span></h2>
+      </div>
+      <div id="allProjectsList" class="list sm-all__list"></div>
+    </section>
   </main>
 
+  <script>
+    (function () {
+      var links = document.querySelectorAll('[data-step-link]');
+      if (!('IntersectionObserver' in window) || !links.length) return;
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          links.forEach(function (l) { l.classList.toggle('is-active', l.dataset.stepLink === e.target.id); });
+        });
+      }, { rootMargin: '-35% 0px -55% 0px' });
+      links.forEach(function (l) { var t = document.getElementById(l.dataset.stepLink); if (t) io.observe(t); });
+    })();
+  </script>
 
   <div class="auth-submit-modal hide" id="submitAuthModal" role="dialog" aria-modal="true" aria-labelledby="submitAuthModalTitle">
     <div class="auth-submit-modal__backdrop" data-submit-auth-close></div>
