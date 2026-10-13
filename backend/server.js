@@ -404,13 +404,15 @@ async function handleProjectResponseNotifications({ kind, project, item, actorUs
       [
         `Project: ${project.title || ''}`,
         `From: ${item.name || 'Anonymous'}`,
-        item.message ? `Prayer: ${item.message}` : ''
+        item.message ? `Words of encouragement: ${item.message}` : ''
       ].filter(Boolean)
     );
 
-    if (actorUser?.email) {
+    // Thank the person who prayed: use the email they typed, or their account email when logged in.
+    const prayerEmail = item.email || actorUser?.email;
+    if (prayerEmail) {
       await sendEmailMessage({
-        to: actorUser.email,
+        to: prayerEmail,
         subject: 'Thank you for submitting a prayer',
         html: emailTemplate({
           title: 'Thank you for praying',
