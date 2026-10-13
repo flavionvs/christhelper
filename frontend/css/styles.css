@@ -3058,22 +3058,31 @@ body.modal-open {
    PROMO VIDEO SECTION (landing page) — replaces "There is hope…" cards
    ===================================================================== */
 .promo-video-section {
-  padding-top: 40px;
-  padding-bottom: 24px;
+  padding-top: 28px;
+  padding-bottom: 16px;
 }
 
+/* Default (mobile / tablet): compact single column.
+   Order: heading -> video -> chips -> buttons */
 .promo-video-panel {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  padding: clamp(28px, 5vw, 56px) clamp(16px, 4vw, 48px) clamp(28px, 4vw, 44px);
-  border-radius: 32px;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px 20px;
+  border-radius: 24px;
   background: linear-gradient(180deg, #fdf8f0 0%, #f4f6fb 55%, #edf2fa 100%);
   border: 1px solid rgba(15, 50, 92, 0.08);
-  box-shadow: 0 30px 80px rgba(2, 10, 24, 0.18);
+  box-shadow: 0 24px 60px rgba(2, 10, 24, 0.16);
   text-align: center;
   color: #102033;
 }
+.promo-video-copy { display: contents; }
+.promo-video-head     { order: 1; }
+.promo-video-frame    { order: 2; }
+.promo-video-features { order: 3; }
+.promo-video-actions  { order: 4; }
 
 .promo-video-glow {
   position: absolute;
@@ -3082,8 +3091,8 @@ body.modal-open {
   filter: blur(60px);
   pointer-events: none;
 }
-.promo-video-glow--warm { width: 420px; height: 420px; top: -160px; right: -120px; background: rgba(247, 196, 120, 0.55); }
-.promo-video-glow--cool { width: 380px; height: 380px; bottom: -160px; left: -140px; background: rgba(120, 170, 255, 0.45); }
+.promo-video-glow--warm { width: 260px; height: 260px; top: -120px; right: -100px; background: rgba(247, 196, 120, 0.5); }
+.promo-video-glow--cool { width: 240px; height: 240px; bottom: -120px; left: -110px; background: rgba(120, 170, 255, 0.4); }
 
 .promo-video-kicker,
 .sm-kicker {
@@ -3110,9 +3119,9 @@ body.modal-open {
 }
 
 .promo-video-head h2 {
-  margin: 14px 0 10px;
-  font-size: clamp(2rem, 4.6vw, 3.2rem);
-  line-height: 1.08;
+  margin: 10px 0 8px;
+  font-size: clamp(1.6rem, 6.4vw, 2.2rem);
+  line-height: 1.1;
   letter-spacing: -0.03em;
   color: #0d1b2e;
   text-shadow: none;
@@ -3125,18 +3134,20 @@ body.modal-open {
 }
 .promo-video-head p {
   margin: 0 auto;
-  max-width: 520px;
+  max-width: 460px;
   color: #5a6b80;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .promo-video-frame {
-  max-width: 980px;
-  margin: 32px auto 0;
-  border-radius: 20px;
+  width: 100%;
+  max-width: 640px;
+  margin: 18px auto 0;
+  border-radius: 14px;
   background: #fff;
   border: 1px solid rgba(15, 50, 92, 0.1);
-  box-shadow: 0 24px 60px rgba(15, 50, 92, 0.16), 0 2px 6px rgba(15, 50, 92, 0.06);
+  box-shadow: 0 18px 44px rgba(15, 50, 92, 0.16), 0 2px 6px rgba(15, 50, 92, 0.06);
   overflow: hidden;
 }
 
@@ -3167,16 +3178,18 @@ body.modal-open {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: #eef2f8;
 }
 
+/* Play button: bottom-left corner, clear of the poster logo and centred caption */
 .promo-video-play {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  padding: clamp(14px, 3vw, 28px);
+  padding: clamp(10px, 2.2vw, 20px);
   border: 0;
   cursor: pointer;
   background: transparent;
@@ -3186,27 +3199,32 @@ body.modal-open {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(13, 27, 46, 0);
+  background: rgba(13, 27, 46, 0.04);
   transition: background 0.25s ease;
 }
-.promo-video-play:hover::before { background: rgba(13, 27, 46, 0.06); }
+.promo-video-play:hover::before { background: rgba(13, 27, 46, 0.1); }
 .promo-video-play__label {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 20px 8px 8px;
+  gap: 10px;
+  padding: 6px;
   border-radius: 999px;
   background: #0b73ff;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  box-shadow: 0 16px 36px rgba(11, 115, 255, 0.42);
+  box-shadow: 0 12px 28px rgba(11, 115, 255, 0.42);
   transition: transform 0.25s ease;
+}
+.promo-video-play__text {
+  display: none;
+  padding-right: 12px;
+  white-space: nowrap;
 }
 .promo-video-play__icon {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: #fff;
   flex: none;
@@ -3218,7 +3236,7 @@ body.modal-open {
   left: 55%;
   transform: translate(-50%, -50%);
   border-style: solid;
-  border-width: 7px 0 7px 11px;
+  border-width: 8px 0 8px 13px;
   border-color: transparent transparent transparent #0b73ff;
 }
 .promo-video-play:hover .promo-video-play__label,
@@ -3229,20 +3247,20 @@ body.modal-open {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
-  margin: 26px 0 0;
+  gap: 8px;
+  margin: 16px 0 0;
   padding: 0;
   list-style: none;
 }
 .promo-video-features li {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 14px;
+  gap: 6px;
+  padding: 6px 12px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.85);
   border: 1px solid rgba(15, 50, 92, 0.08);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #34465c;
 }
@@ -3251,8 +3269,8 @@ body.modal-open {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 16px;
 }
 .promo-video-actions .btn-outline {
   background: #fff;
@@ -3260,14 +3278,78 @@ body.modal-open {
   border-color: rgba(15, 50, 92, 0.15);
 }
 
+/* Small phones: tighter chrome, 2x2 chips, side-by-side buttons */
 @media (max-width: 600px) {
-  .promo-video-section { padding-top: 24px; }
-  .promo-video-panel { border-radius: 24px; }
-  .promo-video-frame { margin-top: 22px; border-radius: 14px; }
-  .promo-video-bar span:last-child { transform: none; }
-  .promo-video-play__label { font-size: 0.82rem; padding: 6px 14px 6px 6px; gap: 8px; }
-  .promo-video-play__icon { width: 30px; height: 30px; }
-  .promo-video-actions a { flex: 1 1 100%; text-align: center; }
+  .promo-video-section { padding-top: 18px; padding-bottom: 8px; }
+  .promo-video-panel { padding: 20px 12px 16px; border-radius: 20px; }
+  .promo-video-head p { font-size: 0.9rem; }
+  .promo-video-frame { margin-top: 14px; border-radius: 12px; }
+  .promo-video-bar { padding: 7px 12px; font-size: 0.72rem; gap: 8px; }
+  .promo-video-bar span:last-child { transform: translateX(-14px); }
+  .promo-video-dots i { width: 8px; height: 8px; }
+  .promo-video-play__label { padding: 4px; }
+  .promo-video-play__icon { width: 36px; height: 36px; }
+  .promo-video-play__icon::after { border-width: 7px 0 7px 11px; }
+  .promo-video-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .promo-video-features li {
+    justify-content: center;
+    padding: 6px 8px;
+    font-size: 0.78rem;
+  }
+  .promo-video-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .promo-video-actions a {
+    width: 100%;
+    min-width: 0;
+    padding-left: 8px;
+    padding-right: 8px;
+    font-size: 0.88rem;
+    text-align: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+}
+
+/* Tablet+: show the "Watch" text on the play button */
+@media (min-width: 601px) {
+  .promo-video-play__text { display: inline; }
+  /* The text pill is wider, so sit it top-left where the poster is empty */
+  .promo-video-play { align-items: flex-start; }
+}
+
+/* Desktop: copy on the left, video on the right — panel is roughly
+   the height of the video instead of stacking everything vertically */
+@media (min-width: 900px) {
+  .promo-video-section { padding-top: 32px; padding-bottom: 16px; }
+  .promo-video-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: clamp(28px, 4vw, 52px);
+    padding: clamp(28px, 3vw, 40px) clamp(28px, 3.5vw, 44px);
+    border-radius: 28px;
+    text-align: left;
+  }
+  .promo-video-glow--warm { width: 360px; height: 360px; top: -160px; right: -120px; }
+  .promo-video-glow--cool { width: 320px; height: 320px; bottom: -160px; left: -140px; }
+  .promo-video-copy { display: block; }
+  .promo-video-head h2 { font-size: clamp(2rem, 3.2vw, 2.7rem); margin: 12px 0 10px; }
+  .promo-video-head p { margin: 0; font-size: 1rem; }
+  .promo-video-features { justify-content: flex-start; margin-top: 20px; }
+  .promo-video-actions { justify-content: flex-start; margin-top: 20px; }
+  .promo-video-frame { margin: 0; max-width: none; border-radius: 16px; }
+  .promo-video-play__label { font-size: 0.85rem; padding: 5px; }
+  .promo-video-play__icon { width: 36px; height: 36px; }
+  .promo-video-play__icon::after { border-width: 7px 0 7px 11px; }
 }
 
 /* =====================================================================
