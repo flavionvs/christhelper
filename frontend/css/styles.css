@@ -3792,3 +3792,735 @@ body.submit-page::before { display: none; }
   .sm-submit__btn { width: 100%; }
   .chip span { padding: 7px 12px; font-size: 0.86rem; }
 }
+
+/* =====================================================================
+   REQUESTS REFRESH — request cards, Pray button, Request Details page
+   ===================================================================== */
+
+/* ---- Submit page: notice only shows for financial requests ---- */
+.sm-submit__btn { margin-left: auto; }
+@media (max-width: 560px) { .sm-submit__btn { margin-left: 0; } }
+
+/* ---- Request cards ---- */
+.project-card {
+  gap: 12px;
+  padding: 22px 22px 20px 26px;
+  border-radius: 20px;
+}
+.project-card h3 {
+  margin: 0;
+  font-size: 1.22rem;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+.project-card .project-meta { gap: 6px; }
+.project-card .badge-category,
+.project-card .badge-location {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.project-card .badge-category {
+  background: #eaf2ff;
+  border: 1px solid rgba(11, 115, 255, 0.16);
+  color: #0a4fae;
+}
+.project-card .badge-location {
+  background: #f4f6f9;
+  border: 1px solid rgba(15, 50, 92, 0.08);
+  color: #4a5b70;
+}
+.project-card .project-summary { line-height: 1.6; font-size: 0.97rem; }
+.project-card .project-card-org {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #5a6b80;
+}
+.project-card .project-card-org strong { color: #34465c; font-weight: 700; }
+
+.project-card-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid rgba(15, 50, 92, 0.08);
+  display: grid;
+  gap: 12px;
+}
+.project-card-footer .project-action-stats { margin-left: 0; }
+.project-card-footer .project-action-stats .badge {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #5a6b80;
+}
+.project-card .project-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+.project-card .project-actions > * {
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 8px;
+  font-size: 0.93rem;
+  white-space: nowrap;
+}
+.project-card .project-meta { padding-right: 96px; }
+@media (max-width: 520px) { .project-card .project-meta { padding-right: 46px; } }
+
+/* Pray button — warm, distinct from the blue primary and neutral outline */
+.btn-pray {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid #f0cf86;
+  background: linear-gradient(180deg, #fff8e8, #fff0cc);
+  color: #7a4b00;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(226, 166, 59, 0.16);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.btn-pray:hover,
+.btn-pray:focus-visible {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #fff3d6, #ffe6ad);
+  border-color: #e2a63b;
+  box-shadow: 0 10px 22px rgba(226, 166, 59, 0.24);
+  outline: none;
+}
+.btn-pray:focus-visible { box-shadow: 0 0 0 4px rgba(226, 166, 59, 0.3); }
+.btn-pray.is-open { border-color: #e2a63b; background: #ffe6ad; }
+.btn-pray.is-prayed { background: #fdf3dc; border-color: #e9c472; color: #6b4300; }
+.btn-pray.is-prayed .pray-icon::after {
+  content: "✓";
+  margin-left: 3px;
+  font-size: 0.75em;
+  font-weight: 900;
+  color: #1c8a4a;
+}
+.pray-icon { line-height: 1; font-size: 1.05em; }
+
+/* Inline Pray panel on cards */
+.project-card-pray {
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fffaf0, #fff6e3);
+  border: 1px solid #f3dfb2;
+}
+.pray-form { display: grid; gap: 12px; }
+.pray-form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pray-form-head strong { color: #102033; font-size: 1rem; }
+.pray-form-hint { margin: -4px 0 0; font-size: 0.88rem; color: #7a6a4f !important; }
+.pray-field { display: grid; gap: 6px; }
+.pray-field > span,
+.pd-field > span {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a8899;
+}
+.pray-field em,
+.pd-field em {
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #a3aebb;
+  margin-left: 4px;
+}
+.pray-form input,
+.pray-form textarea {
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1.5px solid #ecdcb8;
+  background: #fff;
+  color: #102033;
+  font-size: 0.97rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+.pray-form input:focus,
+.pray-form textarea:focus {
+  outline: none;
+  border-color: #e2a63b !important;
+  box-shadow: 0 0 0 4px rgba(226, 166, 59, 0.18) !important;
+}
+.pd-pray-card .pd-form input:focus,
+.pd-pray-card .pd-form textarea:focus {
+  border-color: #e2a63b !important;
+  box-shadow: 0 0 0 4px rgba(226, 166, 59, 0.18) !important;
+}
+.pray-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.pray-form-status,
+.pd-form-status {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1c6b3e;
+}
+.pd-form-status:empty { display: none; }
+
+.btn.btn-pray-submit {
+  background: linear-gradient(135deg, #e9a93a, #d48a14);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(212, 138, 20, 0.28);
+}
+.btn.btn-pray-submit:hover { background: linear-gradient(135deg, #d99a2b, #b97510); }
+.btn.btn-pray-submit[disabled] { opacity: 0.7; cursor: progress; }
+
+/* Response panel on cards: align with the new style */
+.project-card-response {
+  margin-top: 0;
+  padding: 16px;
+  border: 1px solid rgba(15, 50, 92, 0.1);
+  border-radius: 16px;
+  background: #f8fafd;
+}
+.response-kind-option input:checked + span {
+  border-color: #0b73ff;
+  background: #eef5ff;
+  color: #0a4fae;
+  box-shadow: 0 0 0 3px rgba(11, 115, 255, 0.12);
+}
+
+@media (max-width: 420px) {
+  .project-card { padding: 18px 16px 16px 20px; }
+  .project-card .project-actions > * { font-size: 0.88rem; }
+}
+
+/* =====================================================================
+   REQUEST DETAILS PAGE
+   ===================================================================== */
+body.detail-page {
+  background: linear-gradient(180deg, #fdf8f0 0%, #f4f6fb 40%, #eef2f8 100%);
+  color: #102033;
+}
+body.detail-page::before { display: none; }
+body.detail-page .page-wrap { padding: clamp(18px, 3vw, 34px) 0 64px; }
+
+.pd {
+  display: grid;
+  gap: 20px;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.pd-back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #5a6b80;
+  border-radius: 8px;
+}
+.pd-back:hover { color: #0b73ff; }
+
+/* Hero */
+.pd-hero {
+  position: relative;
+  padding: clamp(22px, 4vw, 40px);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(244, 192, 90, 0.18), transparent 22rem),
+    radial-gradient(circle at 0% 100%, rgba(11, 115, 255, 0.08), transparent 20rem),
+    #fff;
+  border: 1px solid rgba(15, 50, 92, 0.09);
+  box-shadow: 0 24px 60px rgba(15, 50, 92, 0.10), 0 2px 6px rgba(15, 50, 92, 0.04);
+}
+.pd-hero .share-project-btn-detail { top: clamp(18px, 3vw, 28px); right: clamp(18px, 3vw, 28px); }
+.pd-eyebrow,
+.pd-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pd-eyebrow { padding-right: 96px; }
+.pd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #f3f6fa;
+  border: 1px solid rgba(15, 50, 92, 0.08);
+  color: #34465c;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.pd-chip-strong { background: #eaf2ff; border-color: rgba(11, 115, 255, 0.18); color: #0a4fae; }
+.pd-chip-good { background: #e6f7ec; border-color: rgba(28, 138, 74, 0.2); color: #1c6b3e; }
+
+.pd-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 18px;
+}
+.pd-title-row h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.6rem);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  color: #0d1b2e;
+  overflow-wrap: anywhere;
+}
+.pd-title-row .review-status-icon { margin-top: 6px; }
+
+.pd-byline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 10px 0 0;
+  font-size: 0.95rem;
+  color: #5a6b80;
+}
+.pd-byline span + span::before {
+  content: "•";
+  margin-right: 14px;
+  color: #b9c3cf;
+}
+
+.pd-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+.pd-stat {
+  display: grid;
+  gap: 2px;
+  min-width: 108px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(244, 246, 250, 0.9);
+  border: 1px solid rgba(15, 50, 92, 0.06);
+}
+.pd-stat strong {
+  font-size: 1.45rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #0d1b2e;
+}
+.pd-stat span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7a8899;
+}
+
+.pd-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+.btn-pray-lg {
+  min-height: 48px;
+  padding: 12px 22px;
+  font-size: 1rem;
+  background: linear-gradient(135deg, #f1b548, #dc8f17);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 12px 26px rgba(212, 138, 20, 0.3);
+}
+.btn-pray-lg:hover,
+.btn-pray-lg:focus-visible {
+  background: linear-gradient(135deg, #e5a63a, #c47c0f);
+  border-color: transparent;
+}
+.btn-pray-lg.is-prayed { background: linear-gradient(135deg, #f1b548, #dc8f17); color: #fff; }
+.btn-pray-lg.is-prayed .pray-icon::after { color: #fff; }
+
+.pd-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 48px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: 1.5px solid #dbe3ee;
+  background: #fff;
+  color: #102033;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+.pd-btn-secondary:hover,
+.pd-btn-secondary:focus-visible {
+  transform: translateY(-1px);
+  border-color: #b9d3ff;
+  background: #f5f9ff;
+  outline: none;
+}
+.pd-btn-secondary[disabled] { opacity: 0.6; cursor: progress; }
+
+/* Layout: about + responses on the left, actions in a sticky sidebar */
+.pd-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  grid-template-rows: auto 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.pd-about { grid-column: 1; grid-row: 1; }
+.pd-main { grid-column: 1; grid-row: 2; display: grid; gap: 20px; min-width: 0; }
+.pd-side {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: grid;
+  gap: 16px;
+  position: sticky;
+  top: 96px;
+  min-width: 0;
+}
+
+.pd-card {
+  padding: clamp(20px, 3vw, 28px);
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid rgba(15, 50, 92, 0.08);
+  box-shadow: 0 14px 40px rgba(15, 50, 92, 0.07);
+  scroll-margin-top: 96px;
+  min-width: 0;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.pd-card.is-highlighted {
+  border-color: #b9d3ff;
+  box-shadow: 0 0 0 4px rgba(11, 115, 255, 0.12), 0 14px 40px rgba(15, 50, 92, 0.07);
+}
+.pd-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  color: #0d1b2e;
+}
+.pd-card h3 {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7a8899;
+}
+.pd-card-sub { margin: 0 0 14px; font-size: 0.92rem; color: #5a6b80; line-height: 1.5; }
+.pd-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.pd-card-head h2 { margin: 0; }
+.pd-count {
+  min-width: 30px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eef2f8;
+  color: #34465c;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* About */
+.pd-description {
+  margin-top: 10px;
+  font-size: 1.04rem;
+  line-height: 1.75;
+  color: #2a3b50;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.pd-why,
+.pd-help,
+.pd-links {
+  margin-top: 24px;
+}
+.pd-why p { margin: 0; line-height: 1.7; color: #2a3b50; white-space: pre-line; }
+
+.pd-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin: 24px 0 0;
+}
+.pd-fact {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f7f9fc;
+  border: 1px solid rgba(15, 50, 92, 0.06);
+  min-width: 0;
+}
+.pd-fact dt {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a8899;
+}
+.pd-fact dd {
+  margin: 4px 0 0;
+  font-weight: 700;
+  color: #102033;
+  overflow-wrap: anywhere;
+}
+.pd-fact-sub { display: block; font-weight: 500; font-size: 0.86rem; color: #7a8899; }
+
+.pd-links ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pd-links a {
+  color: #0b63dc;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-color: rgba(11, 99, 220, 0.3);
+  text-underline-offset: 3px;
+}
+.pd-links a:hover { text-decoration-color: currentColor; }
+
+/* Forms on the details page */
+.pd-form { display: grid; gap: 12px; }
+.pd-field { display: grid; gap: 6px; }
+.pd-form input:not([type="radio"]):not([type="checkbox"]),
+.pd-form select,
+.pd-form textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #e1e7ef;
+  background: #f8fafd;
+  color: #102033;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  box-shadow: none;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.pd-form textarea { resize: vertical; min-height: 0; }
+.pd-form input::placeholder,
+.pd-form textarea::placeholder { color: #a3aebb; }
+.pd-form input:focus,
+.pd-form select:focus,
+.pd-form textarea:focus {
+  outline: none;
+  background: #fff;
+}
+.pd-form button[disabled] { opacity: 0.7; cursor: progress; }
+.pd-full { width: 100%; min-height: 48px; }
+.pd-fineprint { margin: 14px 0 0; font-size: 0.82rem; line-height: 1.55; color: #7a8899; }
+
+/* Pray card */
+.pd-pray-card {
+  background: linear-gradient(180deg, #fffaf0 0%, #fff 70%);
+  border-color: #f3dfb2;
+}
+.pd-pray-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.pd-pray-head h2 { margin: 0 0 2px; }
+.pd-pray-head p { margin: 0; font-size: 0.92rem; color: #7a6a4f; line-height: 1.45; }
+.pd-pray-badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fff0cc, #ffe2a3);
+  font-size: 1.35rem;
+  box-shadow: inset 0 0 0 1px rgba(226, 166, 59, 0.25);
+}
+.pd-pray-card .pd-form input,
+.pd-pray-card .pd-form textarea { border-color: #ecdcb8; background: #fff; }
+
+/* Progress */
+.pd-progress { margin-top: 12px; margin-bottom: 16px; }
+.pd-progress-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.pd-progress-top strong { font-size: 1.3rem; color: #0d1b2e; }
+.pd-progress-top span { font-size: 0.86rem; color: #7a8899; font-weight: 700; }
+
+/* Responses */
+.pd-responses {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.pd-response {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid rgba(15, 50, 92, 0.07);
+}
+.pd-response:first-child { border-top: 0; padding-top: 4px; }
+.pd-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #eaf2ff;
+  color: #0a4fae;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.pd-response.is-prayer .pd-avatar { background: #fff0cc; color: #7a4b00; }
+.pd-response-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.pd-response-head strong { color: #102033; font-size: 0.97rem; }
+.pd-tag {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #eef2f8;
+  color: #34465c;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+.pd-tag-prayer { background: #fff0cc; color: #7a4b00; }
+.pd-response-time { font-size: 0.82rem; color: #8a97a6; }
+.pd-response-message {
+  margin: 6px 0 0;
+  line-height: 1.6;
+  color: #2a3b50;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.pd-response-message.is-silent { font-style: italic; color: #8a97a6; }
+.pd-response-message:empty { display: none; }
+.pd-icon-btn {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  padding: 4px 6px;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.18s ease, background 0.18s ease;
+}
+.pd-icon-btn:hover,
+.pd-icon-btn:focus-visible { opacity: 1; background: #fdecec; outline: none; }
+.pd-empty { margin: 0; padding: 8px 0; color: #7a8899; list-style: none; }
+
+/* Updates timeline */
+.pd-timeline {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0 0 0 20px;
+  border-left: 2px solid #e6ebf2;
+  display: grid;
+  gap: 18px;
+}
+.pd-timeline li { position: relative; }
+.pd-timeline li::before {
+  content: "";
+  position: absolute;
+  left: -27px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #0b73ff;
+}
+.pd-timeline time {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a97a6;
+}
+.pd-timeline strong { display: block; margin-top: 2px; color: #102033; }
+.pd-timeline p { margin: 4px 0 0; line-height: 1.6; color: #4a5b70; }
+
+/* Report — collapsed by default */
+.pd-report { display: grid; justify-items: start; gap: 12px; padding: 0 4px; }
+.pd-report-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 2px;
+  border: 0;
+  background: transparent;
+  color: #7a8899;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.pd-report-toggle:hover,
+.pd-report-toggle.is-open { color: #b64343; }
+.pd-report-toggle:focus-visible { outline: 2px solid rgba(182, 67, 67, 0.4); outline-offset: 2px; }
+.pd-report-panel {
+  width: 100%;
+  padding: 18px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(182, 67, 67, 0.18);
+  box-shadow: 0 10px 30px rgba(15, 50, 92, 0.06);
+}
+.pd-report-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.pd-report-actions .pd-btn-secondary { min-height: 42px; padding: 9px 18px; }
+.pd-report .btn-link { color: #5a6b80; }
+
+/* Responsive */
+@media (max-width: 920px) {
+  .pd-layout { grid-template-columns: 1fr; grid-template-rows: none; }
+  .pd-about,
+  .pd-main,
+  .pd-side { grid-column: 1; grid-row: auto; }
+  .pd-side { position: static; }
+}
+
+@media (max-width: 560px) {
+  .pd { gap: 16px; }
+  .pd-hero { border-radius: 20px; }
+  .pd-eyebrow { padding-right: 46px; }
+  .pd-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
+  .pd-stat { min-width: 0; padding: 10px 12px; }
+  .pd-hero-actions > * { flex: 1 1 140px; }
+  .pd-hero-actions .btn-pray-lg { flex-basis: 100%; }
+  .pd-card { border-radius: 18px; }
+}

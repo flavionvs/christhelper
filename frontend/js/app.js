@@ -302,7 +302,7 @@ function getResponseCount(project) {
 }
 
 function responseCountBadge(project) {
-  return `<span class="badge">🙏 ${getResponseCount(project)} prayers/replies</span>`;
+  return `<span class="badge">${formatResponseCountLabel(getResponseCount(project))}</span>`;
 }
 
 function getProjectShareUrl(projectId) {
@@ -414,6 +414,100 @@ function projectReadMoreLink(project) {
   return `<a class="project-read-more" href="project.html?id=${project.id}" hidden>Read More</a>`;
 }
 
+/* ===== Prayer helpers (shared by request cards and the Request Details page) ===== */
+const PRAYED_REQUESTS_KEY = 'christhelper.prayedRequests';
+
+function getPrayIcon() {
+  return '<span class="pray-icon" aria-hidden="true">🙏</span>';
+}
+
+function getPrayedRequestIds() {
+  try {
+    const ids = JSON.parse(localStorage.getItem(PRAYED_REQUESTS_KEY) || '[]');
+    return Array.isArray(ids) ? ids.map(String) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function hasPrayedForRequest(projectId) {
+  return getPrayedRequestIds().includes(String(projectId));
+}
+
+function rememberPrayedRequest(projectId) {
+  try {
+    const ids = getPrayedRequestIds().filter(id => id !== String(projectId));
+    ids.push(String(projectId));
+    localStorage.setItem(PRAYED_REQUESTS_KEY, JSON.stringify(ids.slice(-500)));
+  } catch (_) {
+    /* storage unavailable: the prayer is still recorded on the server */
+  }
+}
+
+function getDefaultResponderName() {
+  return currentUser?.name ? String(currentUser.name) : '';
+}
+
+async function submitPrayer(projectId, { name = '', message = '' } = {}) {
+  const trimmedMessage = String(message || '').trim();
+  const result = await api(`/projects/${projectId}/respond`, {
+    method: 'POST',
+    body: JSON.stringify({
+      kind: 'prayer',
+      name: String(name || '').trim() || 'Anonymous',
+      message: trimmedMessage
+    })
+  });
+
+  rememberPrayedRequest(projectId);
+  trackEvent('project_response_submitted', {
+    project_id: projectId,
+    kind: 'prayer',
+    reply_type: '',
+    with_message: Boolean(trimmedMessage),
+    page_path: window.location.pathname
+  });
+  trackEvent('prayer_submitted', {
+    project_id: projectId,
+    reply_type: '',
+    with_message: Boolean(trimmedMessage),
+    page_path: window.location.pathname
+  });
+
+  return result;
+}
+
+function formatResponseCountLabel(count) {
+  return `🙏 ${count} ${count === 1 ? 'prayer/reply' : 'prayers/replies'}`;
+}
+
+function projectCardPrayForm(project) {
+  const id = safeHtml(project.id);
+  return `
+    <div class="project-card-pray" data-card-pray-panel hidden>
+      <form class="pray-form" data-card-pray-form data-project-id="${id}" autocomplete="off">
+        <div class="pray-form-head">
+          <strong>${getPrayIcon()} Pray for this request</strong>
+          <button type="button" class="btn-link response-close-btn" data-card-pray-close>Close</button>
+        </div>
+        <p class="pray-form-hint">Take a moment to pray. Leaving a message is optional.</p>
+        <label class="pray-field">
+          <span>Words of encouragement <em>optional</em></span>
+          <textarea name="message" rows="3" placeholder="e.g. Praying for strength and peace for you this week."></textarea>
+        </label>
+        <label class="pray-field">
+          <span>Your name <em>optional</em></span>
+          <input name="name" placeholder="Anonymous" value="${safeHtml(getDefaultResponderName())}" autocomplete="off">
+        </label>
+        <div class="pray-form-actions">
+          <button type="submit" class="btn btn-pray-submit">${getPrayIcon()} I prayed</button>
+          <span class="pray-form-status" data-card-pray-status role="status"></span>
+        </div>
+      </form>
+    </div>
+  `;
+}
+
 function projectCardResponseForm(project) {
   const id = safeHtml(project.id);
   return `
@@ -467,13 +561,15 @@ function projectCard(project) {
     ? formatUsd(project.funding_goal)
     : formatMoney(project.funding_goal);
 
+  const prayed = hasPrayedForRequest(project.id);
+  const location = [project.country, project.continent].filter(Boolean).map(safeHtml).join(' · ');
+
   return `
     <article class="card project-card">
       ${shareButton(project, 'share-project-btn-card')}
       <div class="project-meta">
-        <span class="badge">${safeHtml(project.country)}</span>
-        <span class="badge">${safeHtml(project.continent)}</span>
-        <span class="badge">${safeHtml(project.category)}</span>
+        ${project.category ? `<span class="badge badge-category">${safeHtml(project.category)}</span>` : ''}
+        ${location ? `<span class="badge badge-location"><span aria-hidden="true">📍</span> ${location}</span>` : ''}
       </div>
       <div class="project-title-row">
         <h3>${safeHtml(project.title)}</h3>
@@ -481,7 +577,7 @@ function projectCard(project) {
       </div>
       <p class="project-summary project-summary-clamp">${safeHtml(getProjectDescriptionText(project))}</p>
       ${projectReadMoreLink(project)}
-      <p><strong>Organization:</strong> ${safeHtml(project.is_anonymous ? 'Anonymous request' : (project.organization_name || 'Not specified'))}</p>
+      <p class="project-card-org"><strong>Organization:</strong> ${safeHtml(project.is_anonymous ? 'Anonymous request' : (project.organization_name || 'Not specified'))}</p>
       ${project.needs_financial_support && project.funding_approved ? `
         <div class="progress-wrap">
           <div style="display:flex;justify-content:space-between;gap:12px;">
@@ -491,13 +587,19 @@ function projectCard(project) {
           <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
         </div>
       ` : ''}
-      <div class="project-actions">
-        <a class="btn" href="project.html?id=${project.id}">View details</a>
-        <button class="btn-outline" type="button" data-card-respond-toggle>Respond</button>
+      <div class="project-card-footer">
         <div class="project-action-stats">
           ${responseCountBadge(project)}
         </div>
+        <div class="project-actions">
+          <a class="btn" href="project.html?id=${project.id}">View details</a>
+          <button class="btn-pray ${prayed ? 'is-prayed' : ''}" type="button" data-card-pray-toggle aria-expanded="false"${prayed ? ' title="You prayed for this request. Tap to pray again."' : ''}>
+            ${getPrayIcon()}<span data-pray-label>Pray</span>
+          </button>
+          <button class="btn-outline" type="button" data-card-respond-toggle aria-expanded="false">Respond</button>
+        </div>
       </div>
+      ${projectCardPrayForm(project)}
       ${projectCardResponseForm(project)}
     </article>
   `;
@@ -535,38 +637,107 @@ function syncCardResponseForm(form) {
   }
 }
 
+function incrementCardResponseCount(card) {
+  const stat = card?.querySelector('.project-action-stats .badge');
+  if (!stat) return;
+  const match = stat.textContent.match(/(\d+)/);
+  const next = match ? Number(match[1]) + 1 : 1;
+  stat.textContent = formatResponseCountLabel(next);
+}
+
+function setCardPanelOpen(card, which, open) {
+  if (!card) return;
+  const prayPanel = card.querySelector('[data-card-pray-panel]');
+  const respondPanel = card.querySelector('[data-card-response-panel]');
+  const prayToggle = card.querySelector('[data-card-pray-toggle]');
+  const respondToggle = card.querySelector('[data-card-respond-toggle]');
+
+  // Only one panel open at a time keeps the card compact.
+  if (prayPanel) prayPanel.hidden = !(open && which === 'pray');
+  if (respondPanel) respondPanel.hidden = !(open && which === 'respond');
+
+  prayToggle?.setAttribute('aria-expanded', String(open && which === 'pray'));
+  prayToggle?.classList.toggle('is-open', open && which === 'pray');
+  respondToggle?.setAttribute('aria-expanded', String(open && which === 'respond'));
+  if (respondToggle) respondToggle.textContent = (open && which === 'respond') ? 'Hide response' : 'Respond';
+
+  if (open) {
+    const panel = which === 'pray' ? prayPanel : respondPanel;
+    const field = panel?.querySelector('textarea[name="message"]');
+    window.setTimeout(() => field?.focus(), 50);
+  }
+}
+
 function initProjectCardResponses(scope = document) {
   const root = scope.querySelector ? scope : document;
 
   root.querySelectorAll('[data-card-response-form]').forEach(syncCardResponseForm);
 
+  root.querySelectorAll('[data-card-pray-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const card = button.closest('.project-card');
+      const panel = card?.querySelector('[data-card-pray-panel]');
+      setCardPanelOpen(card, 'pray', Boolean(panel?.hidden));
+    });
+  });
+
+  root.querySelectorAll('[data-card-pray-close]').forEach((button) => {
+    button.addEventListener('click', () => setCardPanelOpen(button.closest('.project-card'), 'pray', false));
+  });
+
   root.querySelectorAll('[data-card-respond-toggle]').forEach((button) => {
     button.addEventListener('click', () => {
       const card = button.closest('.project-card');
       const panel = card?.querySelector('[data-card-response-panel]');
-      if (!panel) return;
-      const opening = panel.hidden;
-      panel.hidden = !opening;
-      button.textContent = opening ? 'Hide response' : 'Respond';
-      if (opening) {
-        const textarea = panel.querySelector('textarea[name="message"]');
-        window.setTimeout(() => textarea?.focus(), 50);
-      }
+      setCardPanelOpen(card, 'respond', Boolean(panel?.hidden));
     });
   });
 
   root.querySelectorAll('[data-card-response-close]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const card = button.closest('.project-card');
-      const panel = card?.querySelector('[data-card-response-panel]');
-      const toggle = card?.querySelector('[data-card-respond-toggle]');
-      if (panel) panel.hidden = true;
-      if (toggle) toggle.textContent = 'Respond';
-    });
+    button.addEventListener('click', () => setCardPanelOpen(button.closest('.project-card'), 'respond', false));
   });
 
   root.querySelectorAll('[data-card-response-form] input[name="kind"]').forEach((input) => {
     input.addEventListener('change', () => syncCardResponseForm(input.closest('[data-card-response-form]')));
+  });
+
+  root.querySelectorAll('[data-card-pray-form]').forEach((form) => {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (form.dataset.submitting === '1') return;
+
+      const projectId = form.dataset.projectId;
+      const card = form.closest('.project-card');
+      const fd = new FormData(form);
+      const submitButton = form.querySelector('button[type="submit"]');
+      const status = form.querySelector('[data-card-pray-status]');
+
+      form.dataset.submitting = '1';
+      if (submitButton) submitButton.disabled = true;
+      if (status) status.textContent = 'Sending...';
+
+      try {
+        await submitPrayer(projectId, { name: fd.get('name'), message: fd.get('message') });
+        const messageField = form.querySelector('textarea[name="message"]');
+        if (messageField) messageField.value = '';
+        incrementCardResponseCount(card);
+
+        const toggle = card?.querySelector('[data-card-pray-toggle]');
+        toggle?.classList.add('is-prayed');
+        toggle?.setAttribute('title', 'You prayed for this request. Tap to pray again.');
+
+        if (status) status.textContent = 'Amen. Thank you for praying.';
+        window.setTimeout(() => {
+          setCardPanelOpen(card, 'pray', false);
+          if (status) status.textContent = '';
+        }, 1800);
+      } catch (error) {
+        if (status) status.textContent = error.message || 'Could not record your prayer.';
+      } finally {
+        form.dataset.submitting = '0';
+        if (submitButton) submitButton.disabled = false;
+      }
+    });
   });
 
   root.querySelectorAll('[data-card-response-form]').forEach((form) => {
@@ -615,12 +786,7 @@ function initProjectCardResponses(scope = document) {
         form.reset();
         syncCardResponseForm(form);
         if (status) status.textContent = result?.message || 'Your response has been sent.';
-        const stat = form.closest('.project-card')?.querySelector('.project-action-stats .badge');
-        if (stat) {
-          const match = stat.textContent.match(/(\d+)/);
-          const next = match ? Number(match[1]) + 1 : 1;
-          stat.textContent = `🙏 ${next} prayers/replies`;
-        }
+        incrementCardResponseCount(form.closest('.project-card'));
       } catch (error) {
         if (status) status.textContent = error.message || 'Could not send response.';
         else alert(error.message);
@@ -741,19 +907,72 @@ function buildCombinedResponses(prayers = [], replies = []) {
   });
 }
 
+/* ===== Request Details page ===== */
+function formatFriendlyDate(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatRelativeTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  const time = date.getTime();
+  if (Number.isNaN(time)) return '';
+  const seconds = Math.round((Date.now() - time) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return formatFriendlyDate(value);
+}
+
+function getInitials(name) {
+  const parts = String(name || 'A').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'A';
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+function renderDetailResponseItem(item, canManage) {
+  const isPrayer = item.kind === 'Prayer';
+  const hasMessage = Boolean(String(item.message || '').trim());
+  return `
+    <li class="pd-response ${isPrayer ? 'is-prayer' : 'is-reply'}">
+      <span class="pd-avatar" aria-hidden="true">${isPrayer && !hasMessage ? '🙏' : safeHtml(getInitials(item.name))}</span>
+      <div class="pd-response-body">
+        <div class="pd-response-head">
+          <strong>${safeHtml(item.name)}</strong>
+          <span class="pd-tag ${isPrayer ? 'pd-tag-prayer' : ''}">${safeHtml(item.typeLabel)}</span>
+          ${item.createdAt ? `<time class="pd-response-time" datetime="${safeHtml(item.createdAt)}">${safeHtml(formatRelativeTime(item.createdAt))}</time>` : ''}
+          ${canManage && item.id ? `<button class="pd-icon-btn response-delete-btn" type="button" data-response-kind="${safeHtml(item.deleteKind)}" data-response-id="${safeHtml(item.id)}" aria-label="Delete ${safeHtml(item.kind)}" title="Delete ${safeHtml(item.kind)}">🗑️</button>` : ''}
+        </div>
+        ${hasMessage
+          ? `<p class="pd-response-message">${safeHtml(item.message)}</p>`
+          : `<p class="pd-response-message is-silent">${isPrayer ? 'Prayed for this request' : ''}</p>`}
+      </div>
+    </li>
+  `;
+}
+
 async function loadProjectDetails() {
   const root = $('#projectDetails');
   if (!root) return;
 
   const id = new URLSearchParams(location.search).get('id');
   if (!id) {
-    root.innerHTML = '<div class="card panel"><p>Missing request id.</p></div>';
+    root.innerHTML = '<div class="pd-card"><p>Missing request id.</p></div>';
     return;
   }
 
+  root.innerHTML = '<div class="pd-card pd-loading"><p>Loading request...</p></div>';
+
   try {
     const data = await api(`/projects/${id}`);
-    const { project, prayers, replies, updates, stats, response_visibility } = data;
+    const { project, prayers = [], replies = [], updates = [], stats = {}, response_visibility } = data;
 
     trackOnce(`project_view:${id}`, 'project_view', {
       project_id: id,
@@ -762,6 +981,9 @@ async function loadProjectDetails() {
       help_types: Array.isArray(project.help_types) ? project.help_types.join(',') : '',
       needs_financial_support: Boolean(project.needs_financial_support)
     });
+
+    if (project.title) document.title = `${project.title} | ChristHelper`;
+
     const pct = project.funding_goal > 0
       ? Math.min(100, Math.round((project.amount_raised / project.funding_goal) * 100))
       : 0;
@@ -770,164 +992,318 @@ async function loadProjectDetails() {
     const goalText = project.funding_goal_currency === 'USD'
       ? formatUsd(project.funding_goal)
       : formatMoney(project.funding_goal);
+    const responsesVisible = response_visibility?.showing_responses !== false;
+    const combined = buildCombinedResponses(prayers, replies);
+    let prayerCount = Number(stats.prayer_count || 0);
+    let replyCount = Number(stats.reply_count || 0);
+    const prayed = hasPrayedForRequest(id);
+    const isReviewed = project.admin_reviewed || !project.needs_financial_support;
+    const organization = project.is_anonymous ? 'Anonymous request' : (project.organization_name || '');
+    const place = project.is_online ? 'Online' : [project.city, project.country].filter(Boolean).join(', ');
+    const whyItMatters = String(project.why_it_matters || '').trim();
+    const links = Array.isArray(project.project_links) ? project.project_links.filter(Boolean) : [];
+
+    const facts = [
+      organization ? { label: 'Organization', value: safeHtml(organization) } : null,
+      place ? { label: 'Location', value: safeHtml(place) + (project.continent ? ` <span class="pd-fact-sub">${safeHtml(project.continent)}</span>` : '') } : null,
+      project.category ? { label: 'Category', value: safeHtml(project.category) } : null,
+      project.campaign_expiry_date ? { label: 'Campaign ends', value: safeHtml(formatFriendlyDate(project.campaign_expiry_date)) } : null
+    ].filter(Boolean);
 
     root.innerHTML = `
-      <div class="stack project-page-stack">
-          <section class="card panel project-detail-hero">
-            ${shareButton(project, 'share-project-btn-detail')}
-            <div class="project-meta">
-              <span class="badge">${safeHtml(project.country)}</span>
-              <span class="badge">${safeHtml(project.continent)}</span>
-              <span class="badge">${safeHtml(project.category)}</span>
-              <span class="badge">${project.is_online ? 'Online' : safeHtml(project.city || 'Local')}</span>
-            </div>
-            <div class="project-title-row" style="margin-top:12px;">
-              <h1 style="font-size:2.3rem;margin:0;">${safeHtml(project.title)}</h1>
-              ${(project.admin_reviewed || !project.needs_financial_support) ? '<span class="review-status-icon review-status-icon-lg" title="Visible" aria-label="Visible">✓</span>' : ''}
-            </div>
-            <p>${safeHtml(getProjectDescriptionText(project))}</p>
-            <div class="badge-row">
-              ${(project.help_types || []).map(h => `<span class="badge">${safeHtml(h)}</span>`).join('')}
-              ${project.verified_ministry ? '<span class="badge good">Verified church/ministry</span>' : ''}
-              ${project.needs_financial_support ? '<span class="badge">Financial support requested</span>' : ''}
-              ${project.is_anonymous ? '<span class="badge">Anonymous request</span>' : ''}
-              ${project.needs_financial_support && !project.owner_can_receive_payments ? '<span class="badge warn">Stripe not ready</span>' : ''}
-            </div>
-            <div class="stats-row">
-              <div class="stat"><strong>${Number(stats.prayer_count || 0) + Number(stats.reply_count || 0)}</strong><span class="muted">Prayers/replies</span></div>
-            </div>
-          </section>
+      <div class="pd">
+        <a class="pd-back" href="explore-projects.html"><span aria-hidden="true">←</span> All requests</a>
 
-          <section class="card panel">
-            <h2>Request information</h2>
-            <p>${safeHtml(project.description)}</p>
-            <div class="list">
-              <div class="item"><strong>Organization</strong>${safeHtml(project.is_anonymous ? 'Anonymous request' : (project.organization_name || 'Not specified'))}</div>
-              <div class="item"><strong>Why it matters</strong>${safeHtml(project.why_it_matters || 'Not specified')}</div>
-              ${project.project_links && Array.isArray(project.project_links) && project.project_links.length ? `
-                <div class="item">
-                  <strong>Important links</strong>
-                  <div style="display:grid;gap:8px;">
-                    ${project.project_links.map(link => `
-                      <a href="${safeHtml(link)}" target="_blank" rel="noopener noreferrer">${safeHtml(link)}</a>
-                    `).join('')}
-                  </div>
-                </div>
-              ` : ''}
-              ${project.campaign_expiry_date ? `<div class="item"><strong>Campaign expiry</strong>${safeHtml(project.campaign_expiry_date)}</div>` : ''}
-            </div>
-          </section>
+        <header class="pd-hero">
+          ${shareButton(project, 'share-project-btn-detail')}
+          <div class="pd-eyebrow">
+            ${project.category ? `<span class="pd-chip pd-chip-strong">${safeHtml(project.category)}</span>` : ''}
+            ${place ? `<span class="pd-chip"><span aria-hidden="true">📍</span> ${safeHtml(place)}</span>` : ''}
+            ${project.verified_ministry ? '<span class="pd-chip pd-chip-good">✓ Verified church/ministry</span>' : ''}
+            ${project.is_anonymous ? '<span class="pd-chip">Anonymous</span>' : ''}
+          </div>
+          <div class="pd-title-row">
+            <h1>${safeHtml(project.title)}</h1>
+            ${isReviewed ? '<span class="review-status-icon review-status-icon-lg" title="Visible" aria-label="Visible">✓</span>' : ''}
+          </div>
+          <p class="pd-byline">
+            ${organization ? `<span>${safeHtml(organization)}</span>` : ''}
+            ${project.created_at ? `<span>Posted ${safeHtml(formatFriendlyDate(project.created_at))}</span>` : ''}
+          </p>
 
-          <section class="card panel" id="respond">
-            <h2>Respond</h2>
-            <p>Choose Prayer or Reply, then send your message.</p>
-            <form id="respondForm" class="simple-form">
-              <div class="response-kind-toggle" role="radiogroup" aria-label="Response type">
-                <label class="response-kind-option">
-                  <input type="radio" name="kind" id="responseKindPrayer" value="prayer" checked>
-                  <span>🙏 Prayer</span>
-                </label>
-                <label class="response-kind-option">
-                  <input type="radio" name="kind" id="responseKindReply" value="reply">
-                  <span>💬 Reply</span>
-                </label>
-              </div>
-              <select name="type" id="responseSupportType" class="hide">
-                <option value="">Select reply type</option>
-                <option>Guidance</option>
-                <option>Volunteer</option>
-                <option>Mentorship</option>
-                <option>Services</option>
-                <option>Encouragement</option>
-              </select>
-              <input name="name" placeholder="Your name${token ? '' : ' (optional)'}">
-              <input name="email" id="responseEmail" type="email" placeholder="Your email (optional)" class="hide">
-              <textarea name="message" id="responseMessage" placeholder="Write your response" required></textarea>
-              <button class="btn" type="submit">Send response</button>
-            </form>
-          </section>
-
-          <section class="card panel">
-            <h2>Community responses</h2>
-            <div id="responseList" class="list" style="margin-top:16px;">
-              ${response_visibility?.showing_responses === false
-                ? `<div class="notice">Prayers and replies are private for this request. Only the request creator can view them.</div>`
-                : (buildCombinedResponses(prayers, replies).length
-                    ? buildCombinedResponses(prayers, replies).map(item => `
-                        <div class="item response-item">
-                          <div class="response-item-head">
-                            <strong>${safeHtml(item.name)}</strong>
-                            <div class="response-item-actions">
-                              <span class="badge ${item.kind === 'Prayer' ? 'good' : ''}">${safeHtml(item.typeLabel)}</span>
-                              ${canManageResponses ? `<button class="icon-btn danger response-delete-btn" type="button" data-response-kind="${safeHtml(item.deleteKind)}" data-response-id="${safeHtml(item.id || '')}" aria-label="Delete ${safeHtml(item.kind)}" title="Delete ${safeHtml(item.kind)}">🗑️</button>` : ''}
-                            </div>
-                          </div>
-                          <div>${safeHtml(item.message || '')}</div>
-                        </div>
-                      `).join('')
-                    : '<p class="muted">No responses yet.</p>')}
-            </div>
-          </section>
-
-          <section class="card panel">
-            <h2>Support this request</h2>
-            <div class="notice">ChristHelper reviews financial requests before enabling payments, but users should still use prayer, wisdom, and personal judgment before giving.</div>
+          <div class="pd-stats">
+            <div class="pd-stat"><strong data-pd-prayer-count>${prayerCount}</strong><span>${prayerCount === 1 ? 'Prayer' : 'Prayers'}</span></div>
+            <div class="pd-stat"><strong data-pd-reply-count>${replyCount}</strong><span>${replyCount === 1 ? 'Reply' : 'Replies'}</span></div>
             ${project.needs_financial_support && project.funding_approved ? `
-              <div class="progress-wrap" style="margin-top:14px;">
-                <div style="display:flex;justify-content:space-between;gap:12px;">
-                  <strong>${formatMoney(project.amount_raised)}</strong>
-                  <span class="muted">Goal ${goalText}</span>
-                </div>
-                <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+              <div class="pd-stat"><strong>${formatMoney(project.amount_raised)}</strong><span>of ${goalText}</span></div>
+            ` : ''}
+          </div>
+
+          <div class="pd-hero-actions">
+            <button type="button" class="btn-pray btn-pray-lg ${prayed ? 'is-prayed' : ''}" data-pd-jump="pray">${getPrayIcon()}<span data-pray-label>${prayed ? 'Prayed — pray again' : 'Pray for this'}</span></button>
+            <button type="button" class="pd-btn-secondary" data-pd-jump="respond"><span aria-hidden="true">💬</span> Respond</button>
+            ${donationAvailable ? '<button type="button" class="pd-btn-secondary" data-pd-jump="support"><span aria-hidden="true">💛</span> Give</button>' : ''}
+          </div>
+        </header>
+
+        <div class="pd-layout">
+          <section class="pd-card pd-about" aria-labelledby="pdAboutTitle">
+            <h2 id="pdAboutTitle">About this request</h2>
+            <div class="pd-description">${safeHtml(getProjectDescriptionText(project))}</div>
+
+            ${whyItMatters ? `
+              <div class="pd-why">
+                <h3>Why it matters</h3>
+                <p>${safeHtml(whyItMatters)}</p>
               </div>
-              ${donationAvailable ? `
-                <div class="notice" style="margin-top:16px;">Payments for financial support are processed securely through Stripe in USD. Stripe transaction fees apply per payment, so the amount paid by the supporter and the net amount received by the request owner may be different.</div>
-                <form id="projectDonationForm" class="simple-form" style="margin-top:16px;">
-                  <input name="donor_name" placeholder="Your name">
-                  <input name="donor_email" type="email" placeholder="Your email">
-                  <textarea name="donor_message" placeholder="Optional message"></textarea>
-                  <input name="amount_project" type="number" min="1" step="0.01" placeholder="Amount for this request (USD)" required>
-                  <input name="amount_platform" type="number" min="0" step="0.01" placeholder="Optional support value (USD)">
-                  <button class="btn" type="submit">Continue to secure payment</button>
+            ` : ''}
+
+            ${(project.help_types || []).length ? `
+              <div class="pd-help">
+                <h3>How you can help</h3>
+                <div class="pd-chip-row">
+                  ${(project.help_types || []).map(h => `<span class="pd-chip">${safeHtml(h)}</span>`).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            ${facts.length ? `
+              <dl class="pd-facts">
+                ${facts.map(f => `<div class="pd-fact"><dt>${f.label}</dt><dd>${f.value}</dd></div>`).join('')}
+              </dl>
+            ` : ''}
+
+            ${links.length ? `
+              <div class="pd-links">
+                <h3>Links</h3>
+                <ul>
+                  ${links.map(link => `<li><a href="${safeHtml(link)}" target="_blank" rel="noopener noreferrer">${safeHtml(link)}</a></li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+          </section>
+
+          <aside class="pd-side">
+            <section class="pd-card pd-pray-card" id="pray" aria-labelledby="pdPrayTitle">
+              <div class="pd-pray-head">
+                <span class="pd-pray-badge" aria-hidden="true">🙏</span>
+                <div>
+                  <h2 id="pdPrayTitle">Pray for this request</h2>
+                  <p>Pray now and let them know. A message is optional.</p>
+                </div>
+              </div>
+              <form id="prayForm" class="pd-form" autocomplete="off">
+                <label class="pd-field">
+                  <span>Words of encouragement <em>optional</em></span>
+                  <textarea name="message" rows="3" placeholder="e.g. Praying for peace and provision for you."></textarea>
+                </label>
+                <label class="pd-field">
+                  <span>Your name <em>optional</em></span>
+                  <input name="name" placeholder="Anonymous" value="${safeHtml(getDefaultResponderName())}">
+                </label>
+                <button type="submit" class="btn btn-pray-submit pd-full">${getPrayIcon()} I prayed</button>
+                <p class="pd-form-status" id="prayStatus" role="status"></p>
+              </form>
+            </section>
+
+            <section class="pd-card" id="respond" aria-labelledby="pdRespondTitle">
+              <h2 id="pdRespondTitle">Respond</h2>
+              <p class="pd-card-sub">Share a prayer, or offer guidance, time or resources.</p>
+              <form id="respondForm" class="pd-form">
+                <div class="response-kind-toggle" role="radiogroup" aria-label="Response type">
+                  <label class="response-kind-option">
+                    <input type="radio" name="kind" id="responseKindPrayer" value="prayer" checked>
+                    <span>🙏 Prayer</span>
+                  </label>
+                  <label class="response-kind-option">
+                    <input type="radio" name="kind" id="responseKindReply" value="reply">
+                    <span>💬 Reply</span>
+                  </label>
+                </div>
+                <select name="type" id="responseSupportType" class="hide">
+                  <option value="">Select reply type</option>
+                  <option>Guidance</option>
+                  <option>Volunteer</option>
+                  <option>Mentorship</option>
+                  <option>Services</option>
+                  <option>Encouragement</option>
+                </select>
+                <input name="name" placeholder="Your name${token ? '' : ' (optional)'}">
+                <input name="email" id="responseEmail" type="email" placeholder="Your email (optional)" class="hide">
+                <textarea name="message" id="responseMessage" rows="4" placeholder="Write your response" required></textarea>
+                <button class="btn pd-full" type="submit">Send response</button>
+                <p class="pd-form-status" id="respondStatus" role="status"></p>
+              </form>
+            </section>
+
+            ${project.needs_financial_support ? `
+              <section class="pd-card" id="support" aria-labelledby="pdSupportTitle">
+                <h2 id="pdSupportTitle">Support this request</h2>
+                ${project.funding_approved ? `
+                  <div class="pd-progress">
+                    <div class="pd-progress-top">
+                      <strong>${formatMoney(project.amount_raised)}</strong>
+                      <span>${pct}% of ${goalText}</span>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+                  </div>
+                  ${donationAvailable ? `
+                    <form id="projectDonationForm" class="pd-form">
+                      <input name="amount_project" type="number" min="1" step="0.01" placeholder="Amount for this request (USD)" required>
+                      <input name="amount_platform" type="number" min="0" step="0.01" placeholder="Optional support for ChristHelper (USD)">
+                      <input name="donor_name" placeholder="Your name">
+                      <input name="donor_email" type="email" placeholder="Your email">
+                      <textarea name="donor_message" rows="2" placeholder="Optional message"></textarea>
+                      <button class="btn pd-full" type="submit">Continue to secure payment</button>
+                    </form>
+                    <p class="pd-fineprint">Payments are processed securely through Stripe in USD. Stripe fees apply per payment, so the amount you pay and the amount the request owner receives may differ. ChristHelper reviews financial requests before enabling payments, but please use prayer, wisdom and personal judgment before giving.</p>
+                  ` : '<p class="pd-fineprint">Financial support is unavailable until the request owner connects and completes Stripe setup.</p>'}
+                ` : '<p class="pd-fineprint">This financial request is waiting for ChristHelper review. You can still respond with prayer, guidance, volunteering and encouragement.</p>'}
+              </section>
+            ` : ''}
+          </aside>
+
+          <div class="pd-main">
+            <section class="pd-card" id="responses" aria-labelledby="pdResponsesTitle">
+              <div class="pd-card-head">
+                <h2 id="pdResponsesTitle">Community responses</h2>
+                ${responsesVisible ? `<span class="pd-count" data-pd-total-count>${prayerCount + replyCount}</span>` : ''}
+              </div>
+              ${!responsesVisible
+                ? '<p class="pd-empty">Prayers and replies are private for this request. Only the request creator can view them.</p>'
+                : `<ul id="responseList" class="pd-responses">
+                    ${combined.length
+                      ? combined.map(item => renderDetailResponseItem(item, canManageResponses)).join('')
+                      : '<li class="pd-empty" data-pd-empty>No responses yet. Be the first to pray.</li>'}
+                  </ul>`}
+            </section>
+
+            <section class="pd-card" aria-labelledby="pdUpdatesTitle">
+              <h2 id="pdUpdatesTitle">Updates</h2>
+              ${updates.length ? `
+                <ol class="pd-timeline">
+                  ${updates.map(item => `
+                    <li>
+                      <time datetime="${safeHtml(item.created_at || '')}">${safeHtml(formatFriendlyDate(item.created_at))}</time>
+                      <strong>${safeHtml(item.title)}</strong>
+                      <p>${safeHtml(item.content)}</p>
+                    </li>
+                  `).join('')}
+                </ol>
+              ` : '<p class="pd-empty">No updates yet.</p>'}
+            </section>
+
+            <div class="pd-report">
+              <button type="button" class="pd-report-toggle" id="reportToggle" aria-expanded="false" aria-controls="reportPanel">
+                <span aria-hidden="true">⚑</span> Report this request
+              </button>
+              <div class="pd-report-panel" id="reportPanel" hidden>
+                <form id="reportForm" class="pd-form">
+                  <p class="pd-card-sub">Tell us what's wrong. Reports are reviewed by the ChristHelper team.</p>
+                  <select name="reason" required>
+                    <option value="">Select a reason</option>
+                    <option>Suspicious or misleading request</option>
+                    <option>False information</option>
+                    <option>Inappropriate content</option>
+                    <option>Other safety concern</option>
+                  </select>
+                  <textarea name="details" rows="3" placeholder="Extra details (optional)"></textarea>
+                  <div class="pd-report-actions">
+                    <button class="pd-btn-secondary" type="submit">Submit report</button>
+                    <button class="btn-link" type="button" id="reportCancel">Cancel</button>
+                  </div>
+                  <p class="pd-form-status" id="reportStatus" role="status"></p>
                 </form>
-              ` : '<p class="muted" style="margin-top:14px;">Financial support is unavailable until the request owner connects and completes Stripe setup.</p>'}
-            ` : '<p class="muted">Financial support is not available yet for this request. You can still respond with prayer, guidance, volunteering, and encouragement.</p>'}
-          </section>
-
-          <section class="card panel">
-            <h3>Report request</h3>
-            <form id="reportForm" class="simple-form">
-              <select name="reason" required>
-                <option value="">Select reason</option>
-                <option>Suspicious or misleading request</option>
-                <option>False information</option>
-                <option>Inappropriate content</option>
-                <option>Other safety concern</option>
-              </select>
-              <textarea name="details" placeholder="Extra details"></textarea>
-              <button class="btn-outline" type="submit">Submit report</button>
-            </form>
-          </section>
-
-          <section class="card panel">
-            <h2>Request updates</h2>
-            <div class="list">
-              ${updates.length
-                ? updates.map(item => `<div class="item"><strong>${safeHtml(item.title)}</strong>${safeHtml(item.content)}<div class="muted" style="margin-top:8px;">${new Date(item.created_at).toLocaleString()}</div></div>`).join('')
-                : '<p class="muted">No updates yet.</p>'}
+              </div>
             </div>
-          </section>
-
+          </div>
+        </div>
       </div>
     `;
+
+    /* --- counts + list helpers --- */
+    function refreshCounts() {
+      const p = root.querySelector('[data-pd-prayer-count]');
+      const r = root.querySelector('[data-pd-reply-count]');
+      const t = root.querySelector('[data-pd-total-count]');
+      if (p) {
+        p.textContent = prayerCount;
+        p.nextElementSibling.textContent = prayerCount === 1 ? 'Prayer' : 'Prayers';
+      }
+      if (r) {
+        r.textContent = replyCount;
+        r.nextElementSibling.textContent = replyCount === 1 ? 'Reply' : 'Replies';
+      }
+      if (t) t.textContent = prayerCount + replyCount;
+    }
+
+    function prependResponse(kind, item) {
+      const list = $('#responseList');
+      if (!list || !item) return;
+      list.querySelector('[data-pd-empty]')?.remove();
+      const [entry] = buildCombinedResponses(kind === 'prayer' ? [item] : [], kind === 'reply' ? [item] : []);
+      if (entry) list.insertAdjacentHTML('afterbegin', renderDetailResponseItem(entry, canManageResponses));
+    }
+
+    function markPrayed() {
+      const heroPray = root.querySelector('.pd-hero [data-pd-jump="pray"]');
+      heroPray?.classList.add('is-prayed');
+      const label = heroPray?.querySelector('[data-pray-label]');
+      if (label) label.textContent = 'Prayed — pray again';
+    }
+
+    /* --- hero jump buttons --- */
+    $all('[data-pd-jump]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = document.getElementById(button.dataset.pdJump);
+        if (!target) return;
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        target.classList.add('is-highlighted');
+        window.setTimeout(() => target.classList.remove('is-highlighted'), 1400);
+        const field = target.querySelector('textarea, input:not([type="radio"])');
+        window.setTimeout(() => field?.focus({ preventScroll: true }), 450);
+      });
+    });
+
+    /* --- pray form --- */
+    const prayForm = $('#prayForm');
+    prayForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (prayForm.dataset.submitting === '1') return;
+      const fd = new FormData(prayForm);
+      const submitButton = prayForm.querySelector('button[type="submit"]');
+      const status = $('#prayStatus');
+
+      prayForm.dataset.submitting = '1';
+      if (submitButton) submitButton.disabled = true;
+      if (status) status.textContent = 'Sending...';
+
+      try {
+        const result = await submitPrayer(id, { name: fd.get('name'), message: fd.get('message') });
+        prayerCount += 1;
+        refreshCounts();
+        if (!result?.duplicate) prependResponse('prayer', result?.item);
+        markPrayed();
+        const messageField = prayForm.querySelector('textarea[name="message"]');
+        if (messageField) messageField.value = '';
+        if (status) status.textContent = 'Amen. Thank you for praying.';
+      } catch (error) {
+        if (status) status.textContent = error.message || 'Could not record your prayer.';
+      } finally {
+        prayForm.dataset.submitting = '0';
+        if (submitButton) submitButton.disabled = false;
+      }
+    });
+
+    /* --- respond form --- */
     const respondForm = $('#respondForm');
-    const responseKindOptions = document.querySelectorAll('input[name="kind"]');
+    const responseKindOptions = respondForm ? respondForm.querySelectorAll('input[name="kind"]') : [];
     const responseSupportType = $('#responseSupportType');
     const responseEmail = $('#responseEmail');
     const responseMessage = $('#responseMessage');
 
     function syncRespondForm() {
-      const selected = document.querySelector('input[name="kind"]:checked')?.value || 'prayer';
+      const selected = respondForm?.querySelector('input[name="kind"]:checked')?.value || 'prayer';
       const isReply = selected === 'reply';
       responseSupportType?.classList.toggle('hide', !isReply);
       responseEmail?.classList.toggle('hide', !isReply);
@@ -947,10 +1323,11 @@ async function loadProjectDetails() {
     respondForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (respondForm.dataset.submitting === '1') return;
-      const fd = new FormData(e.target);
+      const fd = new FormData(respondForm);
       const kind = String(fd.get('kind') || 'prayer').toLowerCase();
       const submitButton = respondForm.querySelector('button[type="submit"]');
       const originalSubmitText = submitButton?.textContent || 'Send response';
+      const status = $('#respondStatus');
 
       respondForm.dataset.submitting = '1';
       if (submitButton) {
@@ -981,14 +1358,24 @@ async function loadProjectDetails() {
           reply_type: kind === 'reply' ? String(fd.get('type') || 'general') : '',
           page_path: window.location.pathname
         });
-        alert(result?.message || 'Your response has been sent.');
-        e.target.reset();
+
+        if (kind === 'prayer') {
+          prayerCount += 1;
+          rememberPrayedRequest(id);
+          markPrayed();
+        } else {
+          replyCount += 1;
+        }
+        refreshCounts();
+        if (!result?.duplicate) prependResponse(kind === 'prayer' ? 'prayer' : 'reply', result?.item);
+
+        respondForm.reset();
         const prayerOption = $('#responseKindPrayer');
         if (prayerOption) prayerOption.checked = true;
         syncRespondForm();
-        location.reload();
+        if (status) status.textContent = result?.message || 'Your response has been sent.';
       } catch (error) {
-        alert(error.message);
+        if (status) status.textContent = error.message || 'Could not send your response.';
       } finally {
         respondForm.dataset.submitting = '0';
         if (submitButton) {
@@ -998,39 +1385,67 @@ async function loadProjectDetails() {
       }
     });
 
-    $all('.response-delete-btn').forEach(button => {
-      button.addEventListener('click', async () => {
-        const responseId = button.dataset.responseId;
-        const responseKind = button.dataset.responseKind;
-        if (!responseId || !responseKind) return;
-        if (!confirm('Delete this prayer/reply?')) return;
+    /* --- delete responses (owner/admin) --- */
+    $('#responseList')?.addEventListener('click', async (event) => {
+      const button = event.target.closest('.response-delete-btn');
+      if (!button) return;
+      const responseId = button.dataset.responseId;
+      const responseKind = button.dataset.responseKind;
+      if (!responseId || !responseKind) return;
+      if (!confirm('Delete this prayer/reply?')) return;
 
-        try {
-          await api(`/projects/${id}/${responseKind}/${responseId}`, { method: 'DELETE' });
-          button.closest('.response-item')?.remove();
-          if (!$all('.response-item').length) {
-            const responseList = $('#responseList');
-            if (responseList) responseList.innerHTML = '<p class="muted">No responses yet.</p>';
-          }
-        } catch (error) {
-          alert(error.message);
-        }
-      });
-    });
-
-    $('#reportForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target);
       try {
-        await api(`/projects/${id}/report`, { method: 'POST', body: JSON.stringify(Object.fromEntries(fd)) });
-        trackEvent('project_report_submitted', { project_id: id, page_path: window.location.pathname });
-        alert('Thank you. The report was submitted.');
-        e.target.reset();
+        await api(`/projects/${id}/${responseKind}/${responseId}`, { method: 'DELETE' });
+        button.closest('.pd-response')?.remove();
+        if (responseKind === 'prayers') prayerCount = Math.max(0, prayerCount - 1);
+        else replyCount = Math.max(0, replyCount - 1);
+        refreshCounts();
+        const list = $('#responseList');
+        if (list && !list.querySelector('.pd-response')) {
+          list.innerHTML = '<li class="pd-empty" data-pd-empty>No responses yet. Be the first to pray.</li>';
+        }
       } catch (error) {
         alert(error.message);
       }
     });
 
+    /* --- collapsible report --- */
+    const reportToggle = $('#reportToggle');
+    const reportPanel = $('#reportPanel');
+    function setReportOpen(open) {
+      if (!reportPanel || !reportToggle) return;
+      reportPanel.hidden = !open;
+      reportToggle.setAttribute('aria-expanded', String(open));
+      reportToggle.classList.toggle('is-open', open);
+      if (open) window.setTimeout(() => reportPanel.querySelector('select')?.focus(), 30);
+    }
+    reportToggle?.addEventListener('click', () => setReportOpen(reportPanel?.hidden));
+    $('#reportCancel')?.addEventListener('click', () => setReportOpen(false));
+
+    $('#reportForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const fd = new FormData(form);
+      const status = $('#reportStatus');
+      const submitButton = form.querySelector('button[type="submit"]');
+      if (submitButton) submitButton.disabled = true;
+      try {
+        await api(`/projects/${id}/report`, { method: 'POST', body: JSON.stringify(Object.fromEntries(fd)) });
+        trackEvent('project_report_submitted', { project_id: id, page_path: window.location.pathname });
+        form.reset();
+        if (status) status.textContent = 'Thank you. Your report was submitted.';
+        window.setTimeout(() => {
+          setReportOpen(false);
+          if (status) status.textContent = '';
+        }, 2200);
+      } catch (error) {
+        if (status) status.textContent = error.message || 'Could not submit the report.';
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+      }
+    });
+
+    /* --- donations --- */
     $('#projectDonationForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = Object.fromEntries(new FormData(e.target));
@@ -1055,8 +1470,13 @@ async function loadProjectDetails() {
         alert(error.message);
       }
     });
+
+    if (location.hash) {
+      const target = document.getElementById(location.hash.slice(1));
+      if (target) window.setTimeout(() => target.scrollIntoView({ block: 'start' }), 60);
+    }
   } catch (error) {
-    root.innerHTML = `<div class="card panel"><p>${safeHtml(error.message)}</p></div>`;
+    root.innerHTML = `<div class="pd-card"><p>${safeHtml(error.message)}</p></div>`;
   }
 }
 
@@ -1297,6 +1717,8 @@ function toggleFinancialFields() {
   const financialBlocked = hasFinancialSupport && !stripeReady;
 
   if (goalWrap) goalWrap.classList.toggle('hide', !hasFinancialSupport);
+  // Only financial requests go through admin review, so only show the notice for them.
+  $('#financialReviewNotice')?.classList.toggle('hide', !hasFinancialSupport);
   if (stripeNotice) stripeNotice.classList.toggle('hide', !financialBlocked);
   if (submitError && !financialBlocked) submitError.classList.add('hide');
   if (submitButton) {
@@ -1392,6 +1814,7 @@ function getSubmitRequestPayload(form) {
   payload.project_links = parseProjectLinks(payload.project_links);
   payload.continent = payload.continent || detectContinentFromCountry(payload.country);
   payload.summary = payload.description || payload.summary || '';
+  delete payload.why_it_matters;
 
   if (payload.needs_financial_support) {
     payload.funding_goal_currency = 'USD';

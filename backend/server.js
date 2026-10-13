@@ -1180,12 +1180,17 @@ function createProjectResponse(db, projectId, payload = {}) {
     return { error: 'Response kind must be prayer or reply', status: 400 };
   }
 
-  if (!message) {
+  // Prayers can be recorded without a message (one-tap "I prayed").
+  // Words of encouragement are optional. Replies still need a message.
+  if (!message && kind !== 'prayer') {
     return { error: 'Message is required', status: 400 };
   }
 
   const duplicateWindowMs = 30000;
   const isRecentDuplicate = (item, expectedKind) => {
+    // Silent prayers from different anonymous visitors look identical, so only
+    // de-duplicate them when the person is identifiable by name or email.
+    if (expectedKind === 'prayer' && !message && name === 'Anonymous' && !email) return false;
     const createdAt = Date.parse(item.created_at || '');
     return String(item.project_id) === String(projectId)
       && String(item.name || '').trim() === name

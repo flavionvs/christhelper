@@ -104,10 +104,6 @@
               <span class="sm-label">Full description</span>
               <textarea name="description" rows="5" placeholder="What is happening, and what support is needed?" required></textarea>
             </label>
-            <label class="sm-field">
-              <span class="sm-label">Why it matters <em>optional</em></span>
-              <textarea name="why_it_matters" rows="3" placeholder="Why should believers stand with you in this?"></textarea>
-            </label>
           </fieldset>
 
           <fieldset class="sm-section" id="step-need">
@@ -218,7 +214,7 @@
           </fieldset>
 
           <div class="sm-submit">
-            <p class="sm-safe"><span aria-hidden="true">🔒</span> Every request is reviewed before it&rsquo;s shared.</p>
+            <p class="sm-safe hide" id="financialReviewNotice" role="status"><span aria-hidden="true">🔒</span> Financial requests are reviewed by ChristHelper before donations are enabled.</p>
             <button class="btn sm-submit__btn" id="submitRequestBtn" type="submit">Submit request <span aria-hidden="true">&rarr;</span></button>
             <p id="submitFinancialError" class="form-error hide" role="alert">A connected Stripe account is required for Financial Support. Please connect Stripe or choose another support type before continuing.</p>
           </div>
