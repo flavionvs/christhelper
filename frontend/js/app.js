@@ -491,6 +491,10 @@ function projectCardPrayForm(project) {
           <button type="button" class="btn-link response-close-btn" data-card-pray-close>Close</button>
         </div>
         <p class="pray-form-hint">Take a moment to pray. Leaving a message is optional.</p>
+        <div class="pray-form-actions">
+          <button type="submit" class="btn btn-pray-submit">${getPrayIcon()} Prayed</button>
+          <span class="pray-form-status" data-card-pray-status role="status"></span>
+        </div>
         <label class="pray-field">
           <span>Words of encouragement <em>optional</em></span>
           <textarea name="message" rows="3" placeholder="e.g. Praying for strength and peace for you this week."></textarea>
@@ -499,10 +503,6 @@ function projectCardPrayForm(project) {
           <span>Your name <em>optional</em></span>
           <input name="name" placeholder="Anonymous" value="${safeHtml(getDefaultResponderName())}" autocomplete="off">
         </label>
-        <div class="pray-form-actions">
-          <button type="submit" class="btn btn-pray-submit">${getPrayIcon()} I prayed</button>
-          <span class="pray-form-status" data-card-pray-status role="status"></span>
-        </div>
       </form>
     </div>
   `;
@@ -513,22 +513,13 @@ function projectCardResponseForm(project) {
   return `
     <div class="project-card-response" data-card-response-panel hidden>
       <div class="project-card-response-head">
-        <strong>Respond with prayer or encouragement</strong>
+        <strong>Respond</strong>
         <button type="button" class="btn-link response-close-btn" data-card-response-close>Close</button>
       </div>
       <form class="simple-form project-card-response-form" data-card-response-form data-project-id="${id}" autocomplete="off">
-        <div class="response-kind-toggle">
-          <label class="response-kind-option">
-            <input type="radio" name="kind" value="prayer" checked>
-            <span>🙏 Prayer</span>
-          </label>
-          <label class="response-kind-option">
-            <input type="radio" name="kind" value="reply">
-            <span>💬 Reply</span>
-          </label>
-        </div>
-        <select name="type" data-card-reply-type class="hide">
-          <option value="">Select reply type</option>
+        <input type="hidden" name="kind" value="reply">
+        <select name="type" data-card-reply-type required>
+          <option value="">How would you like to help?</option>
           <option value="guidance">Guidance</option>
           <option value="volunteer">Volunteer</option>
           <option value="resources">Resources</option>
@@ -537,8 +528,8 @@ function projectCardResponseForm(project) {
           <option value="general">General encouragement</option>
         </select>
         <input name="name" placeholder="Your name or Anonymous" autocomplete="off">
-        <input name="email" type="email" placeholder="Email optional for prayer" autocomplete="off" data-card-email>
-        <textarea name="message" rows="4" required placeholder="Write your prayer or encouragement"></textarea>
+        <input name="email" type="email" placeholder="Email (optional)" autocomplete="off" data-card-email>
+        <textarea name="message" rows="4" required placeholder="Write your message, offer, guidance, or encouragement"></textarea>
         <div class="project-card-response-actions">
           <button type="submit" class="btn" data-submit-label>Send response</button>
           <span class="muted" data-card-response-status></span>
@@ -620,20 +611,11 @@ function updateProjectReadMoreLinks(scope = document) {
 }
 
 function syncCardResponseForm(form) {
-  if (!form) return;
-  const kind = form.querySelector('input[name="kind"]:checked')?.value || 'prayer';
-  const isReply = kind === 'reply';
-  const replyType = form.querySelector('[data-card-reply-type]');
-  const email = form.querySelector('[data-card-email]');
-  const message = form.querySelector('textarea[name="message"]');
-
-  replyType?.classList.toggle('hide', !isReply);
-  if (replyType) replyType.required = isReply;
-  if (email) email.placeholder = isReply ? 'Email optional, useful if they need to contact you' : 'Email optional for prayer';
-  if (message) {
-    message.placeholder = isReply
-      ? 'Write your reply, offer, guidance, or encouragement'
-      : 'Write your prayer or encouragement';
+  // The Respond form is reply-only now that prayers have their own Pray button.
+  const replyType = form?.querySelector('[data-card-reply-type]');
+  if (replyType) {
+    replyType.classList.remove('hide');
+    replyType.required = true;
   }
 }
 
@@ -659,7 +641,7 @@ function setCardPanelOpen(card, which, open) {
   prayToggle?.setAttribute('aria-expanded', String(open && which === 'pray'));
   prayToggle?.classList.toggle('is-open', open && which === 'pray');
   respondToggle?.setAttribute('aria-expanded', String(open && which === 'respond'));
-  if (respondToggle) respondToggle.textContent = (open && which === 'respond') ? 'Hide response' : 'Respond';
+  respondToggle?.classList.toggle('is-open', open && which === 'respond');
 
   if (open) {
     const panel = which === 'pray' ? prayPanel : respondPanel;
@@ -695,10 +677,6 @@ function initProjectCardResponses(scope = document) {
 
   root.querySelectorAll('[data-card-response-close]').forEach((button) => {
     button.addEventListener('click', () => setCardPanelOpen(button.closest('.project-card'), 'respond', false));
-  });
-
-  root.querySelectorAll('[data-card-response-form] input[name="kind"]').forEach((input) => {
-    input.addEventListener('change', () => syncCardResponseForm(input.closest('[data-card-response-form]')));
   });
 
   root.querySelectorAll('[data-card-pray-form]').forEach((form) => {
@@ -747,7 +725,7 @@ function initProjectCardResponses(scope = document) {
 
       const projectId = form.dataset.projectId;
       const fd = new FormData(form);
-      const kind = String(fd.get('kind') || 'prayer').toLowerCase();
+      const kind = 'reply';
       const submitButton = form.querySelector('button[type="submit"]');
       const status = form.querySelector('[data-card-response-status]');
       const originalText = submitButton?.textContent || 'Send response';
@@ -1040,7 +1018,7 @@ async function loadProjectDetails() {
           </div>
 
           <div class="pd-hero-actions">
-            <button type="button" class="btn-pray btn-pray-lg ${prayed ? 'is-prayed' : ''}" data-pd-jump="pray">${getPrayIcon()}<span data-pray-label>${prayed ? 'Prayed — pray again' : 'Pray for this'}</span></button>
+            <button type="button" class="btn-pray btn-pray-lg ${prayed ? 'is-prayed' : ''}" data-pd-jump="pray">${getPrayIcon()}<span data-pray-label>${prayed ? 'Prayed - pray again' : 'Pray for this'}</span></button>
             <button type="button" class="pd-btn-secondary" data-pd-jump="respond"><span aria-hidden="true">💬</span> Respond</button>
             ${donationAvailable ? '<button type="button" class="pd-btn-secondary" data-pd-jump="support"><span aria-hidden="true">💛</span> Give</button>' : ''}
           </div>
@@ -1093,6 +1071,8 @@ async function loadProjectDetails() {
                 </div>
               </div>
               <form id="prayForm" class="pd-form" autocomplete="off">
+                <button type="submit" class="btn btn-pray-submit pd-full">${getPrayIcon()} Prayed</button>
+                <p class="pd-form-status" id="prayStatus" role="status"></p>
                 <label class="pd-field">
                   <span>Words of encouragement <em>optional</em></span>
                   <textarea name="message" rows="3" placeholder="e.g. Praying for peace and provision for you."></textarea>
@@ -1101,27 +1081,16 @@ async function loadProjectDetails() {
                   <span>Your name <em>optional</em></span>
                   <input name="name" placeholder="Anonymous" value="${safeHtml(getDefaultResponderName())}">
                 </label>
-                <button type="submit" class="btn btn-pray-submit pd-full">${getPrayIcon()} I prayed</button>
-                <p class="pd-form-status" id="prayStatus" role="status"></p>
               </form>
             </section>
 
             <section class="pd-card" id="respond" aria-labelledby="pdRespondTitle">
               <h2 id="pdRespondTitle">Respond</h2>
-              <p class="pd-card-sub">Share a prayer, or offer guidance, time or resources.</p>
+              <p class="pd-card-sub">Offer guidance, your time, resources or encouragement.</p>
               <form id="respondForm" class="pd-form">
-                <div class="response-kind-toggle" role="radiogroup" aria-label="Response type">
-                  <label class="response-kind-option">
-                    <input type="radio" name="kind" id="responseKindPrayer" value="prayer" checked>
-                    <span>🙏 Prayer</span>
-                  </label>
-                  <label class="response-kind-option">
-                    <input type="radio" name="kind" id="responseKindReply" value="reply">
-                    <span>💬 Reply</span>
-                  </label>
-                </div>
-                <select name="type" id="responseSupportType" class="hide">
-                  <option value="">Select reply type</option>
+                <input type="hidden" name="kind" value="reply">
+                <select name="type" id="responseSupportType" required>
+                  <option value="">How would you like to help?</option>
                   <option>Guidance</option>
                   <option>Volunteer</option>
                   <option>Mentorship</option>
@@ -1129,8 +1098,8 @@ async function loadProjectDetails() {
                   <option>Encouragement</option>
                 </select>
                 <input name="name" placeholder="Your name${token ? '' : ' (optional)'}">
-                <input name="email" id="responseEmail" type="email" placeholder="Your email (optional)" class="hide">
-                <textarea name="message" id="responseMessage" rows="4" placeholder="Write your response" required></textarea>
+                <input name="email" id="responseEmail" type="email" placeholder="Your email (optional)">
+                <textarea name="message" id="responseMessage" rows="4" placeholder="Write your message, offer, guidance, or encouragement" required></textarea>
                 <button class="btn pd-full" type="submit">Send response</button>
                 <p class="pd-form-status" id="respondStatus" role="status"></p>
               </form>
@@ -1249,7 +1218,7 @@ async function loadProjectDetails() {
       const heroPray = root.querySelector('.pd-hero [data-pd-jump="pray"]');
       heroPray?.classList.add('is-prayed');
       const label = heroPray?.querySelector('[data-pray-label]');
-      if (label) label.textContent = 'Prayed — pray again';
+      if (label) label.textContent = 'Prayed - pray again';
     }
 
     /* --- hero jump buttons --- */
@@ -1297,34 +1266,12 @@ async function loadProjectDetails() {
 
     /* --- respond form --- */
     const respondForm = $('#respondForm');
-    const responseKindOptions = respondForm ? respondForm.querySelectorAll('input[name="kind"]') : [];
-    const responseSupportType = $('#responseSupportType');
-    const responseEmail = $('#responseEmail');
-    const responseMessage = $('#responseMessage');
-
-    function syncRespondForm() {
-      const selected = respondForm?.querySelector('input[name="kind"]:checked')?.value || 'prayer';
-      const isReply = selected === 'reply';
-      responseSupportType?.classList.toggle('hide', !isReply);
-      responseEmail?.classList.toggle('hide', !isReply);
-      if (responseSupportType) responseSupportType.required = isReply;
-      if (responseEmail && !isReply) responseEmail.value = '';
-      if (responseSupportType && !isReply) responseSupportType.value = '';
-      if (responseMessage) {
-        responseMessage.placeholder = isReply
-          ? 'Write your reply, offer, guidance, or encouragement'
-          : 'Write your prayer or encouragement';
-      }
-    }
-
-    responseKindOptions.forEach(option => option.addEventListener('change', syncRespondForm));
-    syncRespondForm();
 
     respondForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (respondForm.dataset.submitting === '1') return;
       const fd = new FormData(respondForm);
-      const kind = String(fd.get('kind') || 'prayer').toLowerCase();
+      const kind = 'reply';
       const submitButton = respondForm.querySelector('button[type="submit"]');
       const originalSubmitText = submitButton?.textContent || 'Send response';
       const status = $('#respondStatus');
@@ -1370,9 +1317,6 @@ async function loadProjectDetails() {
         if (!result?.duplicate) prependResponse(kind === 'prayer' ? 'prayer' : 'reply', result?.item);
 
         respondForm.reset();
-        const prayerOption = $('#responseKindPrayer');
-        if (prayerOption) prayerOption.checked = true;
-        syncRespondForm();
         if (status) status.textContent = result?.message || 'Your response has been sent.';
       } catch (error) {
         if (status) status.textContent = error.message || 'Could not send your response.';

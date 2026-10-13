@@ -4524,3 +4524,9 @@ body.detail-page .page-wrap { padding: clamp(18px, 3vw, 34px) 0 64px; }
   .pd-hero-actions .btn-pray-lg { flex-basis: 100%; }
   .pd-card { border-radius: 18px; }
 }
+
+.project-card [data-card-respond-toggle].is-open {
+  background: #eef5ff;
+  border-color: #0b73ff;
+  color: #0a4fae;
+}
