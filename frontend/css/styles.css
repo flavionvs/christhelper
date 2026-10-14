@@ -3081,7 +3081,6 @@ body.modal-open {
 .promo-video-copy { display: contents; }
 .promo-video-head     { order: 1; }
 .promo-video-frame    { order: 2; }
-.promo-video-features { order: 3; }
 .promo-video-actions  { order: 4; }
 
 .promo-video-glow {
@@ -3243,27 +3242,6 @@ body.modal-open {
 .promo-video-play:focus-visible .promo-video-play__label { transform: translateY(-2px); }
 .promo-video-player.is-playing .promo-video-play { display: none; }
 
-.promo-video-features {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin: 16px 0 0;
-  padding: 0;
-  list-style: none;
-}
-.promo-video-features li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(15, 50, 92, 0.08);
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #34465c;
-}
 
 .promo-video-actions {
   display: flex;
@@ -3278,7 +3256,7 @@ body.modal-open {
   border-color: rgba(15, 50, 92, 0.15);
 }
 
-/* Small phones: tighter chrome, 2x2 chips, side-by-side buttons */
+/* Small phones: tighter chrome, side-by-side buttons */
 @media (max-width: 600px) {
   .promo-video-section { padding-top: 18px; padding-bottom: 8px; }
   .promo-video-panel { padding: 20px 12px 16px; border-radius: 20px; }
@@ -3290,17 +3268,6 @@ body.modal-open {
   .promo-video-play__label { padding: 4px; }
   .promo-video-play__icon { width: 36px; height: 36px; }
   .promo-video-play__icon::after { border-width: 7px 0 7px 11px; }
-  .promo-video-features {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    margin-top: 12px;
-  }
-  .promo-video-features li {
-    justify-content: center;
-    padding: 6px 8px;
-    font-size: 0.78rem;
-  }
   .promo-video-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -3344,7 +3311,6 @@ body.modal-open {
   .promo-video-copy { display: block; }
   .promo-video-head h2 { font-size: clamp(2rem, 3.2vw, 2.7rem); margin: 12px 0 10px; }
   .promo-video-head p { margin: 0; font-size: 1rem; }
-  .promo-video-features { justify-content: flex-start; margin-top: 20px; }
   .promo-video-actions { justify-content: flex-start; margin-top: 20px; }
   .promo-video-frame { margin: 0; max-width: none; border-radius: 16px; }
   .promo-video-play__label { font-size: 0.85rem; padding: 5px; }
