@@ -421,16 +421,28 @@ function getPrayIcon() {
   return '<span class="pray-icon" aria-hidden="true">🙏</span>';
 }
 
+// Browser-side memory of prayers, scoped to the logged-in account so two people
+// sharing a browser never see each other's "prayed" state. Anonymous visitors
+// keep the original device-only key.
+function getPrayedRequestsStorageKey() {
+  return currentUser?.id ? `${PRAYED_REQUESTS_KEY}.user.${currentUser.id}` : PRAYED_REQUESTS_KEY;
+}
+
 function getPrayedRequestIds() {
   try {
-    const ids = JSON.parse(localStorage.getItem(PRAYED_REQUESTS_KEY) || '[]');
+    const ids = JSON.parse(localStorage.getItem(getPrayedRequestsStorageKey()) || '[]');
     return Array.isArray(ids) ? ids.map(String) : [];
   } catch (_) {
     return [];
   }
 }
 
-function hasPrayedForRequest(projectId) {
+// serverHasPrayed comes from the API (project.has_prayed / viewer.has_prayed).
+// When logged in, the server is the source of truth, so the state follows the
+// account across devices (pray on mobile -> shows as prayed on desktop).
+function hasPrayedForRequest(projectId, serverHasPrayed) {
+  if (serverHasPrayed === true) return true;
+  if (currentUser && typeof serverHasPrayed === 'boolean') return serverHasPrayed;
   return getPrayedRequestIds().includes(String(projectId));
 }
 
@@ -438,7 +450,7 @@ function rememberPrayedRequest(projectId) {
   try {
     const ids = getPrayedRequestIds().filter(id => id !== String(projectId));
     ids.push(String(projectId));
-    localStorage.setItem(PRAYED_REQUESTS_KEY, JSON.stringify(ids.slice(-500)));
+    localStorage.setItem(getPrayedRequestsStorageKey(), JSON.stringify(ids.slice(-500)));
   } catch (_) {
     /* storage unavailable: the prayer is still recorded on the server */
   }
@@ -552,7 +564,7 @@ function projectCard(project) {
     ? formatUsd(project.funding_goal)
     : formatMoney(project.funding_goal);
 
-  const prayed = hasPrayedForRequest(project.id);
+  const prayed = hasPrayedForRequest(project.id, project.has_prayed);
   const location = [project.country, project.continent].filter(Boolean).map(safeHtml).join(' · ');
 
   return `
@@ -950,7 +962,7 @@ async function loadProjectDetails() {
 
   try {
     const data = await api(`/projects/${id}`);
-    const { project, prayers = [], replies = [], updates = [], stats = {}, response_visibility } = data;
+    const { project, prayers = [], replies = [], updates = [], stats = {}, response_visibility, viewer = {} } = data;
 
     trackOnce(`project_view:${id}`, 'project_view', {
       project_id: id,
@@ -974,7 +986,7 @@ async function loadProjectDetails() {
     const combined = buildCombinedResponses(prayers, replies);
     let prayerCount = Number(stats.prayer_count || 0);
     let replyCount = Number(stats.reply_count || 0);
-    const prayed = hasPrayedForRequest(id);
+    const prayed = hasPrayedForRequest(id, viewer.has_prayed);
     const isReviewed = project.admin_reviewed || !project.needs_financial_support;
     const organization = project.is_anonymous ? 'Anonymous request' : (project.organization_name || '');
     const place = project.is_online ? 'Online' : [project.city, project.country].filter(Boolean).join(', ');

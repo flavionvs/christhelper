@@ -1168,7 +1168,28 @@ function normalizeResponseKind(value) {
   return '';
 }
 
-function createProjectResponse(db, projectId, payload = {}) {
+// True when this prayer belongs to the given logged-in user. Prayers record the
+// account id (user_id); older prayers are matched on the account email instead.
+function prayerBelongsToUser(prayer, user) {
+  if (!prayer || !user) return false;
+  if (prayer.user_id && user.id) return String(prayer.user_id) === String(user.id);
+  const prayerEmail = String(prayer.email || '').trim().toLowerCase();
+  const userEmail = String(user.email || '').trim().toLowerCase();
+  return Boolean(prayerEmail && userEmail && prayerEmail === userEmail);
+}
+
+function userHasPrayedForProject(db, projectId, user) {
+  if (!user) return false;
+  return (db.prayers || []).some((item) => String(item.project_id) === String(projectId) && prayerBelongsToUser(item, user));
+}
+
+// Public copy of a prayer: never expose the internal account id.
+function publicPrayer(prayer) {
+  const { user_id, ...rest } = prayer || {};
+  return rest;
+}
+
+function createProjectResponse(db, projectId, payload = {}, actorUser = null) {
   const project = db.projects.find((item) => item.id === projectId);
   if (!project) return { error: 'Request not found', status: 404 };
 
@@ -1177,6 +1198,7 @@ function createProjectResponse(db, projectId, payload = {}) {
   const email = String(payload.email || '').trim();
   const message = String(payload.message || '').trim();
   const replyType = String(payload.type || payload.reply_type || '').trim();
+  const userId = actorUser?.id ? String(actorUser.id) : '';
 
   if (!kind) {
     return { error: 'Response kind must be prayer or reply', status: 400 };
@@ -1192,7 +1214,8 @@ function createProjectResponse(db, projectId, payload = {}) {
   const isRecentDuplicate = (item, expectedKind) => {
     // Silent prayers from different anonymous visitors look identical, so only
     // de-duplicate them when the person is identifiable by name or email.
-    if (expectedKind === 'prayer' && !message && name === 'Anonymous' && !email) return false;
+    if (expectedKind === 'prayer' && !message && name === 'Anonymous' && !email && !userId) return false;
+    if (userId && String(item.user_id || '') !== userId) return false;
     const createdAt = Date.parse(item.created_at || '');
     return String(item.project_id) === String(projectId)
       && String(item.name || '').trim() === name
@@ -1208,7 +1231,7 @@ function createProjectResponse(db, projectId, payload = {}) {
     if (existingPrayer) {
       return {
         kind,
-        item: clone(existingPrayer),
+        item: clone(publicPrayer(existingPrayer)),
         message: 'Prayer support recorded. Thank you.',
         duplicate: true
       };
@@ -1220,12 +1243,13 @@ function createProjectResponse(db, projectId, payload = {}) {
       name,
       email,
       message,
+      ...(userId ? { user_id: userId } : {}),
       created_at: now()
     };
     db.prayers.push(prayer);
     return {
       kind,
-      item: clone(prayer),
+      item: clone(publicPrayer(prayer)),
       message: 'Prayer support recorded. Thank you.'
     };
   }
@@ -1645,7 +1669,7 @@ app.get('/profile/export', authRequired, (req, res) => {
     exported_at: now(),
     user: publicUser(user),
     projects: clone(projects),
-    prayers: clone(db.prayers.filter((item) => projectIds.has(item.project_id))),
+    prayers: clone(db.prayers.filter((item) => projectIds.has(item.project_id)).map(publicPrayer)),
     replies: clone(db.replies.filter((item) => projectIds.has(item.project_id))),
     donations: clone(db.donations.filter((item) => projectIds.has(item.project_id))),
     updates: clone(db.updates.filter((item) => projectIds.has(item.project_id))),
@@ -1924,6 +1948,8 @@ app.get(['/projects','/api/projects'], (req, res) => {
     ].some((value) => String(value || '').toLowerCase().includes(term)));
   }
 
+  const viewer = extractBearerUser(req);
+
   items = items.map((project) => {
     const prayer_count = db.prayers.filter((item) => item.project_id === project.id).length;
     const reply_count = db.replies.filter((item) => item.project_id === project.id).length;
@@ -1931,7 +1957,8 @@ app.get(['/projects','/api/projects'], (req, res) => {
     return {
       ...clone(project),
       prayer_count,
-      reply_count
+      reply_count,
+      has_prayed: userHasPrayedForProject(db, project.id, viewer)
     };
   });
 
@@ -1969,9 +1996,13 @@ app.get(['/projects/:id','/api/projects/:id'], (req, res) => {
 
   res.json({
     project: clone(project),
-    prayers: clone(prayers),
+    prayers: clone(prayers.map(publicPrayer)),
     replies: clone(replies),
     updates: clone(updates),
+    viewer: {
+      logged_in: Boolean(actorUser),
+      has_prayed: userHasPrayedForProject(db, req.params.id, actorUser)
+    },
     response_visibility: {
       responses_public: project.responses_public !== false,
       can_view_private_responses: canViewPrivateResponses,
@@ -2183,7 +2214,7 @@ app.delete('/projects/:id/replies/:responseId', authRequired, (req, res) => {
 
 app.post('/projects/:id/respond', async (req, res) => {
   const actorUser = extractBearerUser(req);
-  const result = withDb((db) => createProjectResponse(db, req.params.id, req.body || {}));
+  const result = withDb((db) => createProjectResponse(db, req.params.id, req.body || {}, actorUser));
 
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
 
@@ -2203,7 +2234,7 @@ app.post('/projects/:id/respond', async (req, res) => {
 app.post('/projects/:id/pray', async (req, res) => {
   const body = { ...(req.body || {}), kind: 'prayer' };
   const actorUser = extractBearerUser(req);
-  const result = withDb((db) => createProjectResponse(db, req.params.id, body));
+  const result = withDb((db) => createProjectResponse(db, req.params.id, body, actorUser));
 
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
   const db = readDb();
@@ -2217,7 +2248,7 @@ app.post('/projects/:id/pray', async (req, res) => {
 app.post('/projects/:id/reply', async (req, res) => {
   const body = { ...(req.body || {}), kind: 'reply' };
   const actorUser = extractBearerUser(req);
-  const result = withDb((db) => createProjectResponse(db, req.params.id, body));
+  const result = withDb((db) => createProjectResponse(db, req.params.id, body, actorUser));
 
   if (result?.error) return res.status(result.status || 400).json({ error: result.error });
   const db = readDb();
