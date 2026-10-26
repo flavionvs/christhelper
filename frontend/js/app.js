@@ -13,6 +13,7 @@ const GA_ALLOWED_EVENTS = new Set([
   'reply_submitted',
   'project_report_submitted',
   'feedback_submitted',
+  'volunteer_application_submitted',
   'payment_started',
   'payment_completed',
   'platform_support_started',
@@ -1944,18 +1945,63 @@ function handlePlatformDonation() {
   const form = $('#platformDonationForm');
   if (!form) return;
 
+  // Quick-pick amount chips (Get Involved page)
+  const amountInput = form.querySelector('[name="amount_platform"]');
+  const chips = Array.from(form.querySelectorAll('[data-amount]'));
+  const syncChips = () => {
+    const value = Number(amountInput ? amountInput.value : 0);
+    let matched = false;
+    chips.forEach((chip) => {
+      const chipValue = chip.dataset.amount;
+      const isMatch = chipValue !== '' && Number(chipValue) === value;
+      if (isMatch) matched = true;
+      chip.classList.toggle('is-selected', isMatch);
+      chip.setAttribute('aria-pressed', String(isMatch));
+    });
+    const other = chips.find((chip) => chip.dataset.amount === '');
+    if (other && !matched && amountInput && amountInput.value !== '') {
+      other.classList.add('is-selected');
+      other.setAttribute('aria-pressed', 'true');
+    }
+  };
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      if (!amountInput) return;
+      if (chip.dataset.amount === '') {
+        amountInput.value = '';
+        chips.forEach((c) => { c.classList.toggle('is-selected', c === chip); c.setAttribute('aria-pressed', String(c === chip)); });
+        amountInput.focus();
+        return;
+      }
+      amountInput.value = chip.dataset.amount;
+      syncChips();
+    });
+  });
+  if (amountInput) amountInput.addEventListener('input', syncChips);
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (amountInput && !(Number(amountInput.value) >= 1)) {
+      amountInput.setCustomValidity('Please enter an amount of at least NZ$1.');
+      amountInput.reportValidity();
+      amountInput.setCustomValidity('');
+      return;
+    }
+    const emailInput = form.querySelector('[name="donor_email"]');
+    if (emailInput && emailInput.value && !emailInput.checkValidity()) {
+      emailInput.reportValidity();
+      return;
+    }
     const payload = Object.fromEntries(new FormData(form));
     try {
       trackEvent('platform_support_started', {
-        currency: 'USD',
+        currency: 'NZD',
         amount_platform: Number(payload.amount_platform || payload.amount || 0),
         page_path: window.location.pathname
       });
       trackEvent('payment_started', {
         flow_type: 'platform',
-        currency: 'USD',
+        currency: 'NZD',
         amount_platform: Number(payload.amount_platform || payload.amount || 0),
         page_path: window.location.pathname
       });
@@ -2601,7 +2647,10 @@ function handleFeedbackForm() {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (submitBtn) submitBtn.disabled = true;
-    if (statusEl) statusEl.textContent = 'Sending...';
+    if (statusEl) {
+      statusEl.textContent = 'Sending...';
+      statusEl.classList.remove('is-success', 'is-error');
+    }
 
     const formData = new FormData(form);
     const payload = {
@@ -2618,14 +2667,97 @@ function handleFeedbackForm() {
         body: JSON.stringify(payload)
       });
       form.reset();
-      if (statusEl) statusEl.textContent = data.message || 'Thanks! Your feedback has been sent.';
+      if (statusEl) {
+        statusEl.textContent = data.message || 'Thanks! Your feedback has been sent.';
+        statusEl.classList.remove('is-error');
+        statusEl.classList.add('is-success');
+      }
       trackEvent('feedback_submitted', { feedback_type: payload.type, has_request_id: Boolean(payload.request_id) });
     } catch (error) {
-      if (statusEl) statusEl.textContent = error.message || 'Unable to send feedback.';
+      if (statusEl) {
+        statusEl.textContent = error.message || 'Unable to send feedback.';
+        statusEl.classList.remove('is-success');
+        statusEl.classList.add('is-error');
+      }
     } finally {
       if (submitBtn) submitBtn.disabled = false;
     }
   });
+}
+
+
+function handleVolunteerForm() {
+  const form = $('#volunteerForm');
+  if (!form) return;
+
+  const statusEl = $('#volunteerStatus');
+  const submitBtn = $('#volunteerSubmitBtn');
+  const setStatus = (text, state) => {
+    if (!statusEl) return;
+    statusEl.textContent = text;
+    statusEl.classList.toggle('is-success', state === 'success');
+    statusEl.classList.toggle('is-error', state === 'error');
+  };
+
+  if (currentUser) {
+    const nameInput = form.querySelector('[name="name"]');
+    const emailInput = form.querySelector('[name="email"]');
+    const countryInput = form.querySelector('[name="country"]');
+    if (nameInput && !nameInput.value) nameInput.value = currentUser.name || '';
+    if (emailInput && !emailInput.value) emailInput.value = currentUser.email || '';
+    if (countryInput && !countryInput.value) countryInput.value = currentUser.country || '';
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    const formData = new FormData(form);
+    const areas = formData.getAll('areas').map((v) => String(v).trim()).filter(Boolean);
+    const country = String(formData.get('country') || '').trim();
+    const availability = String(formData.get('availability') || '').trim();
+    const about = String(formData.get('about') || '').trim();
+
+    const message = [
+      'VOLUNTEER APPLICATION',
+      `Areas of interest: ${areas.length ? areas.join(', ') : 'Not specified'}`,
+      `Availability: ${availability || 'Not specified'}`,
+      `Country: ${country || 'Not specified'}`,
+      '',
+      'About:',
+      about
+    ].join('\n');
+
+    const payload = {
+      name: String(formData.get('name') || '').trim(),
+      email: String(formData.get('email') || '').trim(),
+      type: 'Volunteer Application',
+      message,
+      request_id: ''
+    };
+
+    if (submitBtn) submitBtn.disabled = true;
+    setStatus('Sending...', '');
+
+    try {
+      await api('/feedback', { method: 'POST', body: JSON.stringify(payload) });
+      form.reset();
+      setStatus('Thank you for offering to serve! We will be in touch by email soon.', 'success');
+      trackEvent('volunteer_application_submitted', { areas_count: areas.length, availability });
+    } catch (error) {
+      setStatus(error.message || 'Unable to send your application. Please try again.', 'error');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
+}
+
+function initFooterYear() {
+  const year = String(new Date().getFullYear());
+  document.querySelectorAll('[data-year]').forEach((el) => { el.textContent = year; });
 }
 
 
@@ -3263,6 +3395,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initButtons();
   initProjectShareButtons();
   initMobileMenu();
+  initFooterYear();
   initFilterPanels();
   initHeroVerseCarousel();
   handleAuthForms();
@@ -3275,6 +3408,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   handleProfilePage();
   handleUnsubscribePage();
   handleFeedbackForm();
+  handleVolunteerForm();
   initAdminFilters();
   initAdminUserFilters();
   loadAdmin();

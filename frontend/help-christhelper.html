@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Help ChristHelper</title>
+  <title>Get Involved | ChristHelper</title>
+  <meta name="description" content="Support ChristHelper financially, volunteer your time and skills, or send feedback to the team.">
   <link rel="stylesheet" href="css/styles.css">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-VEBD7Q9H0S"></script>
@@ -16,7 +17,7 @@
 </script>
 
 </head>
-<body>
+<body class="gi-page" data-page="get-involved">
   <header class="header">
     <div class="container nav">
       <a href="index.html" class="brand brand--stack">
@@ -45,9 +46,8 @@
         <a href="index.html">Home</a>
         <a href="explore-projects.html">Explore Requests</a>
         <a href="submit.html">Submit Request</a>
-        <a href="feedback.html">Feedback</a>
         <a href="sources.html">Resources</a>
-        <a href="help-christhelper.html">Help ChristHelper</a>
+        <a href="help-christhelper.html">Get Involved</a>
         <a href="profile.html" class="hide" data-auth>Profile</a>
         <a href="admin.html" class="hide" data-admin>Admin Page</a>
         <a href="register.html" data-guest>Create account</a>
@@ -55,38 +55,276 @@
     </div>
   </header>
 
-  <main class="page-wrap">
-    <div class="container split-grid">
-      <section class="card panel">
-        <div class="eyebrow">Support the platform</div>
-        <h1 style="font-size:2.3rem;">Help ChristHelper</h1>
-        <p>ChristHelper exists to connect Christians with real needs, projects, and ministry opportunities. If you believe in this mission, you can also support ChristHelper directly and help keep the platform running safely and sustainably.</p>
-        <div class="list">
-          <div class="item"><strong>What your support helps cover</strong>Hosting, payment system costs, software development, moderation, scam prevention, support, and future features.</div>
-          <div class="item"><strong>Transparent support model</strong>Support is simple and transparent, with clear payment details shown before checkout.</div>
-          <div class="item"><strong>Mission-first sustainability</strong>Your support helps ChristHelper stay online, improve safety, review financial requests, and connect more Christians around the world with meaningful opportunities to help.</div>
-        </div>
-      </section>
+  <main class="gi-main">
+    <section class="gi-hero" aria-labelledby="giTitle">
+      <div class="container gi-hero__inner">
+        <span class="gi-eyebrow">Get involved</span>
+        <h1 id="giTitle">Help ChristHelper serve more people.</h1>
+        <p class="gi-hero__lead">ChristHelper connects Christians with real needs, prayer, and ministry opportunities. Give to keep it running, offer your time and skills, or tell us how we can do better.</p>
+      </div>
+    </section>
 
-      <aside class="card panel">
-        <h2>Support ChristHelper</h2>
-        <form id="platformDonationForm" class="simple-form">
-          <input name="donor_name" placeholder="Your name">
-          <input name="donor_email" type="email" placeholder="Your email">
-          <input name="amount_platform" type="number" min="1" step="0.01" placeholder="Donation amount" required>
-          <button class="btn" type="submit">Continue to secure payment</button>
-        </form>
-        <div class="badge-row" style="margin-top:16px;">
-          <span class="badge">NZ$5</span>
-          <span class="badge">NZ$10</span>
-          <span class="badge">NZ$20</span>
-          <span class="badge">NZ$50</span>
-          <span class="badge">NZ$100</span>
-          <span class="badge">Custom amount</span>
+    <nav class="container gi-paths" aria-label="Ways to get involved">
+      <a class="gi-path" href="#give">
+        <span class="gi-path__icon gi-path__icon--give" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.4-7.5-10.1A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.5 2.8c0 5.7-7.5 10.1-7.5 10.1Z"/></svg>
+        </span>
+        <span class="gi-path__text">
+          <strong>Give</strong>
+          <span>Support hosting, safety, and new features.</span>
+        </span>
+        <span class="gi-path__arrow" aria-hidden="true">&rarr;</span>
+      </a>
+      <a class="gi-path" href="#volunteer">
+        <span class="gi-path__icon gi-path__icon--volunteer" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c.6-3.3 2.8-5.2 5.5-5.2s4.9 1.9 5.5 5.2"/><path d="M16 5.2a3 3 0 0 1 0 5.6M17.6 14.6c1.6.7 2.6 2.4 2.9 4.9"/></svg>
+        </span>
+        <span class="gi-path__text">
+          <strong>Volunteer</strong>
+          <span>Offer your time, gifts, and skills.</span>
+        </span>
+        <span class="gi-path__arrow" aria-hidden="true">&rarr;</span>
+      </a>
+      <a class="gi-path" href="#feedback">
+        <span class="gi-path__icon gi-path__icon--feedback" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4.5 6.5A2.5 2.5 0 0 1 7 4h10a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 17 16h-6.2L6.5 19.5V16H7a2.5 2.5 0 0 1-2.5-2.5v-7Z"/></svg>
+        </span>
+        <span class="gi-path__text">
+          <strong>Feedback</strong>
+          <span>Ideas, questions, or something not working.</span>
+        </span>
+        <span class="gi-path__arrow" aria-hidden="true">&rarr;</span>
+      </a>
+    </nav>
+
+    <!-- ===== GIVE ===== -->
+    <section class="gi-section" id="give" aria-labelledby="giveTitle">
+      <div class="container gi-split">
+        <div class="gi-copy">
+          <span class="gi-kicker"><span>01</span> Give</span>
+          <h2 id="giveTitle">Support the platform</h2>
+          <p>Your gift helps keep ChristHelper online, safe, and free for the people who need it most.</p>
+          <ul class="gi-points">
+            <li>
+              <strong>What your support covers</strong>
+              <span>Hosting, payment system costs, software development, moderation, scam prevention, support, and future features.</span>
+            </li>
+            <li>
+              <strong>Transparent by design</strong>
+              <span>Clear payment details are shown before checkout. No hidden extras.</span>
+            </li>
+            <li>
+              <strong>Mission-first sustainability</strong>
+              <span>Support lets us review financial requests carefully and connect more Christians around the world with meaningful ways to help.</span>
+            </li>
+          </ul>
         </div>
-      </aside>
-    </div>
+
+        <div class="gi-card">
+          <h3 class="gi-card__title">Make a donation</h3>
+          <p class="gi-card__sub">One-off gift in New Zealand dollars.</p>
+          <form id="platformDonationForm" class="gi-form" novalidate>
+            <div class="gi-amounts" role="group" aria-label="Choose an amount">
+              <button type="button" class="gi-chip" data-amount="5">NZ$5</button>
+              <button type="button" class="gi-chip" data-amount="10">NZ$10</button>
+              <button type="button" class="gi-chip is-selected" data-amount="20" aria-pressed="true">NZ$20</button>
+              <button type="button" class="gi-chip" data-amount="50">NZ$50</button>
+              <button type="button" class="gi-chip" data-amount="100">NZ$100</button>
+              <button type="button" class="gi-chip" data-amount="">Other</button>
+            </div>
+            <label class="gi-field">
+              <span>Amount</span>
+              <span class="gi-money">
+                <span class="gi-money__prefix" aria-hidden="true">NZ$</span>
+                <input name="amount_platform" type="number" min="1" step="0.01" inputmode="decimal" value="20" placeholder="Enter amount" required>
+              </span>
+            </label>
+            <div class="gi-row">
+              <label class="gi-field">
+                <span>Name <em>optional</em></span>
+                <input name="donor_name" autocomplete="name" placeholder="Your name">
+              </label>
+              <label class="gi-field">
+                <span>Email <em>optional</em></span>
+                <input name="donor_email" type="email" autocomplete="email" placeholder="you@example.com">
+              </label>
+            </div>
+            <button class="btn gi-submit" type="submit">Continue to secure payment</button>
+            <p class="gi-note">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>
+              Payments are processed securely by Stripe.
+            </p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== VOLUNTEER ===== -->
+    <section class="gi-section gi-section--alt" id="volunteer" aria-labelledby="volunteerTitle">
+      <div class="container gi-split">
+        <div class="gi-copy">
+          <span class="gi-kicker"><span>02</span> Volunteer</span>
+          <h2 id="volunteerTitle">Serve with your gifts</h2>
+          <p>ChristHelper is built and cared for by believers. If you would like to give some of your time, tell us how you would like to help and we will get in touch.</p>
+          <ul class="gi-tags" aria-label="Areas where volunteers help">
+            <li>Prayer team</li>
+            <li>Request review</li>
+            <li>Content &amp; social media</li>
+            <li>Design</li>
+            <li>Software development</li>
+            <li>Translation</li>
+            <li>Outreach &amp; partnerships</li>
+          </ul>
+          <p class="gi-fine">&ldquo;Each of you should use whatever gift you have received to serve others.&rdquo; <span>1 Peter 4:10</span></p>
+        </div>
+
+        <div class="gi-card">
+          <h3 class="gi-card__title">Volunteer application</h3>
+          <p class="gi-card__sub">Takes about two minutes.</p>
+          <form id="volunteerForm" class="gi-form">
+            <div class="gi-row">
+              <label class="gi-field">
+                <span>Name</span>
+                <input type="text" name="name" autocomplete="name" placeholder="Your name" required>
+              </label>
+              <label class="gi-field">
+                <span>Email</span>
+                <input type="email" name="email" autocomplete="email" placeholder="you@example.com" required>
+              </label>
+            </div>
+            <div class="gi-row">
+              <label class="gi-field">
+                <span>Country</span>
+                <input type="text" name="country" autocomplete="country-name" placeholder="e.g. New Zealand">
+              </label>
+              <label class="gi-field">
+                <span>Availability</span>
+                <select name="availability">
+                  <option value="1–2 hours a week">1&ndash;2 hours a week</option>
+                  <option value="3–5 hours a week">3&ndash;5 hours a week</option>
+                  <option value="5+ hours a week">5+ hours a week</option>
+                  <option value="Occasional / project-based">Occasional / project-based</option>
+                </select>
+              </label>
+            </div>
+            <fieldset class="gi-field gi-checks">
+              <legend>How would you like to help?</legend>
+              <div class="gi-checks__grid">
+                <label><input type="checkbox" name="areas" value="Prayer team"><span>Prayer team</span></label>
+                <label><input type="checkbox" name="areas" value="Request review"><span>Request review</span></label>
+                <label><input type="checkbox" name="areas" value="Content & social media"><span>Content &amp; social</span></label>
+                <label><input type="checkbox" name="areas" value="Design"><span>Design</span></label>
+                <label><input type="checkbox" name="areas" value="Software development"><span>Development</span></label>
+                <label><input type="checkbox" name="areas" value="Translation"><span>Translation</span></label>
+                <label><input type="checkbox" name="areas" value="Outreach & partnerships"><span>Outreach</span></label>
+                <label><input type="checkbox" name="areas" value="Other"><span>Other</span></label>
+              </div>
+            </fieldset>
+            <label class="gi-field">
+              <span>Tell us a little about yourself</span>
+              <textarea name="about" rows="4" placeholder="Your experience, skills, church or ministry, languages you speak&hellip;" required></textarea>
+            </label>
+            <button class="btn gi-submit" type="submit" id="volunteerSubmitBtn">Send application</button>
+            <p id="volunteerStatus" class="gi-status" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FEEDBACK ===== -->
+    <section class="gi-section" id="feedback" aria-labelledby="feedbackTitle">
+      <div class="container gi-split">
+        <div class="gi-copy">
+          <span class="gi-kicker"><span>03</span> Feedback</span>
+          <h2 id="feedbackTitle">Help us improve</h2>
+          <p>Have a suggestion, question, bug report, or feature idea? Every message is read by the ChristHelper team.</p>
+          <ul class="gi-points gi-points--compact">
+            <li><strong>Problem with a request?</strong><span>Add the request ID so we can find it quickly.</span></li>
+            <li><strong>Found a bug?</strong><span>Tell us what you were doing and which device you were using.</span></li>
+          </ul>
+        </div>
+
+        <div class="gi-card">
+          <h3 class="gi-card__title">Send feedback</h3>
+          <p class="gi-card__sub">We usually reply within a few days.</p>
+          <form id="feedbackForm" class="gi-form">
+            <div class="gi-row">
+              <label class="gi-field">
+                <span>Name</span>
+                <input type="text" name="name" autocomplete="name" placeholder="Your name" required>
+              </label>
+              <label class="gi-field">
+                <span>Email</span>
+                <input type="email" name="email" autocomplete="email" placeholder="you@example.com" required>
+              </label>
+            </div>
+            <div class="gi-row">
+              <label class="gi-field">
+                <span>Type</span>
+                <select name="type" required>
+                  <option value="Suggestion">Suggestion</option>
+                  <option value="Feature Request">Feature Request</option>
+                  <option value="Bug Report">Bug Report</option>
+                  <option value="Question">Question</option>
+                  <option value="Prayer Request Issue">Prayer Request Issue</option>
+                  <option value="Support Enquiry">Support Enquiry</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+              <label class="gi-field">
+                <span>Request ID <em>optional</em></span>
+                <input type="text" name="request_id" placeholder="If it relates to a request">
+              </label>
+            </div>
+            <label class="gi-field">
+              <span>Message</span>
+              <textarea name="message" rows="5" placeholder="Tell us how we can help or improve ChristHelper" required></textarea>
+            </label>
+            <button class="btn gi-submit" type="submit" id="feedbackSubmitBtn">Send feedback</button>
+            <p id="feedbackStatus" class="gi-status" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </section>
   </main>
+
+  <footer class="footer site-footer">
+    <div class="container site-footer__grid">
+      <div class="site-footer__brand">
+        <a href="index.html" class="brand"><span class="brand-mark"><img src="assets/christhelper-logo.png" alt="ChristHelper logo"></span> ChristHelper</a>
+        <p>A Christian support platform where believers respond with prayer, guidance, volunteering, encouragement, and safe financial giving.</p>
+        <a class="site-footer__social" href="https://www.instagram.com/christhelperofficial/" target="_blank" rel="noopener" aria-label="Follow ChristHelper on Instagram (opens in a new tab)">
+          <svg class="ig-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17.3" cy="6.7" r="1.15" fill="currentColor"/></svg>
+          <span>@christhelperofficial</span>
+        </a>
+      </div>
+      <nav class="site-footer__col" aria-label="Explore">
+        <h3>Explore</h3>
+        <a href="index.html">Home</a>
+        <a href="explore-projects.html">Explore Requests</a>
+        <a href="submit.html">Submit Request</a>
+        <a href="sources.html">Resources</a>
+      </nav>
+      <nav class="site-footer__col" aria-label="Get involved">
+        <h3>Get involved</h3>
+        <a href="help-christhelper.html#give">Support ChristHelper</a>
+        <a href="help-christhelper.html#volunteer">Volunteer</a>
+        <a href="help-christhelper.html#feedback">Share feedback</a>
+        <a href="admin.html" class="hide" data-admin>Admin Dashboard</a>
+      </nav>
+      <div class="site-footer__verse">
+        <h3>Matthew 25:40</h3>
+        <p>&ldquo;Whatever you did for one of the least of these brothers and sisters of mine, you did for me.&rdquo;</p>
+      </div>
+    </div>
+    <div class="container site-footer__bottom">
+      <span>&copy; <span data-year>2026</span> ChristHelper</span>
+      <span class="site-footer__bottom-links">
+        <a href="terms.html">Terms &amp; Conditions</a>
+        <a href="https://www.instagram.com/christhelperofficial/" target="_blank" rel="noopener">Instagram</a>
+      </span>
+    </div>
+  </footer>
 
   <script src="js/app.js"></script>
 </body>

@@ -365,7 +365,8 @@ async function sendAdminDonationNotification(donation, project = null) {
 
 async function sendAdminFeedbackNotification(feedback) {
   const recipient = ADMIN_NOTIFICATION_EMAIL || 'flavionevesdasilva@thecodehelper.com';
-  const subject = 'New ChristHelper feedback received';
+  const isVolunteer = feedback?.type === 'Volunteer Application';
+  const subject = isVolunteer ? 'New ChristHelper volunteer application' : 'New ChristHelper feedback received';
   const details = [
     `Date/Time: ${feedback?.created_at || ''}`,
     `Name: ${feedback?.name || ''}`,
@@ -378,8 +379,8 @@ async function sendAdminFeedbackNotification(feedback) {
   return sendEmailMessage({
     to: recipient,
     subject,
-    html: emailTemplate({ title: subject, intro: 'A user submitted feedback on ChristHelper.', details }),
-    text: textTemplate('A user submitted feedback on ChristHelper.', details)
+    html: emailTemplate({ title: subject, intro: isVolunteer ? 'Someone applied to volunteer with ChristHelper.' : 'A user submitted feedback on ChristHelper.', details }),
+    text: textTemplate(isVolunteer ? 'Someone applied to volunteer with ChristHelper.' : 'A user submitted feedback on ChristHelper.', details)
   });
 }
 
@@ -2313,7 +2314,7 @@ app.get('/email/unsubscribe', (req, res) => {
 
 
 app.post('/feedback', async (req, res) => {
-  const allowedTypes = new Set(['Suggestion', 'Feature Request', 'Bug Report', 'Question', 'Prayer Request Issue', 'Support Enquiry', 'Other']);
+  const allowedTypes = new Set(['Suggestion', 'Feature Request', 'Bug Report', 'Question', 'Prayer Request Issue', 'Support Enquiry', 'Volunteer Application', 'Other']);
   const body = req.body || {};
   const name = String(body.name || '').trim();
   const email = String(body.email || '').trim();
