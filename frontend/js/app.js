@@ -1879,8 +1879,8 @@ function handleSubmitProject() {
   });
 }
 
+// Platform donations are independent of disabled financial support for requests.
 function handlePlatformDonation() {
-  if (!FINANCIAL_SUPPORT_ENABLED) return;
   const form = $('#platformDonationForm');
   if (!form) return;
 
