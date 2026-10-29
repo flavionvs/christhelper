@@ -205,7 +205,7 @@ function getLatestEngagementRequests(db, limit = ENGAGEMENT_EMAIL_LIMIT) {
     .filter((project) => isProjectPubliclyVisible(project))
     .filter((project) => String(project.status || 'active').toLowerCase() === 'active')
     .filter((project) => !isProjectExpiredForEngagement(project))
-    .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
+    .sort((a, b) => (Date.parse(b.created_at || '') || 0) - (Date.parse(a.created_at || '') || 0))
     .slice(0, limit);
 }
 
@@ -284,13 +284,17 @@ async function sendEngagementEmails({ force = false } = {}) {
     .filter((user) => user.receive_engagement_emails !== false)
     .filter((user) => String(user.email || '').trim());
 
+  // Dated subject so inboxes (e.g. Gmail) don't thread every send together and hide the new content.
+  const sendDate = new Date().toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric', timeZone: process.env.ENGAGEMENT_EMAIL_TIMEZONE || 'Pacific/Auckland' });
+  const subject = `Prayer requests that need support – ${sendDate}`;
+
   let sent = 0;
   let skipped = 0;
   const failures = [];
   for (const user of recipients) {
     const result = await sendEmailMessage({
       to: user.email,
-      subject: 'Prayer requests that need support this week',
+      subject,
       html: engagementEmailTemplate({ user, requests }),
       text: engagementEmailText({ user, requests })
     });
@@ -299,13 +303,26 @@ async function sendEngagementEmails({ force = false } = {}) {
     else failures.push({ email: user.email, error: result?.error || 'unknown_error' });
   }
 
-  db.meta = db.meta || {};
-  db.meta.last_engagement_email_sent_at = now();
-  db.meta.last_engagement_email_recipient_count = recipients.length;
-  db.meta.last_engagement_email_sent_count = sent;
-  writeDb(db);
+  // Sending can take a while. Re-read the database before saving the send stats so we never
+  // overwrite requests, approvals, prayers or users that changed while emails were going out.
+  const sentAt = now();
+  withDb((latest) => {
+    latest.meta = latest.meta || {};
+    latest.meta.last_engagement_email_sent_at = sentAt;
+    latest.meta.last_engagement_email_recipient_count = recipients.length;
+    latest.meta.last_engagement_email_sent_count = sent;
+    latest.meta.last_engagement_email_request_ids = requests.map((project) => project.id);
+  });
 
-  return { ok: true, recipients: recipients.length, sent, skipped, failed: failures.length, failures };
+  return {
+    ok: true,
+    recipients: recipients.length,
+    sent,
+    skipped,
+    failed: failures.length,
+    failures,
+    requests: requests.map((project) => ({ id: project.id, title: project.title, created_at: project.created_at }))
+  };
 }
 
 async function runEngagementEmailScheduler() {
