@@ -1,3 +1,7 @@
+const FINANCIAL_SUPPORT_ENABLED = false;
+const FINANCIAL_SUPPORT_NOTICE = "Financial support is not managed through the platform. You may include financial needs in the description, but any financial assistance must be arranged outside the platform.";
+const isFinancialType = value => /financial|fundraising|donation/i.test(String(value || ''));
+
 const DEFAULT_API_BASE = 'https://api.christhelper.com';
 const GA_MEASUREMENT_ID = 'G-VEBD7Q9H0S';
 const GOOGLE_TAG_ID = '';
@@ -461,13 +465,14 @@ function getDefaultResponderName() {
   return currentUser?.name ? String(currentUser.name) : '';
 }
 
-async function submitPrayer(projectId, { name = '', message = '' } = {}) {
+async function submitPrayer(projectId, { name = '', message = '', anonymous = false } = {}) {
   const trimmedMessage = String(message || '').trim();
   const result = await api(`/projects/${projectId}/respond`, {
     method: 'POST',
     body: JSON.stringify({
       kind: 'prayer',
-      name: String(name || '').trim() || 'Anonymous',
+      name: anonymous ? 'Anonymous' : (String(name || '').trim() || 'Anonymous'),
+      is_anonymous: Boolean(anonymous),
       message: trimmedMessage
     })
   });
@@ -512,10 +517,10 @@ function projectCardPrayForm(project) {
           <span>Words of encouragement <em>optional</em></span>
           <textarea name="message" rows="3" placeholder="e.g. Praying for strength and peace for you this week."></textarea>
         </label>
-        <label class="pray-field">
-          <span>Your name <em>optional</em></span>
-          <input name="name" placeholder="Anonymous" value="${safeHtml(getDefaultResponderName())}" autocomplete="off">
+        <div class="prayer-name-row"><label class="pray-field">
+          <span>Your name <em>optional</em></span><input name="name" placeholder="Anonymous" value="${safeHtml(getDefaultResponderName())}" autocomplete="off">
         </label>
+        <label class="prayer-anonymous"><input type="checkbox" name="prayer_anonymous"> Anonymous</label></div>
       </form>
     </div>
   `;
@@ -582,7 +587,7 @@ function projectCard(project) {
       <p class="project-summary project-summary-clamp">${safeHtml(getProjectDescriptionText(project))}</p>
       ${projectReadMoreLink(project)}
       <p class="project-card-org"><strong>Organization:</strong> ${safeHtml(project.is_anonymous ? 'Anonymous request' : (project.organization_name || 'Not specified'))}</p>
-      ${project.needs_financial_support && project.funding_approved ? `
+      ${FINANCIAL_SUPPORT_ENABLED && project.needs_financial_support && project.funding_approved ? `
         <div class="progress-wrap">
           <div style="display:flex;justify-content:space-between;gap:12px;">
             <strong>${formatMoney(project.amount_raised)}</strong>
@@ -708,7 +713,7 @@ function initProjectCardResponses(scope = document) {
       if (status) status.textContent = 'Sending...';
 
       try {
-        await submitPrayer(projectId, { name: fd.get('name'), message: fd.get('message') });
+        await submitPrayer(projectId, { name: fd.get('name'), message: fd.get('message'), anonymous: fd.get('prayer_anonymous') === 'on' });
         const messageField = form.querySelector('textarea[name="message"]');
         if (messageField) messageField.value = '';
         incrementCardResponseCount(card);
@@ -978,7 +983,7 @@ async function loadProjectDetails() {
     const pct = project.funding_goal > 0
       ? Math.min(100, Math.round((project.amount_raised / project.funding_goal) * 100))
       : 0;
-    const donationAvailable = project.needs_financial_support && project.funding_approved && project.owner_can_receive_payments;
+    const donationAvailable = FINANCIAL_SUPPORT_ENABLED && project.needs_financial_support && project.funding_approved && project.owner_can_receive_payments;
     const canManageResponses = Boolean(currentUser && (currentUser.id === project.created_by || currentUser.role === 'admin'));
     const goalText = project.funding_goal_currency === 'USD'
       ? formatUsd(project.funding_goal)
@@ -1025,7 +1030,7 @@ async function loadProjectDetails() {
           <div class="pd-stats">
             <div class="pd-stat"><strong data-pd-prayer-count>${prayerCount}</strong><span>${prayerCount === 1 ? 'Prayer' : 'Prayers'}</span></div>
             <div class="pd-stat"><strong data-pd-reply-count>${replyCount}</strong><span>${replyCount === 1 ? 'Reply' : 'Replies'}</span></div>
-            ${project.needs_financial_support && project.funding_approved ? `
+            ${FINANCIAL_SUPPORT_ENABLED && project.needs_financial_support && project.funding_approved ? `
               <div class="pd-stat"><strong>${formatMoney(project.amount_raised)}</strong><span>of ${goalText}</span></div>
             ` : ''}
           </div>
@@ -1049,11 +1054,11 @@ async function loadProjectDetails() {
               </div>
             ` : ''}
 
-            ${(project.help_types || []).length ? `
+            ${(project.help_types || []).filter(h => !isFinancialType(h)).length ? `
               <div class="pd-help">
                 <h3>How you can help</h3>
                 <div class="pd-chip-row">
-                  ${(project.help_types || []).map(h => `<span class="pd-chip">${safeHtml(h)}</span>`).join('')}
+                  ${(project.help_types || []).filter(h => !isFinancialType(h)).map(h => `<span class="pd-chip">${safeHtml(h)}</span>`).join('')}
                 </div>
               </div>
             ` : ''}
@@ -1090,10 +1095,10 @@ async function loadProjectDetails() {
                   <span>Words of encouragement <em>optional</em></span>
                   <textarea name="message" rows="3" placeholder="e.g. Praying for peace and provision for you."></textarea>
                 </label>
-                <label class="pd-field">
-                  <span>Your name <em>optional</em></span>
-                  <input name="name" placeholder="Anonymous" value="${safeHtml(getDefaultResponderName())}">
-                </label>
+                <div class="prayer-name-row"><label class="pd-field">
+                  <span>Your name <em>optional</em></span><input name="name" placeholder="Anonymous" value="${safeHtml(getDefaultResponderName())}">
+        </label>
+        <label class="prayer-anonymous"><input type="checkbox" name="prayer_anonymous"> Anonymous</label></div>
               </form>
             </section>
 
@@ -1118,31 +1123,7 @@ async function loadProjectDetails() {
               </form>
             </section>
 
-            ${project.needs_financial_support ? `
-              <section class="pd-card" id="support" aria-labelledby="pdSupportTitle">
-                <h2 id="pdSupportTitle">Support this request</h2>
-                ${project.funding_approved ? `
-                  <div class="pd-progress">
-                    <div class="pd-progress-top">
-                      <strong>${formatMoney(project.amount_raised)}</strong>
-                      <span>${pct}% of ${goalText}</span>
-                    </div>
-                    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-                  </div>
-                  ${donationAvailable ? `
-                    <form id="projectDonationForm" class="pd-form">
-                      <input name="amount_project" type="number" min="1" step="0.01" placeholder="Amount for this request (USD)" required>
-                      <input name="amount_platform" type="number" min="0" step="0.01" placeholder="Optional support for ChristHelper (USD)">
-                      <input name="donor_name" placeholder="Your name">
-                      <input name="donor_email" type="email" placeholder="Your email">
-                      <textarea name="donor_message" rows="2" placeholder="Optional message"></textarea>
-                      <button class="btn pd-full" type="submit">Continue to secure payment</button>
-                    </form>
-                    <p class="pd-fineprint">Payments are processed securely through Stripe in USD. Stripe fees apply per payment, so the amount you pay and the amount the request owner receives may differ. ChristHelper reviews financial requests before enabling payments, but please use prayer, wisdom and personal judgment before giving.</p>
-                  ` : '<p class="pd-fineprint">Financial support is unavailable until the request owner connects and completes Stripe setup.</p>'}
-                ` : '<p class="pd-fineprint">This financial request is waiting for ChristHelper review. You can still respond with prayer, guidance, volunteering and encouragement.</p>'}
-              </section>
-            ` : ''}
+            ${project.needs_financial_support ? `<p class="pd-card">${FINANCIAL_SUPPORT_NOTICE}</p>` : ''}
           </aside>
 
           <div class="pd-main">
@@ -1261,7 +1242,7 @@ async function loadProjectDetails() {
       if (status) status.textContent = 'Sending...';
 
       try {
-        const result = await submitPrayer(id, { name: fd.get('name'), message: fd.get('message') });
+        const result = await submitPrayer(id, { name: fd.get('name'), message: fd.get('message'), anonymous: fd.get('prayer_anonymous') === 'on' });
         prayerCount += 1;
         refreshCounts();
         if (!result?.duplicate) prependResponse('prayer', result?.item);
@@ -1662,58 +1643,24 @@ function isStripeReadyForFinancialSupport() {
 }
 
 function toggleFinancialFields() {
-  const goalWrap = $('#financialGoalWrap');
-  const goalInput = $('#fundingGoal') || $('[name="funding_goal"]');
-  const currencyInput = $('#fundingGoalCurrency') || $('[name="funding_goal_currency"]');
-  const stripeNotice = $('#stripeFinancialNotice');
-  const submitButton = $('#submitRequestBtn');
-  const submitError = $('#submitFinancialError');
-  const helpTypeInputs = Array.from(document.querySelectorAll('input[name="help_types"]'));
-  const hasFinancialSupport = helpTypeInputs.some((input) => input.checked && String(input.value || '').toLowerCase() === 'financial support');
-  const stripeReady = isStripeReadyForFinancialSupport();
-  const financialBlocked = hasFinancialSupport && !stripeReady;
-
-  if (goalWrap) goalWrap.classList.toggle('hide', !hasFinancialSupport);
-  // Only financial requests go through admin review, so only show the notice for them.
-  $('#financialReviewNotice')?.classList.toggle('hide', !hasFinancialSupport);
-  if (stripeNotice) stripeNotice.classList.toggle('hide', !financialBlocked);
-  if (submitError && !financialBlocked) submitError.classList.add('hide');
-  if (submitButton) {
-    submitButton.dataset.financialBlocked = String(financialBlocked);
-    submitButton.setAttribute('aria-disabled', String(financialBlocked));
-    submitButton.title = financialBlocked
-      ? 'Connect Stripe or choose another support type before continuing.'
-      : '';
-  }
-  if (currencyInput) currencyInput.value = hasFinancialSupport ? 'USD' : '';
-
-  if (goalInput) {
-    goalInput.required = hasFinancialSupport;
-    goalInput.disabled = financialBlocked;
-    if (!hasFinancialSupport) goalInput.value = '';
-  }
-
-  syncAnonymousOption(hasFinancialSupport);
+  const selected = Array.from(document.querySelectorAll('[name="help_types"], [name="category"]')).some(input => (input.checked || input.tagName === 'SELECT') && isFinancialType(input.value));
+  const notice = $('#financialSupportNotice');
+  if (notice) notice.classList.toggle('hide', !selected);
 }
 
-function syncAnonymousOption(hasFinancialSupportParam = null) {
-  const anonymousInput = $('#submitAnonymousOption') || $('[name="is_anonymous"]');
-  const anonymousInfo = $('#submitAnonymousInfo');
-  if (!anonymousInput) return;
+function syncAnonymousOption() {
+  const input = $('#submitAnonymousOption');
+  if (input) input.disabled = false;
+}
 
-  const hasFinancialSupport = hasFinancialSupportParam !== null
-    ? Boolean(hasFinancialSupportParam)
-    : Array.from(document.querySelectorAll('input[name="help_types"]')).some((input) => input.checked && String(input.value || '').toLowerCase() === 'financial support');
-
-  anonymousInput.disabled = hasFinancialSupport;
-  if (hasFinancialSupport) anonymousInput.checked = false;
-
-  if (anonymousInfo) {
-    const infoText = hasFinancialSupport
-      ? 'Anonymous is not available when Financial support is selected. Public requester identity is required for financial requests.'
-      : 'Available only for non-financial requests. When enabled, your identity will not be shown publicly.';
-    anonymousInfo.title = infoText;
-    anonymousInfo.setAttribute('aria-label', infoText);
+function syncCampaignExpiry() {
+  const enabled = Boolean($('#enableCampaignExpiry')?.checked);
+  $('#campaignExpiryWrap')?.classList.toggle('hide', !enabled);
+  const input = $('#campaignExpiryDate');
+  if (input) {
+    input.disabled = !enabled;
+    input.required = enabled;
+    if (!enabled) input.value = '';
   }
 }
 
@@ -1766,8 +1713,10 @@ function getSubmitRequestPayload(form) {
   payload.is_online = fd.get('is_online') === 'on';
   payload.is_anonymous = fd.get('is_anonymous') === 'on';
   payload.responses_public = fd.get('responses_public') !== null;
-  payload.help_types = fd.getAll('help_types');
-  payload.needs_financial_support = payload.help_types.includes('Financial support');
+  payload.help_types = fd.getAll('help_types').filter(value => !isFinancialType(value));
+  payload.needs_financial_support = false;
+  payload.category = payload.category || 'Other';
+  payload.campaign_expiry_date = fd.get('campaign_expiry_date') || '';
   payload.project_links = parseProjectLinks(payload.project_links);
   payload.continent = payload.continent || detectContinentFromCountry(payload.country);
   payload.summary = payload.description || payload.summary || '';
@@ -1828,24 +1777,12 @@ function initSubmitAuthModal() {
 }
 
 function validateSubmitPayloadBeforePost(payload) {
-  if (payload.needs_financial_support) {
-    if (!isStripeReadyForFinancialSupport()) {
-      const errorEl = $('#submitFinancialError');
-      if (errorEl) errorEl.classList.remove('hide');
-      alert('A connected Stripe account is required for Financial Support. Please connect Stripe or choose another support type before continuing.');
-      return false;
-    }
-    if (!payload.funding_goal || Number(payload.funding_goal) <= 0) {
-      alert('Please enter a funding goal in USD.');
-      return false;
-    }
-  }
-
-  if (!payload.campaign_expiry_date) {
-    alert('Please set a campaign expiry date.');
-    return false;
-  }
-
+  // Also normalize drafts saved before platform payments were disabled.
+  payload.help_types = (payload.help_types || []).filter(value => !isFinancialType(value));
+  payload.needs_financial_support = false;
+  payload.funding_goal = 0;
+  payload.funding_goal_currency = '';
+  payload.category = payload.category || 'Other';
   return true;
 }
 
@@ -1869,6 +1806,7 @@ async function submitRequestPayload(payload, form = null) {
 
   if (form) {
     form.reset();
+    syncCampaignExpiry();
     buildCountryDropdown();
     fillContinentFromCountry();
     toggleFinancialFields();
@@ -1902,7 +1840,10 @@ function handleSubmitProject() {
   fillContinentFromCountry();
   toggleFinancialFields();
   setSubmitMinDate();
+  syncCampaignExpiry();
+  $('#enableCampaignExpiry')?.addEventListener('change', syncCampaignExpiry);
   loadAllProjectsForSubmitPage();
+  form.querySelector('[name="category"]')?.addEventListener('change', toggleFinancialFields);
 
   const countryEl = $('#projectCountry') || $('[name="country"]');
   countryEl?.addEventListener('change', fillContinentFromCountry);
@@ -1919,10 +1860,7 @@ function handleSubmitProject() {
     e.preventDefault();
     const payload = getSubmitRequestPayload(form);
 
-    if (payload.needs_financial_support && !isStripeReadyForFinancialSupport()) {
-      validateSubmitPayloadBeforePost(payload);
-      return;
-    }
+
 
     if (!token) {
       showSubmitAuthModal(payload);
@@ -1942,6 +1880,7 @@ function handleSubmitProject() {
 }
 
 function handlePlatformDonation() {
+  if (!FINANCIAL_SUPPORT_ENABLED) return;
   const form = $('#platformDonationForm');
   if (!form) return;
 
@@ -2176,6 +2115,7 @@ function renderStripeSummarySection(summary, options = {}) {
 }
 
 async function openStripeDashboard() {
+  if (!FINANCIAL_SUPPORT_ENABLED) return;
   try {
     const data = await api('/stripe/connect/dashboard-link');
     if (data?.url) {
@@ -2227,12 +2167,8 @@ function renderProfileProjectList(projects, filter = 'all') {
             <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
               <span class="badge">${safeHtml(status)}</span>
               <span class="badge">${project.needs_financial_support ? (project.admin_reviewed ? 'Reviewed' : 'Pending review') : 'Live'}</span>
-              ${project.needs_financial_support
-                ? `<span class="badge">${project.funding_approved ? 'Financial approved' : 'Financial pending'}</span>`
-                : '<span class="badge">No financial support</span>'}
-              ${project.owner_can_receive_payments
-                ? '<span class="badge good">Stripe ready</span>'
-                : '<span class="badge warn">Stripe pending</span>'}
+              
+              
               ${responseCountBadge(project)}
             </div>
 
@@ -2308,13 +2244,8 @@ async function handleProfilePage() {
   root.innerHTML = '<section class="card page-card"><p>Loading profile...</p></section>';
 
   try {
-    const [{ user, projects }, stripeStatus, stripeSummary] = await Promise.all([
-      api('/profile'),
-      api('/stripe/connect/status').catch(() => ({ configured: false, user: currentUser })),
-      api('/stripe/connect/summary').catch(() => null)
-    ]);
-
-    const mergedUser = { ...user, ...(stripeStatus?.user || {}) };
+    const { user, projects } = await api('/profile');
+    const mergedUser = user;
     setStoredAuth(token, mergedUser);
     setAuthUi();
 
@@ -2327,12 +2258,7 @@ async function handleProfilePage() {
       <section class="card page-card">
         <div class="eyebrow">My profile</div>
         <h1 style="font-size:2.3rem;">Welcome, ${safeHtml(mergedUser?.name || '')}</h1>
-        <p>Manage your account details, Stripe connection, and project preferences.</p>
-
-        <div class="notice" style="margin:16px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-          <span>To receive Financial Support donations through ChristHelper, connect Stripe and complete the account setup. If Stripe is unavailable in your country, please use a different support type.</span>
-          <button class="btn" id="connectStripeNoticeBtn" type="button">Connect with Stripe</button>
-        </div>
+        <p>Manage your account details and request preferences.</p>
 
         <div class="stack profile-sequential-stack">
             <section class="card panel">
@@ -2371,11 +2297,6 @@ async function handleProfilePage() {
                 <label class="checkbox-field">
                   <input type="checkbox" id="showEmailPublicly" ${prefs.show_email_publicly ? 'checked' : ''}>
                   <span>Show my email publicly on projects</span>
-                </label>
-
-                <label class="checkbox-field">
-                  <input type="checkbox" id="allowFinancialSupport" ${prefs.allow_financial_support ? 'checked' : ''}>
-                  <span>Allow financial support on my approved projects</span>
                 </label>
 
                 <label class="checkbox-field">
@@ -2418,33 +2339,6 @@ async function handleProfilePage() {
               </div>
             </section>
 
-            <section class="card panel">
-              <h2>Stripe Payouts</h2>
-              <p>${stripeReady
-                ? 'Stripe connected and ready to receive financial support.'
-                : stripeConnected
-                  ? 'Stripe account connected, but onboarding is not finished yet.'
-                  : 'Stripe is not connected yet.'}</p>
-
-              <div class="list">
-                <div class="item"><strong>Account email</strong>${safeHtml(mergedUser?.email || '')}</div>
-                <div class="item"><strong>Stripe account</strong>${stripeConnected ? safeHtml(mergedUser?.stripe_account_id) : 'Not connected'}</div>
-                <div class="item"><strong>Charges enabled</strong>${stripeReady ? 'Yes' : 'No'}</div>
-                <div class="item"><strong>Payouts enabled</strong>${mergedUser?.stripe_payouts_enabled ? 'Yes' : 'No'}</div>
-              </div>
-
-              <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
-                <button class="btn" id="connectStripeBtn" type="button">${stripeConnected ? 'Continue Stripe setup' : 'Connect with Stripe'}</button>
-                <button class="btn-outline" id="refreshStripeBtn" type="button">Refresh status</button>
-                <button class="btn-outline" id="disconnectStripeBtn" type="button">Disconnect Stripe</button>
-              </div>
-
-              <div class="notice" style="margin-top:16px;">
-                For financial requests, the flow is: create request → admin approves financial support → your Stripe account is ready → donations open.
-              </div>
-            </section>
-
-            ${renderStripeSummarySection(stripeSummary, { stripeConnected, stripeReady })}
             <section class="card panel">
               <h2>My Requests</h2>
               <p class="muted">Requests you submitted on ChristHelper.</p>
@@ -2506,7 +2400,7 @@ async function handleProfilePage() {
     $('#savePreferencesBtn')?.addEventListener('click', async () => {
       const payload = {
         show_email_publicly: $('#showEmailPublicly')?.checked || false,
-        allow_financial_support: $('#allowFinancialSupport')?.checked || false,
+        allow_financial_support: prefs.allow_financial_support,
         allow_prayer_requests: $('#allowPrayerRequests')?.checked || false,
         allow_replies: $('#allowReplies')?.checked || false,
         hide_archived_projects: $('#hideArchivedProjects')?.checked || false,
@@ -2857,10 +2751,6 @@ function renderAdminProjectDetails(project) {
       ${adminDetailItem('Help type', project.help_type || project.support_type || project.type)}
       ${adminDetailItem('Status', getAdminProjectStatusBadge(project), { html: true })}
       ${adminDetailItem('Reviewed', getAdminReviewedBadge(project), { html: true })}
-      ${adminDetailItem('Financial support requested', formatAdminYesNo(project.needs_financial_support))}
-      ${adminDetailItem('Funding status', getAdminFundingBadge(project), { html: true })}
-      ${adminDetailItem('Funding goal', fundingGoal ? formatCurrencyByCode(fundingGoal, project.currency || 'NZD') : '-')}
-      ${adminDetailItem('Currency', project.currency || '-')}
       ${adminDetailItem('Verified ministry', formatAdminYesNo(project.verified_ministry))}
       ${adminDetailItem('Campaign expiry date', project.campaign_expiry_date || project.expires_at || '-')}
       ${adminDetailItem('Prayer/reply count', project.prayer_count ?? project.responses_count ?? project.response_count ?? '-')}
@@ -2870,8 +2760,8 @@ function renderAdminProjectDetails(project) {
     </div>
     <div class="admin-detail-actions">
       <a class="btn-outline btn-xs" href="${safeHtml(publicUrl)}" target="_blank" rel="noopener">Open public page</a>
-      ${project.needs_financial_support ? `<button class="btn-outline btn-xs" type="button" onclick="approveProject('${safeHtml(project.id)}')">Approve financial support</button>` : ''}
-      ${project.needs_financial_support ? `<button class="btn-outline btn-xs btn-danger" type="button" onclick="denyProject('${safeHtml(project.id)}')">Deny financial support</button>` : ''}
+      ${FINANCIAL_SUPPORT_ENABLED && project.needs_financial_support ? `<button class="btn-outline btn-xs" type="button" onclick="approveProject('${safeHtml(project.id)}')">Approve financial support</button>` : ''}
+      ${FINANCIAL_SUPPORT_ENABLED && project.needs_financial_support ? `<button class="btn-outline btn-xs btn-danger" type="button" onclick="denyProject('${safeHtml(project.id)}')">Deny financial support</button>` : ''}
       <button class="btn-outline btn-xs" type="button" onclick="markReviewed('${safeHtml(project.id)}')">Mark reviewed</button>
       ${project.status === 'cancelled'
         ? `<button class="btn-outline btn-xs" type="button" onclick="reactivateProject('${safeHtml(project.id)}')">Reactivate</button>`
@@ -2909,7 +2799,7 @@ function renderAdminProjects(items) {
   if (countEl) countEl.textContent = `${filtered.length} request${filtered.length === 1 ? '' : 's'}`;
 
   if (!filtered.length) {
-    table.innerHTML = '<tr><td colspan="8">No requests found with these filters.</td></tr>';
+    table.innerHTML = '<tr><td colspan="6">No requests found with these filters.</td></tr>';
     return;
   }
 
@@ -2923,8 +2813,7 @@ function renderAdminProjects(items) {
       </td>
       <td class="admin-request-organization-cell">${safeHtml(item.organization_name || '-')}</td>
       <td>${getAdminProjectStatusBadge(item)}</td>
-      <td>${item.needs_financial_support ? 'Yes' : 'No'}</td>
-      <td>${getAdminFundingBadge(item)}</td>
+
       <td>${getAdminReviewedBadge(item)}</td>
       <td>
         <div class="admin-actions">
@@ -2937,8 +2826,8 @@ function renderAdminProjects(items) {
           >
           <div class="admin-actions-row">
             <button class="btn-outline btn-xs" type="button" onclick="openAdminProjectDetails('${safeHtml(item.id)}')">View</button>
-            ${item.needs_financial_support ? `<button class="btn-outline btn-xs" onclick="approveProject('${item.id}')">Approve</button>` : ''}
-            ${item.needs_financial_support ? `<button class="btn-outline btn-xs btn-danger" onclick="denyProject('${item.id}')">Deny</button>` : ''}
+            ${FINANCIAL_SUPPORT_ENABLED && item.needs_financial_support ? `<button class="btn-outline btn-xs" onclick="approveProject('${item.id}')">Approve</button>` : ''}
+            ${FINANCIAL_SUPPORT_ENABLED && item.needs_financial_support ? `<button class="btn-outline btn-xs btn-danger" onclick="denyProject('${item.id}')">Deny</button>` : ''}
             <button class="btn-outline btn-xs" onclick="markReviewed('${item.id}')">Review</button>
             ${item.status === 'cancelled'
               ? `<button class="btn-outline btn-xs" onclick="reactivateProject('${item.id}')">Reactivate</button>`
@@ -2963,6 +2852,7 @@ async function loadAdmin() {
     adminProjectsCache = Array.isArray(items) ? items : [];
     renderAdminProjects(adminProjectsCache);
 
+    if (!FINANCIAL_SUPPORT_ENABLED) return;
     const donations = await api('/admin/donations');
     adminDonationsCache = Array.isArray(donations.items) ? donations.items : [];
     $('#adminDonationTable').innerHTML = adminDonationsCache.length
@@ -3573,3 +3463,12 @@ async function handleUnsubscribePage() {
   }
 }
 
+
+ document.addEventListener('change', event => {
+  if (event.target.name !== 'prayer_anonymous') return;
+  const input = event.target.closest('form')?.querySelector('[name="name"]');
+  if (input) {
+    input.disabled = event.target.checked;
+    input.hidden = event.target.checked;
+  }
+});

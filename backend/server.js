@@ -1187,7 +1187,21 @@ function userHasPrayedForProject(db, projectId, user) {
 // Public copy of a prayer: never expose the internal account id.
 function publicPrayer(prayer) {
   const { user_id, ...rest } = prayer || {};
+  if (rest.is_anonymous) {
+    rest.name = 'Anonymous';
+    rest.email = '';
+  }
   return rest;
+}
+
+function publicProject(project) {
+  const result = clone(project);
+  if (result.is_anonymous) {
+    result.requester_name = 'Anonymous';
+    result.organization_name = '';
+    result.contact_email = '';
+  }
+  return result;
 }
 
 function createProjectResponse(db, projectId, payload = {}, actorUser = null) {
@@ -1195,8 +1209,8 @@ function createProjectResponse(db, projectId, payload = {}, actorUser = null) {
   if (!project) return { error: 'Request not found', status: 404 };
 
   const kind = normalizeResponseKind(payload.kind || payload.response_kind || payload.category || payload.mode || payload.action || payload.type);
-  const name = String(payload.name || 'Anonymous').trim() || 'Anonymous';
-  const email = String(payload.email || '').trim();
+  const name = payload.is_anonymous ? 'Anonymous' : (String(payload.name || 'Anonymous').trim() || 'Anonymous');
+  const email = payload.is_anonymous ? '' : String(payload.email || '').trim();
   const message = String(payload.message || '').trim();
   const replyType = String(payload.type || payload.reply_type || '').trim();
   const userId = actorUser?.id ? String(actorUser.id) : '';
@@ -1243,6 +1257,7 @@ function createProjectResponse(db, projectId, payload = {}, actorUser = null) {
       project_id: projectId,
       name,
       email,
+      is_anonymous: Boolean(payload.is_anonymous),
       message,
       ...(userId ? { user_id: userId } : {}),
       created_at: now()
@@ -1956,7 +1971,7 @@ app.get(['/projects','/api/projects'], (req, res) => {
     const reply_count = db.replies.filter((item) => item.project_id === project.id).length;
 
     return {
-      ...clone(project),
+      ...publicProject(project),
       prayer_count,
       reply_count,
       has_prayed: userHasPrayedForProject(db, project.id, viewer)
@@ -1996,7 +2011,7 @@ app.get(['/projects/:id','/api/projects/:id'], (req, res) => {
     .slice(0, 20);
 
   res.json({
-    project: clone(project),
+    project: publicProject(project),
     prayers: clone(prayers.map(publicPrayer)),
     replies: clone(replies),
     updates: clone(updates),
@@ -2018,7 +2033,7 @@ app.get(['/projects/:id','/api/projects/:id'], (req, res) => {
 
 app.post('/projects', authRequired, (req, res) => {
   const body = req.body || {};
-  const required = ['title', 'description', 'country', 'category', 'campaign_expiry_date'];
+  const required = ['title', 'description', 'country'];
 
   for (const field of required) {
     if (!body[field]) return res.status(400).json({ error: `${field} is required` });
@@ -2048,19 +2063,14 @@ app.post('/projects', authRequired, (req, res) => {
   let fundingGoalCurrency = String(body.funding_goal_currency || '').trim();
   let campaignExpiryDate = String(body.campaign_expiry_date || '').trim();
 
-  if (!campaignExpiryDate) {
-    return res.status(400).json({ error: 'Campaign expiry date is required for all requests' });
-  }
-
-  const expiry = new Date(`${campaignExpiryDate}T00:00:00`);
-  if (Number.isNaN(expiry.getTime())) {
-    return res.status(400).json({ error: 'Campaign expiry date is invalid' });
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  if (expiry < today) {
-    return res.status(400).json({ error: 'Campaign expiry date cannot be in the past' });
+  if (campaignExpiryDate) {
+    const expiry = new Date(campaignExpiryDate + 'T00:00:00');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(campaignExpiryDate) || Number.isNaN(expiry.getTime()) || [expiry.getFullYear(), String(expiry.getMonth() + 1).padStart(2, '0'), String(expiry.getDate()).padStart(2, '0')].join('-') !== campaignExpiryDate) {
+      return res.status(400).json({ error: 'Campaign expiry date is invalid' });
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (expiry < today) return res.status(400).json({ error: 'Campaign expiry date cannot be in the past' });
   }
 
   if (needsFinancialSupport) {
@@ -2096,7 +2106,7 @@ app.post('/projects', authRequired, (req, res) => {
       country: String(body.country),
       continent,
       city: String(body.city || ''),
-      category: String(body.category),
+      category: String(body.category || 'Other'),
       help_types: helpTypes,
       requester_name: String(isAnonymous ? 'Anonymous' : (owner.name || owner.organization_name || 'Request owner')),
       organization_name: String(isAnonymous ? '' : (owner.organization_name || owner.name || '')),

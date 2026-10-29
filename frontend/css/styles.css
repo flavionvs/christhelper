@@ -4942,3 +4942,9 @@ body.gi-page { background: #f5f8fb; }
 }
 
 @media (max-width: 480px) { .ig-strip__tagline { display: none; } }
+
+/* Prayer anonymity controls are scoped to each card or detail form. */
+.prayer-name-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.prayer-name-row > .pray-field, .prayer-name-row > .pd-field { flex: 1; min-width: 160px; }
+.prayer-anonymous { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; }
+.prayer-anonymous input { width: auto; min-height: auto; }

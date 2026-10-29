@@ -58,7 +58,7 @@
     <div class="container stack">
       <section class="card panel">
         <h1 style="font-size:2.2rem;">Admin dashboard</h1>
-        <p>Review requests, approve or deny financial requests, cancel unsuitable content, and monitor donations.</p>
+        <p>Review requests and moderate unsuitable content.</p>
       </section>
 
       <section class="card panel">
@@ -82,26 +82,6 @@
               <option value="cancelled">Cancelled</option>
               <option value="archived">Archived</option>
               <option value="inactive">Inactive</option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span>Financial</span>
-            <select id="adminFilterFinancial">
-              <option value="">All</option>
-              <option value="yes">Needs financial</option>
-              <option value="no">No financial</option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span>Funding status</span>
-            <select id="adminFilterFundingStatus">
-              <option value="">All</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="denied">Denied</option>
-              <option value="not_applied">Not applied</option>
             </select>
           </label>
 
@@ -131,32 +111,11 @@
               <th>Title</th>
               <th>Requester</th>
               <th>Request status</th>
-              <th>Financial</th>
-              <th>Funding status</th>
               <th>Reviewed</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="adminProjectsTable">
-            <tr><td colspan="8">Loading...</td></tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section class="card panel table-wrap">
-        <h2>Donations</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Type</th>
-              <th>Donor</th>
-              <th>Total</th>
-              <th>Status</th>
-              <th>Created</th>
-            </tr>
-          </thead>
-          <tbody id="adminDonationTable">
             <tr><td colspan="6">Loading...</td></tr>
           </tbody>
         </table>
@@ -263,7 +222,7 @@
     <div class="container site-footer__grid">
       <div class="site-footer__brand">
         <a href="index.html" class="brand"><span class="brand-mark"><img src="assets/christhelper-logo.png" alt="ChristHelper logo"></span> ChristHelper</a>
-        <p>A Christian support platform where believers respond with prayer, guidance, volunteering, encouragement, and safe financial giving.</p>
+        <p>A Christian support platform where believers respond with prayer, guidance, volunteering, and encouragement.</p>
         <a class="site-footer__social" href="https://www.instagram.com/christhelperofficial/" target="_blank" rel="noopener" aria-label="Follow ChristHelper on Instagram (opens in a new tab)">
           <svg class="ig-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17.3" cy="6.7" r="1.15" fill="currentColor"/></svg>
           <span>@christhelperofficial</span>
@@ -278,7 +237,7 @@
       </nav>
       <nav class="site-footer__col" aria-label="Get involved">
         <h3>Get involved</h3>
-        <a href="help-christhelper.html#give">Support ChristHelper</a>
+        <a href="help-christhelper.html#volunteer">Support ChristHelper</a>
         <a href="help-christhelper.html#volunteer">Volunteer</a>
         <a href="help-christhelper.html#feedback">Share feedback</a>
         <a href="admin.html" class="hide" data-admin>Admin Dashboard</a>
