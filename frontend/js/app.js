@@ -128,6 +128,9 @@ localStorage.setItem('christhelper.api', API_BASE);
 const API_CANDIDATES = [API_BASE];
 let token = localStorage.getItem('christhelper.token');
 let currentUser = JSON.parse(localStorage.getItem('christhelper.user') || 'null');
+// Admin role is only trusted after the server confirms it via /auth/me.
+// The cached user in localStorage is never enough to show admin options.
+let adminVerified = false;
 
 function $(selector) {
   return document.querySelector(selector);
@@ -165,7 +168,11 @@ async function fetchJsonWithBase(base, path, options = {}) {
   if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetch(`${String(base).replace(/\/+$/, '')}${path}`, { ...options, headers });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+  if (!response.ok) {
+    const err = new Error(data.error || `Request failed (${response.status})`);
+    err.status = response.status;
+    throw err;
+  }
   return data;
 }
 
@@ -213,6 +220,7 @@ function safeHtml(text) {
 function setStoredAuth(nextToken, user) {
   token = nextToken || '';
   currentUser = user || null;
+  if (!currentUser || currentUser.role !== 'admin') adminVerified = false;
   if (token) localStorage.setItem('christhelper.token', token);
   else localStorage.removeItem('christhelper.token');
   if (user) localStorage.setItem('christhelper.user', JSON.stringify(user));
@@ -229,6 +237,7 @@ async function api(path, options = {}) {
       rememberWorkingApiBase(base);
       return data;
     } catch (error) {
+      if (error && error.status) throw error;
       lastError = error;
       console.warn('API attempt failed', { base, path: normalizedPath, message: error?.message || String(error) });
     }
@@ -237,17 +246,73 @@ async function api(path, options = {}) {
   throw new Error(normalizeFetchError(lastError));
 }
 
+function isVerifiedAdmin() {
+  return Boolean(adminVerified && token && currentUser && currentUser.role === 'admin');
+}
+
 async function refreshCurrentUser() {
-  if (!token) return null;
+  adminVerified = false;
+  if (!token) {
+    if (currentUser) setStoredAuth('', null);
+    setAuthUi();
+    return null;
+  }
   try {
     const data = await api('/auth/me');
     setStoredAuth(token, data.user);
+    adminVerified = data?.user?.role === 'admin';
     setAuthUi();
     return data.user;
   } catch (error) {
     console.warn('Unable to refresh user', error.message);
+    if (error && (error.status === 401 || error.status === 403)) {
+      // Token expired or invalid: clear the stale session.
+      setStoredAuth('', null);
+    }
+    setAuthUi();
     return currentUser;
   }
+}
+
+function syncAdminLinks() {
+  const showAdmin = isVerifiedAdmin();
+
+  // Remove any admin links first, then add them back only for verified admins.
+  document.querySelectorAll('[data-admin]').forEach(el => el.remove());
+  if (!showAdmin) return;
+
+  document.querySelectorAll('#navMenu').forEach(nav => {
+    const link = document.createElement('a');
+    link.href = 'admin.html';
+    link.textContent = 'Admin Page';
+    link.setAttribute('data-admin', '');
+    if (isAdminPagePath()) link.setAttribute('aria-current', 'page');
+    const profileLink = nav.querySelector('[data-auth][href="profile.html"]');
+    if (profileLink) profileLink.insertAdjacentElement('afterend', link);
+    else nav.appendChild(link);
+  });
+
+  document.querySelectorAll('.site-footer nav[aria-label="Get involved"]').forEach(col => {
+    const link = document.createElement('a');
+    link.href = 'admin.html';
+    link.textContent = 'Admin Dashboard';
+    link.setAttribute('data-admin', '');
+    col.appendChild(link);
+  });
+}
+
+function isAdminPagePath() {
+  return /\/admin(\.html)?\/?$/.test(window.location.pathname);
+}
+
+function guardAdminPage() {
+  if (!isAdminPagePath()) return true;
+  if (isVerifiedAdmin()) {
+    document.documentElement.style.visibility = '';
+    return true;
+  }
+  window.location.replace(appPath(currentUser ? 'index.html' : 'login.html'));
+  return false;
 }
 
 function setAuthUi() {
@@ -259,9 +324,7 @@ function setAuthUi() {
     el.classList.toggle('hide', !!currentUser);
   });
 
-  document.querySelectorAll('[data-admin]').forEach(el => {
-    el.classList.toggle('hide', currentUser?.role !== 'admin');
-  });
+  syncAdminLinks();
 
   const nameEl = $('#navUserName');
   if (nameEl) nameEl.textContent = currentUser ? currentUser.name : '';
@@ -2287,7 +2350,7 @@ async function handleProfilePage() {
 
               <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;">
                 <button class="btn" id="saveProfileBtn" type="button">Save profile</button>
-                ${mergedUser?.role === 'admin' ? '<a class="btn-outline" href="/admin.html">Open admin page</a>' : ''}
+                ${isVerifiedAdmin() ? '<a class="btn-outline" href="/admin.html">Open admin page</a>' : ''}
               </div>
             </section>
 
@@ -3279,6 +3342,8 @@ function initButtons() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Keep the admin dashboard hidden until the server confirms the admin role.
+  if (isAdminPagePath()) document.documentElement.style.visibility = 'hidden';
   normalizeBrowserPath();
   trackPageContext();
   setAuthUi();
@@ -3292,6 +3357,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   handleSubmitProject();
   handlePlatformDonation();
   await refreshCurrentUser();
+  const adminPageAllowed = guardAdminPage();
   toggleFinancialFields();
   loadProjects();
   loadProjectDetails();
@@ -3299,6 +3365,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   handleUnsubscribePage();
   handleFeedbackForm();
   handleVolunteerForm();
+  if (!adminPageAllowed || !isAdminPagePath()) return;
   initAdminFilters();
   initAdminUserFilters();
   loadAdmin();
