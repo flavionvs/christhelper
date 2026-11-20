@@ -1849,6 +1849,24 @@ function validateSubmitPayloadBeforePost(payload) {
   return true;
 }
 
+// ---- Submit lock: prevents duplicate requests from double/multiple clicks ----
+let submitRequestInFlight = false;
+
+function setSubmitRequestLocked(locked) {
+  submitRequestInFlight = locked;
+  const btn = $('#submitRequestBtn');
+  const form = $('#submitProjectForm');
+  if (form) form.setAttribute('aria-busy', locked ? 'true' : 'false');
+  if (!btn) return;
+  if (!btn.dataset.originalHtml) btn.dataset.originalHtml = btn.innerHTML;
+  btn.disabled = locked;
+  btn.classList.toggle('is-submitting', locked);
+  btn.setAttribute('aria-disabled', locked ? 'true' : 'false');
+  btn.innerHTML = locked
+    ? '<span class="sm-submit__spinner" aria-hidden="true"></span> Submitting…'
+    : btn.dataset.originalHtml;
+}
+
 async function submitRequestPayload(payload, form = null) {
   if (!validateSubmitPayloadBeforePost(payload)) return;
 
@@ -1886,10 +1904,14 @@ async function resumePendingSubmitRequestIfNeeded() {
 
   const pending = getPendingSubmitRequest();
   if (!pending?.payload) return;
+  if (submitRequestInFlight) return;
 
+  setSubmitRequestLocked(true);
   try {
     await submitRequestPayload(pending.payload);
+    // Success: stay locked while the browser redirects.
   } catch (error) {
+    setSubmitRequestLocked(false);
     alert(error.message);
   }
 }
@@ -1917,22 +1939,34 @@ function handleSubmitProject() {
   });
 
   initSubmitAuthModal();
+
+  // If the user comes back with the browser Back button, the page may be restored
+  // from cache with the button still locked — unlock it so they can submit a new request.
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) setSubmitRequestLocked(false);
+  });
+
   resumePendingSubmitRequestIfNeeded();
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    // Lock: ignore any further clicks / Enter presses while a submission is in progress.
+    if (submitRequestInFlight) return;
+
     const payload = getSubmitRequestPayload(form);
-
-
 
     if (!token) {
       showSubmitAuthModal(payload);
       return;
     }
 
+    setSubmitRequestLocked(true);
     try {
       await submitRequestPayload(payload, form);
+      // Success: keep the button locked until the redirect finishes,
+      // so the user cannot submit the same request again.
     } catch (error) {
+      setSubmitRequestLocked(false);
       if (error.message.includes('Missing token')) {
         showSubmitAuthModal(payload);
         return;

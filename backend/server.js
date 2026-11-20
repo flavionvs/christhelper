@@ -65,6 +65,9 @@ app.use(cors({
 app.use('/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 
+// Window in which an identical request from the same user is treated as a duplicate submission.
+const DUPLICATE_PROJECT_WINDOW_MS = 10 * 60 * 1000;
+
 function now() {
   return new Date().toISOString();
 }
@@ -2114,7 +2117,30 @@ app.post('/projects', authRequired, (req, res) => {
     fundingGoalCurrency = '';
   }
 
+  let isDuplicate = false;
   const projectId = withDb((state) => {
+    // Duplicate-submission guard: if the same user already created an identical
+    // request in the last few minutes (double click, slow network retry, two tabs),
+    // return that request instead of creating a second copy.
+    const duplicateWindowMs = DUPLICATE_PROJECT_WINDOW_MS;
+    const normalizeText = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const incomingTitle = normalizeText(body.title);
+    const incomingDescription = normalizeText(body.description);
+    const incomingCountry = normalizeText(body.country);
+    const nowMs = Date.now();
+    const existing = (state.projects || []).find((item) => {
+      if (!item || item.created_by !== req.user.id) return false;
+      const createdMs = new Date(item.created_at).getTime();
+      if (!Number.isFinite(createdMs) || nowMs - createdMs > duplicateWindowMs) return false;
+      return normalizeText(item.title) === incomingTitle
+        && normalizeText(item.description) === incomingDescription
+        && normalizeText(item.country) === incomingCountry;
+    });
+    if (existing) {
+      isDuplicate = true;
+      return existing.id;
+    }
+
     const project = normalizeProject({
       id: createId(),
       title: String(body.title),
@@ -2167,6 +2193,10 @@ app.post('/projects', authRequired, (req, res) => {
 
     return project.id;
   });
+
+  if (isDuplicate) {
+    return res.status(200).json({ id: projectId, duplicate: true, message: 'This request was already submitted' });
+  }
 
   res.status(201).json({ id: projectId, message: 'Request created successfully' });
 });
