@@ -2894,6 +2894,7 @@ function renderAdminProjects(items) {
   const filtered = (items || []).filter(matchesAdminFilters);
   const countEl = $('#adminProjectsCount');
   if (countEl) countEl.textContent = `${filtered.length} request${filtered.length === 1 ? '' : 's'}`;
+  updateAdminSummary();
 
   if (!filtered.length) {
     table.innerHTML = '<tr><td colspan="6">No requests found with these filters.</td></tr>';
@@ -3077,9 +3078,16 @@ function renderAdminFeedback(items) {
   const table = $('#adminFeedbackTable');
   if (!table) return;
 
-  const list = [...(items || [])].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  syncAdminFeedbackTypeOptions(items);
+  const list = [...(items || [])]
+    .filter(matchesAdminFeedbackFilters)
+    .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  const countEl = $('#adminFeedbackCount');
+  if (countEl) countEl.textContent = `${list.length} item${list.length === 1 ? '' : 's'}`;
+  updateAdminSummary();
+
   if (!list.length) {
-    table.innerHTML = '<tr><td colspan="8">No feedback found.</td></tr>';
+    table.innerHTML = `<tr><td colspan="8">${(items || []).length ? 'No feedback found with these filters.' : 'No feedback found.'}</td></tr>`;
     return;
   }
 
@@ -3198,6 +3206,7 @@ function renderAdminUsers(items) {
   const filtered = (items || []).filter(matchesAdminUserFilters);
   const countEl = $('#adminUsersCount');
   if (countEl) countEl.textContent = `${filtered.length} user${filtered.length === 1 ? '' : 's'}`;
+  updateAdminSummary();
 
   if (!filtered.length) {
     table.innerHTML = '<tr><td colspan="8">No users found with these filters.</td></tr>';
@@ -3318,6 +3327,214 @@ function initAdminUserFilters() {
   });
 }
 
+/* ---------- Admin dashboard: feedback filters ---------- */
+const ADMIN_VOLUNTEER_TYPE = 'Volunteer Application';
+
+function isFeedbackNew(item) {
+  return String(item?.status || 'New') !== 'Reviewed';
+}
+
+function matchesAdminFeedbackFilters(item) {
+  const search = ($('#adminFeedbackSearch')?.value || '').trim().toLowerCase();
+  const type = $('#adminFeedbackTypeFilter')?.value || '';
+  const status = $('#adminFeedbackStatusFilter')?.value || '';
+
+  if (search) {
+    const haystack = [item.name, item.email, item.type, item.message, item.request_id]
+      .filter(Boolean).join(' ').toLowerCase();
+    if (!haystack.includes(search)) return false;
+  }
+  if (type && String(item.type || 'Other') !== type) return false;
+  if (status === 'New' && !isFeedbackNew(item)) return false;
+  if (status === 'Reviewed' && isFeedbackNew(item)) return false;
+  return true;
+}
+
+// Builds the "Type" dropdown from the types that actually exist in the data.
+function syncAdminFeedbackTypeOptions(items) {
+  const select = $('#adminFeedbackTypeFilter');
+  if (!select) return;
+  const current = select.value || select.dataset.pending || '';
+  const types = [...new Set((items || []).map((item) => String(item.type || 'Other')))];
+  if (current && !types.includes(current)) types.push(current);
+  types.sort((a, b) => a.localeCompare(b));
+  select.innerHTML = '<option value="">All types</option>' + types
+    .map((type) => `<option value="${safeHtml(type)}">${safeHtml(type)}</option>`).join('');
+  select.value = current;
+  delete select.dataset.pending;
+}
+
+function setAdminFeedbackTypeFilter(type) {
+  const select = $('#adminFeedbackTypeFilter');
+  if (!select) return;
+  if (type && ![...select.options].some((opt) => opt.value === type)) {
+    select.insertAdjacentHTML('beforeend', `<option value="${safeHtml(type)}">${safeHtml(type)}</option>`);
+  }
+  select.value = type || '';
+  if (!adminFeedbackCache.length) select.dataset.pending = type || '';
+  renderAdminFeedback(adminFeedbackCache);
+}
+
+function initAdminFeedbackFilters() {
+  if (!$('#adminFeedbackTable')) return;
+  $('#adminFeedbackSearch')?.addEventListener('input', () => renderAdminFeedback(adminFeedbackCache));
+  ['adminFeedbackTypeFilter', 'adminFeedbackStatusFilter'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('change', () => renderAdminFeedback(adminFeedbackCache));
+  });
+  $('#adminClearFeedbackFiltersBtn')?.addEventListener('click', () => {
+    ['adminFeedbackSearch', 'adminFeedbackTypeFilter', 'adminFeedbackStatusFilter'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    renderAdminFeedback(adminFeedbackCache);
+  });
+}
+
+/* ---------- Admin dashboard: summary numbers ---------- */
+function isAdminProjectPendingReview(project) {
+  return Boolean(project?.needs_financial_support && !project?.admin_reviewed);
+}
+
+function setAdminStat(name, value) {
+  document.querySelectorAll(`[data-admin-stat="${name}"]`).forEach((el) => {
+    el.textContent = Number(value || 0).toLocaleString();
+  });
+}
+
+function setAdminTabBadges(tab, total, alertCount) {
+  const countEl = document.querySelector(`[data-admin-tab-count="${tab}"]`);
+  if (countEl) countEl.textContent = Number(total || 0).toLocaleString();
+  const alertEl = document.querySelector(`[data-admin-tab-alert="${tab}"]`);
+  if (alertEl) {
+    alertEl.textContent = alertCount > 0 ? Number(alertCount).toLocaleString() : '';
+    alertEl.classList.toggle('hide', !(alertCount > 0));
+  }
+}
+
+function updateAdminSummary() {
+  if (!$('.admin-stats')) return;
+
+  const projects = adminProjectsCache || [];
+  const feedback = adminFeedbackCache || [];
+  const users = adminUsersCache || [];
+
+  const requestsPending = projects.filter(isAdminProjectPendingReview).length;
+  const feedbackNew = feedback.filter(isFeedbackNew).length;
+  const volunteers = feedback.filter((item) => String(item.type || '') === ADMIN_VOLUNTEER_TYPE);
+  const volunteersNew = volunteers.filter(isFeedbackNew).length;
+  const usersActive = users.filter((user) => user.is_active !== false).length;
+  const usersAdmins = users.filter((user) => String(user.role || '') === 'admin').length;
+
+  setAdminStat('requestsTotal', projects.length);
+  setAdminStat('requestsPending', requestsPending);
+  setAdminStat('feedbackTotal', feedback.length);
+  setAdminStat('feedbackNew', feedbackNew);
+  setAdminStat('volunteersTotal', volunteers.length);
+  setAdminStat('volunteersNew', volunteersNew);
+  setAdminStat('usersTotal', users.length);
+  setAdminStat('usersActive', usersActive);
+  setAdminStat('usersAdmins', usersAdmins);
+
+  setAdminTabBadges('requests', projects.length, requestsPending);
+  setAdminTabBadges('feedback', feedback.length, feedbackNew);
+  setAdminTabBadges('users', users.length, 0);
+
+  document.querySelectorAll('.admin-stat').forEach((tile) => {
+    const sub = tile.querySelector('[data-admin-stat$="Pending"], [data-admin-stat$="New"]');
+    tile.classList.toggle('needs-attention', Boolean(sub && Number(sub.textContent.replace(/\D/g, '')) > 0));
+  });
+}
+
+/* ---------- Admin dashboard: tab menu ---------- */
+const ADMIN_TABS = ['requests', 'feedback', 'users'];
+
+function showAdminTab(name, options = {}) {
+  const tab = ADMIN_TABS.includes(name) ? name : 'requests';
+
+  document.querySelectorAll('[data-admin-tab]').forEach((button) => {
+    const active = button.dataset.adminTab === tab;
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
+    button.tabIndex = active ? 0 : -1;
+    button.classList.toggle('is-active', active);
+    if (active && options.focus) button.focus();
+  });
+
+  document.querySelectorAll('[data-admin-panel]').forEach((panel) => {
+    panel.classList.toggle('hide', panel.dataset.adminPanel !== tab);
+  });
+
+  document.querySelectorAll('.admin-stat').forEach((tile) => {
+    tile.classList.toggle('is-current', tile.dataset.adminGoto === tab && !tile.dataset.adminFeedbackType);
+  });
+
+  if (options.updateHash !== false && window.location.hash !== `#${tab}`) {
+    history.replaceState(null, '', `#${tab}`);
+  }
+
+  if (options.scroll) {
+    const bar = $('#adminTabsBar');
+    if (bar && bar.getBoundingClientRect().top < 0) {
+      const headerHeight = $('.header')?.offsetHeight || 0;
+      window.scrollTo({ top: window.scrollY + bar.getBoundingClientRect().top - headerHeight - 8, behavior: 'smooth' });
+    }
+  }
+}
+
+function syncAdminStickyOffset() {
+  const headerHeight = $('.header')?.offsetHeight || 0;
+  document.documentElement.style.setProperty('--admin-header-offset', `${headerHeight}px`);
+}
+
+function initAdminTabs() {
+  const tabs = [...document.querySelectorAll('[data-admin-tab]')];
+  if (!tabs.length) return;
+
+  tabs.forEach((button, index) => {
+    button.addEventListener('click', () => showAdminTab(button.dataset.adminTab, { scroll: true }));
+    button.addEventListener('keydown', (event) => {
+      let next = null;
+      if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
+      if (event.key === 'ArrowLeft') next = tabs[(index - 1 + tabs.length) % tabs.length];
+      if (event.key === 'Home') next = tabs[0];
+      if (event.key === 'End') next = tabs[tabs.length - 1];
+      if (!next) return;
+      event.preventDefault();
+      showAdminTab(next.dataset.adminTab, { focus: true });
+    });
+  });
+
+  document.querySelectorAll('[data-admin-goto]').forEach((tile) => {
+    tile.addEventListener('click', () => {
+      const target = tile.dataset.adminGoto;
+      if (target === 'feedback') setAdminFeedbackTypeFilter(tile.dataset.adminFeedbackType || '');
+      showAdminTab(target, { scroll: true });
+    });
+  });
+
+  $('#adminRefreshBtn')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.classList.add('is-loading');
+    try {
+      await Promise.all([loadAdmin(), loadAdminUsers(), loadAdminFeedback()]);
+    } finally {
+      button.disabled = false;
+      button.classList.remove('is-loading');
+    }
+  });
+
+  window.addEventListener('hashchange', () => {
+    const hash = window.location.hash.replace('#', '');
+    if (ADMIN_TABS.includes(hash)) showAdminTab(hash, { updateHash: false });
+  });
+
+  syncAdminStickyOffset();
+  window.addEventListener('resize', syncAdminStickyOffset);
+
+  const initial = window.location.hash.replace('#', '');
+  showAdminTab(ADMIN_TABS.includes(initial) ? initial : 'requests', { updateHash: false });
+}
+
 function initFilterPanels() {
   const mobileFilterQuery = window.matchMedia('(max-width: 900px)');
 
@@ -3400,8 +3617,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   handleFeedbackForm();
   handleVolunteerForm();
   if (!adminPageAllowed || !isAdminPagePath()) return;
+  initAdminTabs();
   initAdminFilters();
   initAdminUserFilters();
+  initAdminFeedbackFilters();
   loadAdmin();
   loadAdminUsers();
   loadAdminFeedback();

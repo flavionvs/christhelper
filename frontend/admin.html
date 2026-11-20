@@ -54,25 +54,86 @@
   </header>
 
   <main class="page-wrap">
-    <div class="container stack">
-      <section class="card panel">
-        <h1 style="font-size:2.2rem;">Admin dashboard</h1>
-        <p>Review requests and moderate unsuitable content.</p>
+    <div class="container stack admin-dashboard">
+      <section class="card panel admin-hero">
+        <div class="admin-hero__text">
+          <p class="eyebrow">Admin</p>
+          <h1>Admin dashboard</h1>
+          <p>Review requests, read feedback and volunteer applications, and manage users.</p>
+        </div>
+        <button class="btn-outline admin-refresh-btn" type="button" id="adminRefreshBtn" aria-label="Refresh all admin data">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Refresh</span>
+        </button>
       </section>
 
-      <section class="card panel">
-        <h2>Filters</h2>
-        <div class="admin-filter-grid">
-          <label class="field">
-            <span>Title</span>
-            <input type="text" id="adminFilterTitle" placeholder="Search by title">
-          </label>
+      <!-- Summary tiles: click one to jump to its tab -->
+      <section class="admin-stats" aria-label="Summary">
+        <button class="admin-stat" type="button" data-admin-goto="requests">
+          <span class="admin-stat__label">Requests</span>
+          <span class="admin-stat__value" data-admin-stat="requestsTotal">–</span>
+          <span class="admin-stat__sub"><span data-admin-stat="requestsPending">0</span> pending review</span>
+        </button>
+        <button class="admin-stat" type="button" data-admin-goto="feedback">
+          <span class="admin-stat__label">Feedback</span>
+          <span class="admin-stat__value" data-admin-stat="feedbackTotal">–</span>
+          <span class="admin-stat__sub"><span data-admin-stat="feedbackNew">0</span> new</span>
+        </button>
+        <button class="admin-stat" type="button" data-admin-goto="feedback" data-admin-feedback-type="Volunteer Application">
+          <span class="admin-stat__label">Volunteers</span>
+          <span class="admin-stat__value" data-admin-stat="volunteersTotal">–</span>
+          <span class="admin-stat__sub"><span data-admin-stat="volunteersNew">0</span> new</span>
+        </button>
+        <button class="admin-stat" type="button" data-admin-goto="users">
+          <span class="admin-stat__label">Users</span>
+          <span class="admin-stat__value" data-admin-stat="usersTotal">–</span>
+          <span class="admin-stat__sub"><span data-admin-stat="usersActive">0</span> active · <span data-admin-stat="usersAdmins">0</span> admins</span>
+        </button>
+      </section>
 
+      <!-- Tab menu -->
+      <div class="admin-tabs-bar" id="adminTabsBar">
+        <div class="admin-tabs" role="tablist" aria-label="Admin sections">
+          <button class="admin-tab" type="button" role="tab" id="adminTab-requests" aria-controls="adminPanel-requests" aria-selected="true" data-admin-tab="requests">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 3h7l5 5v13H7z M14 3v5h5 M10 13h6 M10 17h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>
+            <span class="admin-tab__label">Requests</span>
+            <span class="admin-tab__count" data-admin-tab-count="requests">0</span>
+            <span class="admin-tab__alert hide" data-admin-tab-alert="requests" title="Pending review"></span>
+          </button>
+          <button class="admin-tab" type="button" role="tab" id="adminTab-feedback" aria-controls="adminPanel-feedback" aria-selected="false" tabindex="-1" data-admin-tab="feedback">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            <span class="admin-tab__label admin-tab__label--long">Feedback &amp; Volunteers</span>
+            <span class="admin-tab__label admin-tab__label--short">Feedback</span>
+            <span class="admin-tab__count" data-admin-tab-count="feedback">0</span>
+            <span class="admin-tab__alert hide" data-admin-tab-alert="feedback" title="New items"></span>
+          </button>
+          <button class="admin-tab" type="button" role="tab" id="adminTab-users" aria-controls="adminPanel-users" aria-selected="false" tabindex="-1" data-admin-tab="users">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M2 21c0-3.9 3.1-7 7-7s7 3.1 7 7 M16 3.2a4 4 0 0 1 0 7.6 M18 14.3c2.3.9 4 3.2 4 5.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="admin-tab__label">Users</span>
+            <span class="admin-tab__count" data-admin-tab-count="users">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Requests panel -->
+      <section class="card panel admin-panel" role="tabpanel" id="adminPanel-requests" aria-labelledby="adminTab-requests" data-admin-panel="requests">
+        <div class="admin-panel__head">
+          <div>
+            <h2>Requests review</h2>
+            <p>Search, review, cancel or reactivate prayer and support requests.</p>
+          </div>
+          <span class="badge" id="adminProjectsCount">0 requests</span>
+        </div>
+
+        <div class="admin-toolbar">
+          <label class="field admin-toolbar__search">
+            <span>Title</span>
+            <input type="search" id="adminFilterTitle" placeholder="Search by title">
+          </label>
           <label class="field">
             <span>Requester</span>
-            <input type="text" id="adminFilterRequester" placeholder="Search by requester">
+            <input type="search" id="adminFilterRequester" placeholder="Search by requester">
           </label>
-
           <label class="field">
             <span>Status</span>
             <select id="adminFilterStatus">
@@ -83,7 +144,6 @@
               <option value="inactive">Inactive</option>
             </select>
           </label>
-
           <label class="field">
             <span>Reviewed</span>
             <select id="adminFilterReviewed">
@@ -92,66 +152,101 @@
               <option value="no">Not reviewed</option>
             </select>
           </label>
+          <div class="admin-toolbar__actions">
+            <button class="btn" type="button" id="adminApplyFiltersBtn">Apply</button>
+            <button class="btn-outline" type="button" id="adminClearFiltersBtn">Clear</button>
+          </div>
         </div>
 
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
-          <button class="btn" type="button" id="adminApplyFiltersBtn">Apply filters</button>
-          <button class="btn-outline" type="button" id="adminClearFiltersBtn">Clear</button>
-          <span class="badge" id="adminProjectsCount">0 requests</span>
+        <div class="table-wrap admin-table-wrap">
+          <table class="admin-requests-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Requester</th>
+                <th>Request status</th>
+                <th>Reviewed</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminProjectsTable">
+              <tr><td colspan="6">Loading...</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
-      <section class="card panel table-wrap">
-        <h2>Requests review</h2>
-        <table class="admin-requests-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Title</th>
-              <th>Requester</th>
-              <th>Request status</th>
-              <th>Reviewed</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="adminProjectsTable">
-            <tr><td colspan="6">Loading...</td></tr>
-          </tbody>
-        </table>
-      </section>
+      <!-- Feedback & volunteers panel -->
+      <section class="card panel admin-panel hide" role="tabpanel" id="adminPanel-feedback" aria-labelledby="adminTab-feedback" data-admin-panel="feedback">
+        <div class="admin-panel__head">
+          <div>
+            <h2>Feedback &amp; Volunteers</h2>
+            <p>Volunteer applications, suggestions, questions, bug reports, prayer platform issues, support enquiries and general feedback.</p>
+          </div>
+          <span class="badge" id="adminFeedbackCount">0 items</span>
+        </div>
 
-
-      <section class="card panel table-wrap">
-        <h2>Feedback &amp; Volunteers</h2>
-        <p>View volunteer applications, user suggestions, questions, bug reports, prayer platform issues, support enquiries, and general feedback. Volunteer applications appear with the type &ldquo;Volunteer Application&rdquo;.</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Date Submitted</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Type</th>
-              <th>Message Preview</th>
-              <th>Request ID</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="adminFeedbackTable">
-            <tr><td colspan="8">Loading...</td></tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section class="card panel">
-        <h2>Users list</h2>
-        <p>Search, filter, and manage registered users.</p>
-        <div class="admin-filter-grid">
-          <label class="field">
+        <div class="admin-toolbar">
+          <label class="field admin-toolbar__search">
             <span>Search</span>
-            <input type="text" id="adminUserSearch" placeholder="Search by name, email, country, or organisation">
+            <input type="search" id="adminFeedbackSearch" placeholder="Search by name, email or message">
           </label>
+          <label class="field">
+            <span>Type</span>
+            <select id="adminFeedbackTypeFilter">
+              <option value="">All types</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Status</span>
+            <select id="adminFeedbackStatusFilter">
+              <option value="">All statuses</option>
+              <option value="New">New</option>
+              <option value="Reviewed">Reviewed</option>
+            </select>
+          </label>
+          <div class="admin-toolbar__actions">
+            <button class="btn-outline" type="button" id="adminClearFeedbackFiltersBtn">Clear</button>
+          </div>
+        </div>
 
+        <div class="table-wrap admin-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date Submitted</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Type</th>
+                <th>Message Preview</th>
+                <th>Request ID</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminFeedbackTable">
+              <tr><td colspan="8">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Users panel -->
+      <section class="card panel admin-panel hide" role="tabpanel" id="adminPanel-users" aria-labelledby="adminTab-users" data-admin-panel="users">
+        <div class="admin-panel__head">
+          <div>
+            <h2>User management</h2>
+            <p>Search, filter and manage registered users.</p>
+          </div>
+          <span class="badge" id="adminUsersCount">0 users</span>
+        </div>
+
+        <div class="admin-toolbar">
+          <label class="field admin-toolbar__search">
+            <span>Search</span>
+            <input type="search" id="adminUserSearch" placeholder="Name, email, country or organisation">
+          </label>
           <label class="field">
             <span>Role</span>
             <select id="adminUserRoleFilter">
@@ -160,7 +255,6 @@
               <option value="supporter">Supporter</option>
             </select>
           </label>
-
           <label class="field">
             <span>Status</span>
             <select id="adminUserStatusFilter">
@@ -169,34 +263,31 @@
               <option value="inactive">Inactive</option>
             </select>
           </label>
+          <div class="admin-toolbar__actions">
+            <button class="btn" type="button" id="adminApplyUserFiltersBtn">Apply</button>
+            <button class="btn-outline" type="button" id="adminClearUserFiltersBtn">Clear</button>
+          </div>
         </div>
 
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
-          <button class="btn" type="button" id="adminApplyUserFiltersBtn">Apply filters</button>
-          <button class="btn-outline" type="button" id="adminClearUserFiltersBtn">Clear</button>
-          <span class="badge" id="adminUsersCount">0 users</span>
+        <div class="table-wrap admin-table-wrap">
+          <table class="admin-users-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Country</th>
+                <th>Organisation</th>
+                <th>Requests</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminUsersTable">
+              <tr><td colspan="8">Loading...</td></tr>
+            </tbody>
+          </table>
         </div>
-      </section>
-
-      <section class="card panel table-wrap">
-        <h2>User management</h2>
-        <table class="admin-users-table">
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Country</th>
-              <th>Organisation</th>
-              <th>Requests</th>
-              <th>Joined</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="adminUsersTable">
-            <tr><td colspan="8">Loading...</td></tr>
-          </tbody>
-        </table>
       </section>
     </div>
   </main>
