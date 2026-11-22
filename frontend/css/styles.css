@@ -5717,19 +5717,41 @@ body.gi-page { background: #f5f8fb; }
 }
 .signup-nudge__title { display: block; color: #10251a; font-size: 1rem; margin-bottom: 4px; }
 .signup-nudge__text { margin: 0; color: #55665d !important; font-size: 0.9rem; line-height: 1.45; }
-.signup-nudge__form { display: flex; gap: 8px; margin-top: 14px; }
-.signup-nudge__form input {
-  flex: 1;
+.signup-nudge__form { display: grid; gap: 12px; margin-top: 14px; }
+.signup-nudge__form[hidden], .signup-nudge__done[hidden], .signup-nudge__foot[hidden] { display: none; }
+.signup-nudge__field { display: grid; gap: 5px; }
+.signup-nudge__field label { font-size: 0.8rem; font-weight: 700; color: #22352b; }
+.signup-nudge__field input {
+  width: 100%;
   min-width: 0;
   min-height: 44px;
-  padding: 10px 14px;
+  padding: 10px 12px;
   border: 1.5px solid #d5dfd9;
-  border-radius: 999px;
+  border-radius: 10px;
   background: #fff;
   font-size: 0.95rem;
+  color: var(--text);
 }
-.signup-nudge__form input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(46, 125, 87, 0.15); }
-.signup-nudge__cta { white-space: nowrap; min-height: 44px; }
+.signup-nudge__field input::placeholder { color: #9aa9a1; }
+.signup-nudge__field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(46, 125, 87, 0.15); }
+.signup-nudge__pw { position: relative; display: flex; }
+.signup-nudge__pw input { padding-right: 64px; }
+.signup-nudge__toggle {
+  position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+  padding: 6px 9px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--primary); font-weight: 700; font-size: 0.8rem; cursor: pointer;
+}
+.signup-nudge__toggle:hover { background: #eef6f1; }
+.signup-nudge__check { display: flex; gap: 8px; align-items: flex-start; font-size: 0.84rem; color: #3b4c43; line-height: 1.4; cursor: pointer; }
+.signup-nudge__check input { width: 17px; height: 17px; margin: 1px 0 0; accent-color: var(--primary); flex: none; }
+.signup-nudge__check a { color: var(--primary); font-weight: 700; text-decoration: underline; }
+.signup-nudge__code { text-align: center; font-size: 1.35rem !important; letter-spacing: 0.45em; font-weight: 700; font-variant-numeric: tabular-nums; }
+.signup-nudge__cta { width: 100%; min-height: 46px; border-radius: 10px; }
+.signup-nudge__minor { margin: 0; text-align: center; font-size: 0.82rem; color: #7c8b83 !important; }
+.signup-nudge__minor .btn-link { font-size: 0.82rem; }
+.signup-nudge__minor .btn-link:disabled { color: #9aa9a1; cursor: default; }
+.signup-nudge__done { margin-top: 14px; }
+.signup-nudge__error a { color: inherit; font-weight: 700; text-decoration: underline; }
 .signup-nudge__error { margin: 8px 0 0; color: var(--danger) !important; font-size: 0.85rem; }
 .signup-nudge__error[hidden] { display: none; }
 .signup-nudge__foot {
@@ -5743,10 +5765,6 @@ body.gi-page { background: #f5f8fb; }
 }
 .signup-nudge__foot a { color: var(--primary); font-weight: 700; }
 .signup-nudge__foot .btn-link { font-size: 0.8rem; color: #6a7a71; font-weight: 700; }
-@media (max-width: 480px) {
-  .signup-nudge__form { flex-direction: column; }
-  .signup-nudge__cta { width: 100%; }
-}
 @media (prefers-reduced-motion: reduce) {
   .signup-nudge, .signup-nudge.is-leaving, .auth-spinner { animation: none; }
 }

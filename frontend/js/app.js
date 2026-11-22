@@ -576,11 +576,20 @@ function shouldShowSignupNudge() {
 }
 
 // Renders the prompt right after the prayer form. Returns true when shown.
+// Step 1: name, email, password, terms -> /auth/register
+// Step 2: 6-digit email code -> /auth/verify-email (signs them in, no page change)
 function showPrayerSignupNudge(afterElement, projectId) {
   if (!afterElement || !shouldShowSignupNudge()) return false;
   signupNudgeShownThisPage = true;
   const id = encodeURIComponent(String(projectId || ''));
+  const uid = `nudge-${String(projectId || '').replace(/[^\w-]/g, '')}-${Date.now().toString(36)}`;
   const loginHref = appPath(`login.html?next=project&id=${id}&from=prayer`);
+
+  // Reuse the name typed in the prayer form, unless they prayed anonymously.
+  const prayerForm = afterElement.closest('form') || afterElement;
+  const typedName = String(prayerForm.querySelector('[name="name"]')?.value || '').trim();
+  const prayedAnonymously = prayerForm.querySelector('[name="prayer_anonymous"]')?.checked;
+  const prefillName = prayedAnonymously || /^anonymous$/i.test(typedName) ? '' : typedName;
 
   const nudge = document.createElement('aside');
   nudge.className = 'signup-nudge';
@@ -590,23 +599,83 @@ function showPrayerSignupNudge(afterElement, projectId) {
     <div class="signup-nudge__head">
       <span class="signup-nudge__icon" aria-hidden="true">🕊️</span>
       <div>
-        <strong class="signup-nudge__title">Your prayer was received. Stay connected?</strong>
-        <p class="signup-nudge__text">Create a free account to keep track of the requests you pray for, see your prayers in one place, and share your own requests.</p>
+        <strong class="signup-nudge__title" data-nudge-title>Your prayer was received. Stay connected?</strong>
+        <p class="signup-nudge__text" data-nudge-text>Create a free account to keep track of the requests you pray for, see your prayers in one place, and share your own requests.</p>
       </div>
     </div>
-    <form class="signup-nudge__form" novalidate>
-      <label class="sr-only" for="nudgeEmail-${safeHtml(projectId)}">Email address</label>
-      <input id="nudgeEmail-${safeHtml(projectId)}" type="email" name="email" placeholder="you@example.com" autocomplete="email" inputmode="email" required>
-      <button type="submit" class="btn signup-nudge__cta">Continue <span aria-hidden="true">→</span></button>
+
+    <form class="signup-nudge__form" data-nudge-step="signup">
+      <div class="signup-nudge__field">
+        <label for="${uid}-name">Full name</label>
+        <input id="${uid}-name" name="name" type="text" autocomplete="name" placeholder="e.g. Maria Silva" value="${safeHtml(prefillName)}" required>
+      </div>
+      <div class="signup-nudge__field">
+        <label for="${uid}-email">Email</label>
+        <input id="${uid}-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required>
+      </div>
+      <div class="signup-nudge__field">
+        <label for="${uid}-password">Password</label>
+        <div class="signup-nudge__pw">
+          <input id="${uid}-password" name="password" type="password" autocomplete="new-password" placeholder="At least 6 characters" minlength="6" required>
+          <button type="button" class="signup-nudge__toggle" data-nudge-pw-toggle aria-label="Show password" aria-pressed="false">Show</button>
+        </div>
+      </div>
+      <label class="signup-nudge__check">
+        <input name="terms_accepted" type="checkbox" required>
+        <span>I agree to the <a href="${appPath('terms.html')}" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</span>
+      </label>
+      <p class="signup-nudge__error" role="alert" hidden></p>
+      <button type="submit" class="btn signup-nudge__cta">Create free account</button>
     </form>
-    <p class="signup-nudge__error" role="alert" hidden></p>
-    <p class="signup-nudge__foot">
-      <span>Free · takes 30 seconds · you can keep praying anonymously anytime.</span>
+
+    <form class="signup-nudge__form" data-nudge-step="verify" hidden>
+      <div class="signup-nudge__field">
+        <label for="${uid}-code">6-digit code</label>
+        <input id="${uid}-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" placeholder="000000" class="signup-nudge__code" required>
+      </div>
+      <p class="signup-nudge__error" role="alert" hidden></p>
+      <button type="submit" class="btn signup-nudge__cta">Verify and finish</button>
+      <p class="signup-nudge__minor">
+        <button type="button" class="btn-link" data-nudge-resend>Resend code</button>
+        · <button type="button" class="btn-link" data-nudge-back>Use a different email</button>
+      </p>
+    </form>
+
+    <div class="signup-nudge__done" data-nudge-step="done" hidden></div>
+
+    <p class="signup-nudge__foot" data-nudge-foot>
+      <span>Free · you can keep praying anonymously anytime.</span>
       <span><a href="${loginHref}">I have an account</a> · <button type="button" class="btn-link" data-nudge-dismiss>Not now</button></span>
     </p>
   `;
   afterElement.insertAdjacentElement('afterend', nudge);
   trackEvent('signup_nudge_shown', { project_id: projectId, page_path: window.location.pathname });
+
+  const $n = (sel) => nudge.querySelector(sel);
+  const signupForm = $n('[data-nudge-step="signup"]');
+  const verifyForm = $n('[data-nudge-step="verify"]');
+  const doneBox = $n('[data-nudge-step="done"]');
+  const title = $n('[data-nudge-title]');
+  const text = $n('[data-nudge-text]');
+  let signupEmail = '';
+
+  const setError = (form, message) => {
+    const box = form.querySelector('.signup-nudge__error');
+    box.innerHTML = message || '';
+    box.hidden = !message;
+  };
+  const setBusy = (form, busy, label) => {
+    const button = form.querySelector('button[type="submit"]');
+    button.dataset.label = button.dataset.label || button.innerHTML;
+    button.disabled = busy;
+    button.innerHTML = busy ? `<span class="auth-spinner" aria-hidden="true"></span>${safeHtml(label)}` : button.dataset.label;
+  };
+  const showStep = (step) => {
+    signupForm.hidden = step !== 'signup';
+    verifyForm.hidden = step !== 'verify';
+    doneBox.hidden = step !== 'done';
+    $n('[data-nudge-foot]').hidden = step === 'done';
+  };
 
   const dismiss = () => {
     try { localStorage.setItem(SIGNUP_NUDGE_DISMISSED_KEY, String(Date.now())); } catch (error) { /* ignore */ }
@@ -616,19 +685,99 @@ function showPrayerSignupNudge(afterElement, projectId) {
   };
   nudge.querySelectorAll('[data-nudge-dismiss]').forEach((button) => button.addEventListener('click', dismiss));
 
-  nudge.querySelector('form').addEventListener('submit', (event) => {
+  $n('[data-nudge-pw-toggle]').addEventListener('click', (event) => {
+    const input = signupForm.querySelector('[name="password"]');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    event.currentTarget.textContent = show ? 'Hide' : 'Show';
+    event.currentTarget.setAttribute('aria-pressed', String(show));
+    event.currentTarget.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  });
+
+  // Step 1: create the account.
+  signupForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const input = event.currentTarget.querySelector('input[name="email"]');
-    const error = nudge.querySelector('.signup-nudge__error');
-    const email = String(input.value || '').trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      error.textContent = 'Please enter a valid email address.';
-      error.hidden = false;
-      input.focus();
+    if (!signupForm.reportValidity()) return;
+    const fd = new FormData(signupForm);
+    const payload = {
+      name: String(fd.get('name') || '').trim(),
+      email: String(fd.get('email') || '').trim(),
+      password: String(fd.get('password') || ''),
+      terms_accepted: fd.get('terms_accepted') === 'on'
+    };
+    setError(signupForm, '');
+    setBusy(signupForm, true, 'Creating account...');
+    trackEvent('signup_nudge_clicked', { project_id: projectId, page_path: window.location.pathname });
+    try {
+      const data = await api('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
+      trackEvent('sign_up', { method: 'email', page_path: window.location.pathname, source: 'prayer_nudge' });
+      signupEmail = data.email || payload.email;
+      title.textContent = 'Check your email';
+      text.innerHTML = `We sent a 6-digit code to <strong>${safeHtml(signupEmail)}</strong>. Enter it below to finish. Can't find it? Check your spam folder.`;
+      showStep('verify');
+      verifyForm.querySelector('[name="code"]').focus();
+    } catch (error) {
+      const exists = /already|exists|registered/i.test(error.message || '');
+      setError(signupForm, exists
+        ? `An account with this email already exists. <a href="${loginHref}">Sign in instead</a>.`
+        : safeHtml(error.message || 'Could not create your account.'));
+    } finally {
+      setBusy(signupForm, false);
+    }
+  });
+
+  // Step 2: verify the code, which also signs them in.
+  verifyForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const code = String(new FormData(verifyForm).get('code') || '').replace(/\D/g, '');
+    if (code.length !== 6) {
+      setError(verifyForm, 'Please enter the 6-digit code from your email.');
       return;
     }
-    trackEvent('signup_nudge_clicked', { project_id: projectId, page_path: window.location.pathname });
-    window.location.href = appPath(`register.html?email=${encodeURIComponent(email)}&next=project&id=${id}&from=prayer`);
+    setError(verifyForm, '');
+    setBusy(verifyForm, true, 'Verifying...');
+    try {
+      const data = await api('/auth/verify-email', { method: 'POST', body: JSON.stringify({ email: signupEmail, code }) });
+      setStoredAuth(data.token, data.user);
+      setAuthUi();
+      const firstName = String(data.user?.name || '').trim().split(/\s+/)[0];
+      title.textContent = `Welcome to ChristHelper${firstName ? `, ${firstName}` : ''}!`;
+      text.textContent = 'Your account is ready and you are signed in. Your future prayers will be saved to your profile.';
+      doneBox.innerHTML = `<a class="btn signup-nudge__cta" href="${appPath('profile.html')}">Go to my profile</a>`;
+      showStep('done');
+    } catch (error) {
+      setError(verifyForm, safeHtml(error.message || 'That code did not work. Please try again.'));
+    } finally {
+      setBusy(verifyForm, false);
+    }
+  });
+
+  $n('[data-nudge-resend]').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      const data = await api('/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email: signupEmail }) });
+      setError(verifyForm, '');
+      text.innerHTML = `${safeHtml(data.message || 'A new code is on its way')} to <strong>${safeHtml(signupEmail)}</strong>.`;
+      let seconds = 30;
+      const tick = () => {
+        if (seconds <= 0) { button.disabled = false; button.textContent = 'Resend code'; return; }
+        button.textContent = `Resend in ${seconds}s`;
+        seconds -= 1;
+        window.setTimeout(tick, 1000);
+      };
+      tick();
+    } catch (error) {
+      button.disabled = false;
+      setError(verifyForm, safeHtml(error.message || 'Could not resend the code.'));
+    }
+  });
+
+  $n('[data-nudge-back]').addEventListener('click', () => {
+    title.textContent = 'Your prayer was received. Stay connected?';
+    text.textContent = 'Create a free account to keep track of the requests you pray for, see your prayers in one place, and share your own requests.';
+    showStep('signup');
+    signupForm.querySelector('[name="email"]').focus();
   });
 
   return true;
