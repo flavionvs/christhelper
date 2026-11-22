@@ -14,6 +14,9 @@ const GA_ALLOWED_EVENTS = new Set([
   'project_created',
   'project_response_submitted',
   'prayer_submitted',
+  'signup_nudge_shown',
+  'signup_nudge_clicked',
+  'signup_nudge_dismissed',
   'reply_submitted',
   'project_report_submitted',
   'feedback_submitted',
@@ -558,6 +561,79 @@ async function submitPrayer(projectId, { name = '', message = '', anonymous = fa
   return result;
 }
 
+/* ===== Gentle signup prompt after an anonymous (logged-out) prayer ===== */
+const SIGNUP_NUDGE_DISMISSED_KEY = 'christhelper.signupNudgeDismissedAt';
+const SIGNUP_NUDGE_SNOOZE_DAYS = 14;
+let signupNudgeShownThisPage = false;
+
+function shouldShowSignupNudge() {
+  if (currentUser || token || signupNudgeShownThisPage) return false;
+  try {
+    const dismissedAt = Number(localStorage.getItem(SIGNUP_NUDGE_DISMISSED_KEY) || 0);
+    if (dismissedAt && Date.now() - dismissedAt < SIGNUP_NUDGE_SNOOZE_DAYS * 86400000) return false;
+  } catch (error) { /* storage unavailable: still show */ }
+  return true;
+}
+
+// Renders the prompt right after the prayer form. Returns true when shown.
+function showPrayerSignupNudge(afterElement, projectId) {
+  if (!afterElement || !shouldShowSignupNudge()) return false;
+  signupNudgeShownThisPage = true;
+  const id = encodeURIComponent(String(projectId || ''));
+  const loginHref = appPath(`login.html?next=project&id=${id}&from=prayer`);
+
+  const nudge = document.createElement('aside');
+  nudge.className = 'signup-nudge';
+  nudge.setAttribute('aria-label', 'Create a free ChristHelper account');
+  nudge.innerHTML = `
+    <button type="button" class="signup-nudge__close" data-nudge-dismiss aria-label="Not now">&times;</button>
+    <div class="signup-nudge__head">
+      <span class="signup-nudge__icon" aria-hidden="true">🕊️</span>
+      <div>
+        <strong class="signup-nudge__title">Your prayer was received. Stay connected?</strong>
+        <p class="signup-nudge__text">Create a free account to keep track of the requests you pray for, see your prayers in one place, and share your own requests.</p>
+      </div>
+    </div>
+    <form class="signup-nudge__form" novalidate>
+      <label class="sr-only" for="nudgeEmail-${safeHtml(projectId)}">Email address</label>
+      <input id="nudgeEmail-${safeHtml(projectId)}" type="email" name="email" placeholder="you@example.com" autocomplete="email" inputmode="email" required>
+      <button type="submit" class="btn signup-nudge__cta">Continue <span aria-hidden="true">→</span></button>
+    </form>
+    <p class="signup-nudge__error" role="alert" hidden></p>
+    <p class="signup-nudge__foot">
+      <span>Free · takes 30 seconds · you can keep praying anonymously anytime.</span>
+      <span><a href="${loginHref}">I have an account</a> · <button type="button" class="btn-link" data-nudge-dismiss>Not now</button></span>
+    </p>
+  `;
+  afterElement.insertAdjacentElement('afterend', nudge);
+  trackEvent('signup_nudge_shown', { project_id: projectId, page_path: window.location.pathname });
+
+  const dismiss = () => {
+    try { localStorage.setItem(SIGNUP_NUDGE_DISMISSED_KEY, String(Date.now())); } catch (error) { /* ignore */ }
+    trackEvent('signup_nudge_dismissed', { project_id: projectId, page_path: window.location.pathname });
+    nudge.classList.add('is-leaving');
+    window.setTimeout(() => nudge.remove(), 220);
+  };
+  nudge.querySelectorAll('[data-nudge-dismiss]').forEach((button) => button.addEventListener('click', dismiss));
+
+  nudge.querySelector('form').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const input = event.currentTarget.querySelector('input[name="email"]');
+    const error = nudge.querySelector('.signup-nudge__error');
+    const email = String(input.value || '').trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      error.textContent = 'Please enter a valid email address.';
+      error.hidden = false;
+      input.focus();
+      return;
+    }
+    trackEvent('signup_nudge_clicked', { project_id: projectId, page_path: window.location.pathname });
+    window.location.href = appPath(`register.html?email=${encodeURIComponent(email)}&next=project&id=${id}&from=prayer`);
+  });
+
+  return true;
+}
+
 function formatResponseCountLabel(count) {
   return `🙏 ${count} ${count === 1 ? 'prayer/reply' : 'prayers/replies'}`;
 }
@@ -786,10 +862,16 @@ function initProjectCardResponses(scope = document) {
         toggle?.setAttribute('title', 'You prayed for this request. Tap to pray again.');
 
         if (status) status.textContent = 'Amen. Thank you for praying.';
-        window.setTimeout(() => {
-          setCardPanelOpen(card, 'pray', false);
-          if (status) status.textContent = '';
-        }, 1800);
+        // Logged-out visitors get a gentle invitation to sign up; keep the panel
+        // open so they can see it. Everyone else gets the usual auto-close.
+        const hadNudge = Boolean(form.parentElement?.querySelector('.signup-nudge'));
+        const nudgeShown = !hadNudge && showPrayerSignupNudge(form, projectId);
+        if (!hadNudge && !nudgeShown) {
+          window.setTimeout(() => {
+            setCardPanelOpen(card, 'pray', false);
+            if (status) status.textContent = '';
+          }, 1800);
+        }
       } catch (error) {
         if (status) status.textContent = error.message || 'Could not record your prayer.';
       } finally {
@@ -1313,6 +1395,7 @@ async function loadProjectDetails() {
         const messageField = prayForm.querySelector('textarea[name="message"]');
         if (messageField) messageField.value = '';
         if (status) status.textContent = 'Amen. Thank you for praying.';
+        if (!prayForm.parentElement?.querySelector('.signup-nudge')) showPrayerSignupNudge(prayForm, id);
       } catch (error) {
         if (status) status.textContent = error.message || 'Could not record your prayer.';
       } finally {
@@ -1481,7 +1564,142 @@ async function loadProjectDetails() {
   }
 }
 
+/* =========================
+   AUTH PAGES (login / register / verify / forgot / reset)
+========================= */
+
+// Where to send someone after they sign in, sign up or verify.
+// Supports ?next=submit (resume a saved request) and ?next=project&id=X
+// (return to the prayer request they were looking at).
+function getAuthNext() {
+  const params = new URLSearchParams(window.location.search);
+  const next = params.get('next');
+  if (next === 'submit') return { next: 'submit' };
+  if (next === 'project') {
+    const id = String(params.get('id') || '');
+    if (/^[\w-]{1,80}$/.test(id)) return { next: 'project', id };
+  }
+  return null;
+}
+
+function authNextQuery() {
+  const next = getAuthNext();
+  if (!next) return '';
+  return next.next === 'project' ? `next=project&id=${encodeURIComponent(next.id)}` : 'next=submit';
+}
+
+function withAuthNext(path, extra = '') {
+  const parts = [extra, authNextQuery()].filter(Boolean).join('&');
+  return parts ? `${path}?${parts}` : path;
+}
+
+function getPostAuthDestination() {
+  const next = getAuthNext();
+  if (next?.next === 'submit' && getPendingSubmitRequest()) return 'submit.html?resume=1';
+  if (next?.next === 'project') return `project.html?id=${encodeURIComponent(next.id)}`;
+  return 'profile.html';
+}
+
+// Inline message box at the top of an auth form (replaces alert()).
+function showAuthMessage(form, message, type = 'error') {
+  let box = form.querySelector('[data-auth-message]');
+  if (!box) {
+    box = document.createElement('div');
+    box.setAttribute('data-auth-message', '');
+    form.prepend(box);
+  }
+  box.className = `auth-message auth-message--${type}`;
+  box.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  box.textContent = message;
+  box.hidden = !message;
+}
+
+function setAuthBusy(form, busy, busyLabel) {
+  const button = form.querySelector('button[type="submit"]');
+  if (!button) return;
+  if (busy) {
+    button.dataset.label = button.dataset.label || button.innerHTML;
+    button.disabled = true;
+    button.classList.add('is-loading');
+    button.innerHTML = `<span class="auth-spinner" aria-hidden="true"></span>${safeHtml(busyLabel || 'Please wait...')}`;
+  } else {
+    button.disabled = false;
+    button.classList.remove('is-loading');
+    if (button.dataset.label) button.innerHTML = button.dataset.label;
+  }
+}
+
+function passwordStrength(value) {
+  const v = String(value || '');
+  if (!v) return { score: 0, label: '' };
+  let score = 0;
+  if (v.length >= 6) score += 1;
+  if (v.length >= 10) score += 1;
+  if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score += 1;
+  if (/\d/.test(v) && /[^A-Za-z0-9]/.test(v)) score += 1;
+  if (v.length < 6) return { score: 1, label: 'Too short' };
+  return { score: Math.max(1, score), label: ['', 'Weak', 'Fair', 'Good', 'Strong'][Math.max(1, score)] };
+}
+
+function initAuthUi() {
+  if (!document.querySelector('.auth-shell')) return;
+  const params = new URLSearchParams(window.location.search);
+
+  // Show / hide password buttons.
+  document.querySelectorAll('[data-password-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const input = button.closest('.auth-field__control')?.querySelector('input');
+      if (!input) return;
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      button.setAttribute('aria-pressed', String(show));
+      button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      button.textContent = show ? 'Hide' : 'Show';
+    });
+  });
+
+  // Password strength meter (register / reset).
+  document.querySelectorAll('[data-password-strength]').forEach((meter) => {
+    const input = document.getElementById(meter.dataset.passwordStrength);
+    const label = meter.querySelector('[data-strength-label]');
+    input?.addEventListener('input', () => {
+      const { score, label: text } = passwordStrength(input.value);
+      meter.dataset.score = String(score);
+      if (label) label.textContent = text;
+    });
+  });
+
+  // Keep ?next=... when moving between sign in / sign up / verify pages.
+  document.querySelectorAll('a[data-auth-link]').forEach((link) => {
+    const base = link.getAttribute('href').split('?')[0];
+    const email = link.hasAttribute('data-carry-email') ? params.get('email') : '';
+    link.href = withAuthNext(base, email ? `email=${encodeURIComponent(email)}` : '');
+  });
+
+  // Context banner when the visitor arrives from a prayer request.
+  const contextBox = document.querySelector('[data-auth-context]');
+  if (contextBox) {
+    const from = params.get('from');
+    if (from === 'prayer') {
+      contextBox.hidden = false;
+    } else if (getAuthNext()?.next === 'submit') {
+      contextBox.hidden = false;
+      contextBox.innerHTML = '<span aria-hidden="true">📝</span><span>Your request details are saved. Sign in or create an account to post it.</span>';
+    }
+  }
+
+  // Prefill email / name from the URL (e.g. coming from the prayer signup prompt).
+  document.querySelectorAll('.auth-shell form').forEach((form) => {
+    const email = form.querySelector('[name="email"]');
+    if (email && !email.value && params.get('email')) email.value = params.get('email');
+  });
+  const focusTarget = Array.from(document.querySelectorAll('.auth-shell form input:not([type="hidden"]):not([type="checkbox"])')).find((input) => !input.value);
+  if (focusTarget && window.matchMedia('(min-width: 720px)').matches) focusTarget.focus();
+}
+
 function handleAuthForms() {
+  initAuthUi();
+
   const registerForm = $('#registerForm');
   if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
@@ -1489,13 +1707,23 @@ function handleAuthForms() {
       const formData = new FormData(registerForm);
       const payload = Object.fromEntries(formData);
       payload.terms_accepted = formData.get('terms_accepted') === 'on';
+      if (!payload.terms_accepted) {
+        showAuthMessage(registerForm, 'Please agree to the Terms & Conditions to continue.');
+        return;
+      }
+      showAuthMessage(registerForm, '');
+      setAuthBusy(registerForm, true, 'Creating account...');
       try {
         const data = await api('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
-        trackEvent('sign_up', { method: 'email', page_path: window.location.pathname });
-        alert(data.message || 'Verification code sent.');
-        window.location.href = appPath(`verify-email.html?email=${encodeURIComponent(data.email || payload.email || '')}${new URLSearchParams(window.location.search).get('next') === 'submit' ? '&next=submit' : ''}`);
+        trackEvent('sign_up', { method: 'email', page_path: window.location.pathname, source: new URLSearchParams(window.location.search).get('from') || '' });
+        const email = data.email || payload.email || '';
+        window.location.href = appPath(withAuthNext('verify-email.html', `email=${encodeURIComponent(email)}&sent=1`));
       } catch (error) {
-        alert(error.message);
+        setAuthBusy(registerForm, false);
+        const exists = /already|exists|registered/i.test(error.message || '');
+        showAuthMessage(registerForm, exists
+          ? 'An account with this email already exists. Try signing in instead.'
+          : (error.message || 'Could not create your account.'));
       }
     });
   }
@@ -1505,19 +1733,20 @@ function handleAuthForms() {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const payload = Object.fromEntries(new FormData(loginForm));
+      showAuthMessage(loginForm, '');
+      setAuthBusy(loginForm, true, 'Signing in...');
       try {
         const data = await api('/auth/login', { method: 'POST', body: JSON.stringify(payload) });
         trackEvent('login', { method: 'email', page_path: window.location.pathname });
         setStoredAuth(data.token, data.user);
-        window.location.href = appPath(new URLSearchParams(window.location.search).get('next') === 'submit' && getPendingSubmitRequest() ? 'submit.html?resume=1' : 'profile.html');
+        window.location.href = appPath(getPostAuthDestination());
       } catch (error) {
-        const requiresVerification = /verify your email/i.test(error.message || '');
-        if (requiresVerification) {
-          alert(error.message);
-          window.location.href = appPath(`verify-email.html?email=${encodeURIComponent(payload.email || '')}`);
+        setAuthBusy(loginForm, false);
+        if (/verify your email/i.test(error.message || '')) {
+          window.location.href = appPath(withAuthNext('verify-email.html', `email=${encodeURIComponent(payload.email || '')}&unverified=1`));
           return;
         }
-        alert(error.message);
+        showAuthMessage(loginForm, error.message || 'Could not sign you in.');
       }
     });
   }
@@ -1527,34 +1756,51 @@ function handleAuthForms() {
     const emailField = verifyForm.querySelector('[name="email"]');
     const params = new URLSearchParams(window.location.search);
     if (emailField && !emailField.value) emailField.value = params.get('email') || '';
+    const shownEmail = $('[data-verify-email]');
+    if (shownEmail && emailField?.value) shownEmail.textContent = emailField.value;
+    if (params.get('sent') === '1') showAuthMessage(verifyForm, 'We sent a 6-digit code to your email. It expires in 30 minutes.', 'success');
+    if (params.get('unverified') === '1') showAuthMessage(verifyForm, 'Please verify your email before signing in. Enter the code we sent you, or resend it.', 'info');
 
     verifyForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const payload = Object.fromEntries(new FormData(verifyForm));
+      payload.code = String(payload.code || '').replace(/\D/g, '');
+      setAuthBusy(verifyForm, true, 'Verifying...');
       try {
         const data = await api('/auth/verify-email', { method: 'POST', body: JSON.stringify(payload) });
         setStoredAuth(data.token, data.user);
-        alert(data.message || 'Email verified successfully.');
-        window.location.href = appPath(new URLSearchParams(window.location.search).get('next') === 'submit' && getPendingSubmitRequest() ? 'submit.html?resume=1' : 'profile.html');
+        showAuthMessage(verifyForm, data.message || 'Email verified. Welcome to ChristHelper!', 'success');
+        window.location.href = appPath(getPostAuthDestination());
       } catch (error) {
-        alert(error.message);
+        setAuthBusy(verifyForm, false);
+        showAuthMessage(verifyForm, error.message || 'Could not verify your email.');
       }
     });
 
-    $('#resendVerificationBtn')?.addEventListener('click', async () => {
+    $('#resendVerificationBtn')?.addEventListener('click', async (event) => {
+      const button = event.currentTarget;
       const email = emailField?.value?.trim();
       if (!email) {
-        alert('Enter your email first.');
+        showAuthMessage(verifyForm, 'Enter your email first.');
+        emailField?.focus();
         return;
       }
+      button.disabled = true;
       try {
-        const data = await api('/auth/resend-verification', {
-          method: 'POST',
-          body: JSON.stringify({ email })
-        });
-        alert(data.message || 'Verification code sent.');
+        const data = await api('/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) });
+        showAuthMessage(verifyForm, data.message || 'A new code is on its way.', 'success');
+        let seconds = 30;
+        const original = 'Resend code';
+        const tick = () => {
+          if (seconds <= 0) { button.disabled = false; button.textContent = original; return; }
+          button.textContent = `Resend in ${seconds}s`;
+          seconds -= 1;
+          window.setTimeout(tick, 1000);
+        };
+        tick();
       } catch (error) {
-        alert(error.message);
+        button.disabled = false;
+        showAuthMessage(verifyForm, error.message || 'Could not resend the code.');
       }
     });
   }
@@ -1564,12 +1810,13 @@ function handleAuthForms() {
     forgotForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const payload = Object.fromEntries(new FormData(forgotForm));
+      setAuthBusy(forgotForm, true, 'Sending code...');
       try {
-        const data = await api('/auth/forgot-password', { method: 'POST', body: JSON.stringify(payload) });
-        alert(data.message || 'Reset code sent.');
-        window.location.href = appPath(`reset-password.html?email=${encodeURIComponent(payload.email || '')}`);
+        await api('/auth/forgot-password', { method: 'POST', body: JSON.stringify(payload) });
+        window.location.href = appPath(`reset-password.html?email=${encodeURIComponent(payload.email || '')}&sent=1`);
       } catch (error) {
-        alert(error.message);
+        setAuthBusy(forgotForm, false);
+        showAuthMessage(forgotForm, error.message || 'Could not send the reset code.');
       }
     });
   }
@@ -1579,24 +1826,27 @@ function handleAuthForms() {
     const emailField = resetForm.querySelector('[name="email"]');
     const params = new URLSearchParams(window.location.search);
     if (emailField && !emailField.value) emailField.value = params.get('email') || '';
+    if (params.get('sent') === '1') showAuthMessage(resetForm, 'If an account exists for that email, a reset code is on its way.', 'success');
 
     resetForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const payload = Object.fromEntries(new FormData(resetForm));
       if (payload.password !== payload.confirm_password) {
-        alert('Passwords do not match.');
+        showAuthMessage(resetForm, 'Passwords do not match.');
         return;
       }
+      setAuthBusy(resetForm, true, 'Updating password...');
       try {
         const data = await api('/auth/reset-password', {
           method: 'POST',
-          body: JSON.stringify({ email: payload.email, code: payload.code, password: payload.password })
+          body: JSON.stringify({ email: payload.email, code: String(payload.code || '').replace(/\D/g, ''), password: payload.password })
         });
         setStoredAuth(data.token, data.user);
-        alert(data.message || 'Password updated successfully.');
+        showAuthMessage(resetForm, data.message || 'Password updated.', 'success');
         window.location.href = appPath('profile.html');
       } catch (error) {
-        alert(error.message);
+        setAuthBusy(resetForm, false);
+        showAuthMessage(resetForm, error.message || 'Could not reset your password.');
       }
     });
   }

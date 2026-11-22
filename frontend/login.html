@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChristHelper | Login</title>
+  <title>ChristHelper | Sign in</title>
+  <meta name="description" content="Sign in to ChristHelper to follow the requests you pray for.">
+  <meta name="theme-color" content="#1f5a3d">
   <link rel="stylesheet" href="css/styles.css">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-VEBD7Q9H0S"></script>
@@ -14,25 +16,55 @@
   gtag('config', 'G-VEBD7Q9H0S');
 </script>
 </head>
-<body>
-  <main class="auth-wrap">
-    <section class="card auth-card">
-      <div class="text-center">
-        <div class="brand" style="justify-content:center;"><span class="brand-mark"><img src="assets/christhelper-logo.png" alt="ChristHelper logo"></span> ChristHelper</div>
-        <h1 style="font-size:2.1rem;margin-top:16px;">Sign in</h1>
-        <p>Access your profile, requests, prayers, and replies.</p>
+<body class="auth-page">
+  <main class="auth-shell">
+    <aside class="auth-aside" aria-hidden="false">
+      <a class="auth-aside__brand" href="index.html"><span class="auth-logo"><img src="assets/christhelper-logo.png" alt=""></span> ChristHelper</a>
+      <div class="auth-aside__content">
+        <p class="auth-aside__eyebrow">Welcome back</p>
+        <blockquote class="auth-verse">
+          <p>&ldquo;Bear ye one another&rsquo;s burdens, and so fulfil the law of Christ.&rdquo;</p>
+          <cite>Galatians 6:2 (KJV)</cite>
+        </blockquote>
+        <ul class="auth-benefits">
+          <li><span aria-hidden="true">🙏</span> Keep track of every request you pray for</li>
+          <li><span aria-hidden="true">✉️</span> Get replies and encouragement by email</li>
+          <li><span aria-hidden="true">🤝</span> Share your own prayer and help requests</li>
+        </ul>
       </div>
-      <form id="loginForm" class="simple-form">
-        <input name="email" type="email" placeholder="Email" required>
-        <input name="password" type="password" placeholder="Password" required>
-        <button class="btn" type="submit">Login</button>
-        <a class="btn-outline" href="forgot-password.html">Forgot password?</a>
-        <a class="btn-outline" href="register.html">Create account</a>
-        <a class="btn-outline" href="terms.html">Terms &amp; Conditions</a>
-        <a class="btn-outline" href="index.html">Back to home</a>
-      </form>
+      <p class="auth-aside__foot">Free to join &middot; Praying anonymously is always welcome</p>
+    </aside>
+
+    <section class="auth-panel">
+      <div class="auth-panel__inner">
+        <a class="auth-mobile-brand" href="index.html"><span class="auth-logo"><img src="assets/christhelper-logo.png" alt=""></span> ChristHelper</a>
+        <nav class="auth-tabs" aria-label="Account">
+          <a class="auth-tab is-active" aria-current="page" data-auth-link href="login.html">Sign in</a>
+          <a class="auth-tab" data-auth-link data-carry-email href="register.html">Create account</a>
+        </nav>
+        <header class="auth-header">
+          <h1>Welcome back</h1>
+          <p>Sign in to see your requests, prayers and replies.</p>
+        </header>
+        <div class="auth-context" data-auth-context hidden><span aria-hidden="true">🙏</span><span>Thank you for praying! Sign in so this prayer journey stays with your account.</span></div>
+        <form id="loginForm" class="auth-form">
+          <div class="auth-field">
+            <label for="loginEmail">Email</label>
+            <div class="auth-field__control"><input id="loginEmail" name="email" type="email" autocomplete="email" placeholder="you@example.com" inputmode="email" required></div>
+          </div>
+          <div class="auth-field">
+            <div class="auth-field__row"><label for="loginPassword">Password</label><a class="auth-inline-link" href="forgot-password.html">Forgot password?</a></div>
+            <div class="auth-field__control"><input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Your password" required><button type="button" class="auth-field__toggle" data-password-toggle aria-label="Show password" aria-pressed="false">Show</button></div>
+          </div>
+          <button class="btn auth-submit" type="submit">Sign in</button>
+        </form>
+        <p class="auth-switch">New to ChristHelper? <a data-auth-link data-carry-email href="register.html">Create a free account</a></p>
+        <p class="auth-legal">By continuing you agree to our <a href="terms.html">Terms &amp; Conditions</a>.</p>
+        <a class="auth-back" href="index.html"><span aria-hidden="true">&larr;</span> Back to home</a>
+      </div>
     </section>
   </main>
+
   <footer class="site-footer site-footer--compact">
     <div class="container site-footer__bottom">
       <span>&copy; <span data-year>2026</span> ChristHelper</span>

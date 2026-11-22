@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChristHelper | Register</title>
+  <title>ChristHelper | Create account</title>
+  <meta name="description" content="Create a free ChristHelper account to pray, share and support.">
+  <meta name="theme-color" content="#1f5a3d">
   <link rel="stylesheet" href="css/styles.css">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-VEBD7Q9H0S"></script>
@@ -14,28 +16,64 @@
   gtag('config', 'G-VEBD7Q9H0S');
 </script>
 </head>
-<body>
-  <main class="auth-wrap">
-    <section class="card auth-card">
-      <div class="text-center">
-        <div class="brand" style="justify-content:center;"><span class="brand-mark"><img src="assets/christhelper-logo.png" alt="ChristHelper logo"></span> ChristHelper</div>
-        <h1 style="font-size:2.1rem;margin-top:16px;">Create account</h1>
-        <p>Register as a supporter or request owner.</p>
+<body class="auth-page">
+  <main class="auth-shell">
+    <aside class="auth-aside" aria-hidden="false">
+      <a class="auth-aside__brand" href="index.html"><span class="auth-logo"><img src="assets/christhelper-logo.png" alt=""></span> ChristHelper</a>
+      <div class="auth-aside__content">
+        <p class="auth-aside__eyebrow">Join the community</p>
+        <blockquote class="auth-verse">
+          <p>&ldquo;Bear ye one another&rsquo;s burdens, and so fulfil the law of Christ.&rdquo;</p>
+          <cite>Galatians 6:2 (KJV)</cite>
+        </blockquote>
+        <ul class="auth-benefits">
+          <li><span aria-hidden="true">🙏</span> Keep track of every request you pray for</li>
+          <li><span aria-hidden="true">✉️</span> Get replies and encouragement by email</li>
+          <li><span aria-hidden="true">🤝</span> Share your own prayer and help requests</li>
+        </ul>
       </div>
-      <form id="registerForm" class="simple-form">
-        <input name="name" placeholder="Full name" required>
-        <input name="email" type="email" placeholder="Email" required>
-        <input name="password" type="password" placeholder="Password" minlength="6" required>
-        <label class="checkbox-field">
-          <input name="terms_accepted" type="checkbox" required>
-          <span>I have read and agree to the <a href="terms.html" style="color:var(--primary);text-decoration:underline;">Terms &amp; Conditions</a>.</span>
-        </label>
-        <button class="btn" type="submit">Register</button>
-        <a class="btn-outline" href="login.html">Already have an account?</a>
-        <a class="btn-outline" href="terms.html">Terms &amp; Conditions</a>
-      </form>
+      <p class="auth-aside__foot">Free to join &middot; Praying anonymously is always welcome</p>
+    </aside>
+
+    <section class="auth-panel">
+      <div class="auth-panel__inner">
+        <a class="auth-mobile-brand" href="index.html"><span class="auth-logo"><img src="assets/christhelper-logo.png" alt=""></span> ChristHelper</a>
+        <nav class="auth-tabs" aria-label="Account">
+          <a class="auth-tab" data-auth-link href="login.html">Sign in</a>
+          <a class="auth-tab is-active" aria-current="page" data-auth-link data-carry-email href="register.html">Create account</a>
+        </nav>
+        <header class="auth-header">
+          <h1>Create your free account</h1>
+          <p>Pray with others, share requests and keep everything in one place.</p>
+        </header>
+        <div class="auth-context" data-auth-context hidden><span aria-hidden="true">🙏</span><span>Thank you for praying! Finish creating your account to keep track of the requests you pray for.</span></div>
+        <form id="registerForm" class="auth-form">
+          <div class="auth-field">
+            <label for="registerName">Full name</label>
+            <div class="auth-field__control"><input id="registerName" name="name" type="text" autocomplete="name" placeholder="e.g. Maria Silva" required></div>
+          </div>
+          <div class="auth-field">
+            <label for="registerEmail">Email</label>
+            <div class="auth-field__control"><input id="registerEmail" name="email" type="email" autocomplete="email" placeholder="you@example.com" inputmode="email" required></div>
+            <small class="auth-field__hint">We&rsquo;ll send a 6-digit code to confirm it&rsquo;s you.</small>
+          </div>
+          <div class="auth-field">
+            <label for="registerPassword">Password</label>
+            <div class="auth-field__control"><input id="registerPassword" name="password" type="password" autocomplete="new-password" placeholder="At least 6 characters" minlength="6" required><button type="button" class="auth-field__toggle" data-password-toggle aria-label="Show password" aria-pressed="false">Show</button></div>
+            <div class="auth-strength" data-password-strength="registerPassword" data-score="0" aria-live="polite"><span class="auth-strength__bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><small data-strength-label></small></div>
+          </div>
+          <label class="auth-check">
+            <input name="terms_accepted" type="checkbox" required>
+            <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</span>
+          </label>
+          <button class="btn auth-submit" type="submit">Create account</button>
+        </form>
+        <p class="auth-switch">Already have an account? <a data-auth-link data-carry-email href="login.html">Sign in</a></p>
+        <a class="auth-back" href="index.html"><span aria-hidden="true">&larr;</span> Back to home</a>
+      </div>
     </section>
   </main>
+
   <footer class="site-footer site-footer--compact">
     <div class="container site-footer__bottom">
       <span>&copy; <span data-year>2026</span> ChristHelper</span>

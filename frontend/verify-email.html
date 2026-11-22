@@ -3,26 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChristHelper | Verify Email</title>
+  <title>ChristHelper | Verify email</title>
+  <meta name="description" content="Verify your email address to finish creating your ChristHelper account.">
+  <meta name="theme-color" content="#1f5a3d">
   <link rel="stylesheet" href="css/styles.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-VEBD7Q9H0S"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-VEBD7Q9H0S');
+</script>
 </head>
-<body>
-  <main class="auth-wrap">
-    <section class="card auth-card">
-      <div class="text-center">
-        <div class="brand" style="justify-content:center;"><span class="brand-mark"><img src="assets/christhelper-logo.png" alt="ChristHelper logo"></span> ChristHelper</div>
-        <h1 style="font-size:2rem;margin-top:16px;">Verify your email</h1>
-        <p>Enter the 6-digit code sent to your email inbox.</p>
+<body class="auth-page">
+  <main class="auth-shell">
+    <aside class="auth-aside" aria-hidden="false">
+      <a class="auth-aside__brand" href="index.html"><span class="auth-logo"><img src="assets/christhelper-logo.png" alt=""></span> ChristHelper</a>
+      <div class="auth-aside__content">
+        <p class="auth-aside__eyebrow">Almost there</p>
+        <blockquote class="auth-verse">
+          <p>&ldquo;Bear ye one another&rsquo;s burdens, and so fulfil the law of Christ.&rdquo;</p>
+          <cite>Galatians 6:2 (KJV)</cite>
+        </blockquote>
+        <ul class="auth-benefits">
+          <li><span aria-hidden="true">🙏</span> Keep track of every request you pray for</li>
+          <li><span aria-hidden="true">✉️</span> Get replies and encouragement by email</li>
+          <li><span aria-hidden="true">🤝</span> Share your own prayer and help requests</li>
+        </ul>
       </div>
-      <form id="verifyEmailForm" class="simple-form">
-        <input name="email" type="email" placeholder="Email" required>
-        <input name="code" inputmode="numeric" maxlength="6" placeholder="Verification code" required>
-        <button class="btn" type="submit">Verify email</button>
-        <button class="btn-outline" id="resendVerificationBtn" type="button">Resend code</button>
-        <a class="btn-outline" href="login.html">Back to login</a>
-      </form>
+      <p class="auth-aside__foot">Free to join &middot; Praying anonymously is always welcome</p>
+    </aside>
+
+    <section class="auth-panel">
+      <div class="auth-panel__inner">
+        <a class="auth-mobile-brand" href="index.html"><span class="auth-logo"><img src="assets/christhelper-logo.png" alt=""></span> ChristHelper</a>
+        <header class="auth-header">
+          <span class="auth-header__icon" aria-hidden="true">✉️</span>
+          <h1>Check your email</h1>
+          <p>Enter the 6-digit code we sent to <strong data-verify-email>your email</strong>.</p>
+        </header>
+        <form id="verifyEmailForm" class="auth-form">
+          <div class="auth-field">
+            <label for="verifyCode">Verification code</label>
+            <div class="auth-field__control"><input id="verifyCode" name="code" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9 ]*" maxlength="7" placeholder="000000" class="auth-code-input" required></div>
+          </div>
+          <div class="auth-field">
+            <label for="verifyEmail">Email</label>
+            <div class="auth-field__control"><input id="verifyEmail" name="email" type="email" autocomplete="email" placeholder="you@example.com" inputmode="email" required></div>
+          </div>
+          <button class="btn auth-submit" type="submit">Verify and continue</button>
+          <button class="auth-secondary" id="resendVerificationBtn" type="button">Resend code</button>
+        </form>
+        <p class="auth-switch">Can&rsquo;t find it? Check your spam folder, or <a data-auth-link href="login.html">go back to sign in</a>.</p>
+        <a class="auth-back" href="index.html"><span aria-hidden="true">&larr;</span> Back to home</a>
+      </div>
     </section>
   </main>
+
   <footer class="site-footer site-footer--compact">
     <div class="container site-footer__bottom">
       <span>&copy; <span data-year>2026</span> ChristHelper</span>
